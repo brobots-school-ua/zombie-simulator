@@ -52,9 +52,10 @@ export class GameScene extends Phaser.Scene {
     // Create player at center
     this.player = new Player(this, this.mapSize / 2, this.mapSize / 2);
 
-    // Camera follows player
+    // Camera follows player with zoom
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cameras.main.setBounds(0, 0, this.mapSize, this.mapSize);
+    this.cameras.main.setZoom(1.5);
 
     // Collisions
     this.physics.add.collider(this.player, this.walls);
