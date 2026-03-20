@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { Player } from '../entities/Player';
 import { Zombie, ZombieType } from '../entities/Zombie';
 import { Bullet } from '../entities/Bullet';
-import { Pickup, PickupType } from '../entities/Pickup';
+import { Pickup } from '../entities/Pickup';
 
 // Main game scene — where all gameplay happens
 export class GameScene extends Phaser.Scene {
@@ -78,25 +78,31 @@ export class GameScene extends Phaser.Scene {
         this.player.kills++;
         this.player.score += z.scoreValue;
         this.zombiesRemaining--;
-
-        // Chance to drop pickup
-        if (Math.random() < 0.25) {
-          const type: PickupType = Math.random() < 0.5 ? 'health' : 'ammo';
-          const pickup = new Pickup(this, z.x, z.y, type);
-          this.pickups.add(pickup);
-        }
       }
     });
 
-    // Player picks up items
+    // Player picks up ammo
     this.physics.add.overlap(this.player, this.pickups, (_player, pickup) => {
       const p = pickup as Pickup;
-      if (p.pickupType === 'health') {
-        this.player.heal(p.value);
-      } else {
-        this.player.ammo = Math.min(this.player.ammo + p.value, this.player.maxAmmo);
-      }
+      this.player.ammo = Math.min(this.player.ammo + p.value, this.player.maxAmmo);
       p.destroy();
+    });
+
+    // Bullets collide with walls
+    this.physics.add.collider(this.bullets, this.walls, (bullet) => {
+      bullet.destroy();
+    });
+
+    // Spawn ammo pickups every 10-15 seconds
+    this.time.addEvent({
+      delay: Phaser.Math.Between(10000, 15000),
+      loop: true,
+      callback: () => {
+        const x = Phaser.Math.Between(100, this.mapSize - 100);
+        const y = Phaser.Math.Between(100, this.mapSize - 100);
+        const pickup = new Pickup(this, x, y, 'ammo');
+        this.pickups.add(pickup);
+      },
     });
 
     // Shooting
@@ -210,6 +216,22 @@ export class GameScene extends Phaser.Scene {
   }
 
   private generateObstacles() {
+    // Border walls around the entire map
+    for (let i = 0; i < this.mapSize; i += 64) {
+      // Top edge
+      const wTop = this.walls.create(i + 32, 32, 'wall') as Phaser.Physics.Arcade.Sprite;
+      wTop.setDepth(2).refreshBody();
+      // Bottom edge
+      const wBot = this.walls.create(i + 32, this.mapSize - 32, 'wall') as Phaser.Physics.Arcade.Sprite;
+      wBot.setDepth(2).refreshBody();
+      // Left edge
+      const wLeft = this.walls.create(32, i + 32, 'wall') as Phaser.Physics.Arcade.Sprite;
+      wLeft.setDepth(2).refreshBody();
+      // Right edge
+      const wRight = this.walls.create(this.mapSize - 32, i + 32, 'wall') as Phaser.Physics.Arcade.Sprite;
+      wRight.setDepth(2).refreshBody();
+    }
+
     // Scatter walls and buildings around the map
     const buildingCount = 15 + Math.floor(Math.random() * 10);
 

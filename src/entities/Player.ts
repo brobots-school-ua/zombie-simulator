@@ -24,8 +24,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
-    this.setCollideWorldBounds(false);
+    this.setCollideWorldBounds(true);
     this.setDepth(10);
+
+    // HP regeneration: +1 HP every second
+    scene.time.addEvent({
+      delay: 1000,
+      loop: true,
+      callback: () => {
+        if (this.active && this.hp > 0 && this.hp < this.maxHp) {
+          this.hp = Math.min(this.hp + 1, this.maxHp);
+        }
+      },
+    });
 
     // Setup keyboard controls
     this.keys = {
