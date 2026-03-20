@@ -1,0 +1,103 @@
+import Phaser from 'phaser';
+
+// Player entity — the survivor
+export class Player extends Phaser.Physics.Arcade.Sprite {
+  hp: number = 100;
+  maxHp: number = 100;
+  speed: number = 200;
+  ammo: number = 30;
+  maxAmmo: number = 30;
+  isReloading: boolean = false;
+  score: number = 0;
+  kills: number = 0;
+
+  private keys!: {
+    W: Phaser.Input.Keyboard.Key;
+    A: Phaser.Input.Keyboard.Key;
+    S: Phaser.Input.Keyboard.Key;
+    D: Phaser.Input.Keyboard.Key;
+    R: Phaser.Input.Keyboard.Key;
+  };
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, 'player');
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+
+    this.setCollideWorldBounds(false);
+    this.setDepth(10);
+
+    // Setup keyboard controls
+    this.keys = {
+      W: scene.input.keyboard!.addKey('W'),
+      A: scene.input.keyboard!.addKey('A'),
+      S: scene.input.keyboard!.addKey('S'),
+      D: scene.input.keyboard!.addKey('D'),
+      R: scene.input.keyboard!.addKey('R'),
+    };
+  }
+
+  update() {
+    // Movement
+    let vx = 0;
+    let vy = 0;
+
+    if (this.keys.W.isDown) vy = -1;
+    if (this.keys.S.isDown) vy = 1;
+    if (this.keys.A.isDown) vx = -1;
+    if (this.keys.D.isDown) vx = 1;
+
+    // Normalize diagonal movement
+    const len = Math.sqrt(vx * vx + vy * vy);
+    if (len > 0) {
+      vx = (vx / len) * this.speed;
+      vy = (vy / len) * this.speed;
+    }
+
+    this.setVelocity(vx, vy);
+
+    // Rotate player toward mouse
+    const pointer = this.scene.input.activePointer;
+    const worldPoint = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const angle = Phaser.Math.Angle.Between(this.x, this.y, worldPoint.x, worldPoint.y);
+    this.setRotation(angle);
+
+    // Reload
+    if (this.keys.R.isDown && !this.isReloading && this.ammo < this.maxAmmo) {
+      this.reload();
+    }
+  }
+
+  takeDamage(amount: number) {
+    this.hp -= amount;
+    // Flash red
+    this.setTint(0xff0000);
+    this.scene.time.delayedCall(100, () => this.clearTint());
+
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.scene.events.emit('player-died');
+    }
+  }
+
+  heal(amount: number) {
+    this.hp = Math.min(this.hp + amount, this.maxHp);
+  }
+
+  reload() {
+    this.isReloading = true;
+    this.scene.time.delayedCall(1500, () => {
+      this.ammo = this.maxAmmo;
+      this.isReloading = false;
+    });
+  }
+
+  shoot(): Phaser.Math.Vector2 | null {
+    if (this.ammo <= 0 || this.isReloading) return null;
+    this.ammo--;
+
+    const pointer = this.scene.input.activePointer;
+    const worldPoint = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    return new Phaser.Math.Vector2(worldPoint.x, worldPoint.y);
+  }
+}

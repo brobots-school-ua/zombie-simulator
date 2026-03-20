@@ -1,0 +1,78 @@
+import Phaser from 'phaser';
+import { GameScene } from './GameScene';
+
+// UI overlay scene — HUD with health, ammo, score, wave info
+export class UIScene extends Phaser.Scene {
+  private gameScene!: GameScene;
+  private hpBar!: Phaser.GameObjects.Graphics;
+  private hpText!: Phaser.GameObjects.Text;
+  private ammoText!: Phaser.GameObjects.Text;
+  private scoreText!: Phaser.GameObjects.Text;
+  private waveText!: Phaser.GameObjects.Text;
+  private reloadText!: Phaser.GameObjects.Text;
+
+  constructor() {
+    super({ key: 'UIScene' });
+  }
+
+  init(data: { gameScene: GameScene }) {
+    this.gameScene = data.gameScene;
+  }
+
+  create() {
+    const style: Phaser.Types.GameObjects.Text.TextStyle = {
+      fontSize: '18px',
+      fontFamily: 'monospace',
+      color: '#ffffff',
+    };
+
+    // HP bar background
+    this.hpBar = this.add.graphics();
+
+    // HP text
+    this.hpText = this.add.text(20, 15, '', style).setDepth(100);
+
+    // Ammo
+    this.ammoText = this.add.text(20, 50, '', style).setDepth(100);
+
+    // Reload indicator
+    this.reloadText = this.add.text(400, 300, 'RELOADING...', {
+      fontSize: '24px',
+      fontFamily: 'monospace',
+      color: '#ffff00',
+    }).setOrigin(0.5).setDepth(100).setVisible(false);
+
+    // Score
+    this.scoreText = this.add.text(20, 80, '', style).setDepth(100);
+
+    // Wave
+    this.waveText = this.add.text(680, 15, '', {
+      ...style,
+      fontSize: '22px',
+      color: '#ff6666',
+    }).setDepth(100);
+  }
+
+  update() {
+    if (!this.gameScene?.player) return;
+    const p = this.gameScene.player;
+
+    // Draw HP bar
+    this.hpBar.clear();
+    // Background
+    this.hpBar.fillStyle(0x333333);
+    this.hpBar.fillRect(18, 36, 204, 12);
+    // Health fill
+    const hpPercent = p.hp / p.maxHp;
+    const barColor = hpPercent > 0.5 ? 0x44ff44 : hpPercent > 0.25 ? 0xffaa00 : 0xff3333;
+    this.hpBar.fillStyle(barColor);
+    this.hpBar.fillRect(20, 38, 200 * hpPercent, 8);
+    this.hpBar.setDepth(99);
+
+    this.hpText.setText(`HP: ${p.hp}/${p.maxHp}`);
+    this.ammoText.setText(`Ammo: ${p.ammo}/${p.maxAmmo}`);
+    this.scoreText.setText(`Score: ${p.score} | Kills: ${p.kills}`);
+    this.waveText.setText(`Wave ${this.gameScene.wave}`);
+    this.reloadText.setVisible(p.isReloading);
+  }
+}
