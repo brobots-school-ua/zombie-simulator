@@ -5,8 +5,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   hp: number = 100;
   maxHp: number = 100;
   speed: number = 200;
-  ammo: number = 30;
-  maxAmmo: number = 30;
+  magazineAmmo: number = 30;    // bullets in current magazine
+  maxMagazine: number = 30;     // magazine capacity
+  reserveAmmo: number = 30;     // spare bullets
+  maxReserve: number = 60;      // max spare bullets
   isReloading: boolean = false;
   score: number = 0;
   kills: number = 0;
@@ -74,7 +76,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setRotation(angle);
 
     // Reload
-    if (this.keys.R.isDown && !this.isReloading && this.ammo < this.maxAmmo) {
+    if (this.keys.R.isDown && !this.isReloading && this.magazineAmmo < this.maxMagazine && this.reserveAmmo > 0) {
       this.reload();
     }
   }
@@ -98,14 +100,22 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   reload() {
     this.isReloading = true;
     this.scene.time.delayedCall(1500, () => {
-      this.ammo = this.maxAmmo;
+      // Move bullets from reserve to magazine
+      const needed = this.maxMagazine - this.magazineAmmo;
+      const toLoad = Math.min(needed, this.reserveAmmo);
+      this.magazineAmmo += toLoad;
+      this.reserveAmmo -= toLoad;
       this.isReloading = false;
     });
   }
 
+  addAmmo(amount: number) {
+    this.reserveAmmo = Math.min(this.reserveAmmo + amount, this.maxReserve);
+  }
+
   shoot(): Phaser.Math.Vector2 | null {
-    if (this.ammo <= 0 || this.isReloading) return null;
-    this.ammo--;
+    if (this.magazineAmmo <= 0 || this.isReloading) return null;
+    this.magazineAmmo--;
 
     const pointer = this.scene.input.activePointer;
     const worldPoint = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);

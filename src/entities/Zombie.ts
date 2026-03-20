@@ -66,12 +66,16 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(5);
   }
 
+  // Reference to walls group, set by GameScene
+  wallsGroup: Phaser.Physics.Arcade.StaticGroup | null = null;
+
   update(player: Player, time: number, delta: number) {
     if (!this.active) return;
 
     const dist = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
+    const canSeePlayer = dist < this.detectionRange && this.hasLineOfSight(player);
 
-    if (dist < this.detectionRange) {
+    if (canSeePlayer) {
       // Chase player
       const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
       this.setVelocity(
@@ -106,6 +110,26 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
       return true;
     }
     return false;
+  }
+
+  private hasLineOfSight(player: Player): boolean {
+    if (!this.wallsGroup) return true;
+
+    const walls = this.wallsGroup.getChildren() as Phaser.Physics.Arcade.Sprite[];
+    const line = new Phaser.Geom.Line(this.x, this.y, player.x, player.y);
+
+    for (const wall of walls) {
+      const wallRect = new Phaser.Geom.Rectangle(
+        wall.x - wall.displayWidth / 2,
+        wall.y - wall.displayHeight / 2,
+        wall.displayWidth,
+        wall.displayHeight
+      );
+      if (Phaser.Geom.Intersects.LineToRectangle(line, wallRect)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   takeDamage(amount: number): boolean {

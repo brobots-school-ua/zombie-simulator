@@ -81,10 +81,10 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    // Player picks up ammo
+    // Player picks up ammo (goes to reserve, not magazine)
     this.physics.add.overlap(this.player, this.pickups, (_player, pickup) => {
       const p = pickup as Pickup;
-      this.player.ammo = Math.min(this.player.ammo + p.value, this.player.maxAmmo);
+      this.player.addAmmo(p.value);
       p.destroy();
     });
 
@@ -93,14 +93,13 @@ export class GameScene extends Phaser.Scene {
       bullet.destroy();
     });
 
-    // Spawn ammo pickups every 10-15 seconds
+    // Spawn ammo pickups every 10-15 seconds at safe positions
     this.time.addEvent({
       delay: Phaser.Math.Between(10000, 15000),
       loop: true,
       callback: () => {
-        const x = Phaser.Math.Between(100, this.mapSize - 100);
-        const y = Phaser.Math.Between(100, this.mapSize - 100);
-        const pickup = new Pickup(this, x, y, 'ammo');
+        const pos = this.getSafeSpawnPosition();
+        const pickup = new Pickup(this, pos.x, pos.y, 'ammo');
         this.pickups.add(pickup);
       },
     });
@@ -166,9 +165,10 @@ export class GameScene extends Phaser.Scene {
 
     for (let i = 0; i < count; i++) {
       this.time.delayedCall(i * 300, () => {
-        const pos = this.getSpawnPosition();
+        const pos = this.getSafeSpawnPosition();
         const type = this.getRandomZombieType();
         const zombie = new Zombie(this, pos.x, pos.y, type);
+        zombie.wallsGroup = this.walls;
         this.zombies.add(zombie);
       });
     }
@@ -205,6 +205,34 @@ export class GameScene extends Phaser.Scene {
     y = Phaser.Math.Clamp(y, 50, this.mapSize - 50);
 
     return { x, y };
+  }
+
+  private getSafeSpawnPosition(): { x: number; y: number } {
+    // Try up to 20 times to find a position not inside a wall
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const pos = this.getSpawnPosition();
+      if (!this.isPositionBlocked(pos.x, pos.y)) {
+        return pos;
+      }
+    }
+    return this.getSpawnPosition();
+  }
+
+  private isPositionBlocked(x: number, y: number): boolean {
+    const testRect = new Phaser.Geom.Rectangle(x - 16, y - 16, 32, 32);
+    const walls = this.walls.getChildren() as Phaser.Physics.Arcade.Sprite[];
+    for (const wall of walls) {
+      const wallRect = new Phaser.Geom.Rectangle(
+        wall.x - wall.displayWidth / 2,
+        wall.y - wall.displayHeight / 2,
+        wall.displayWidth,
+        wall.displayHeight
+      );
+      if (Phaser.Geom.Intersects.RectangleToRectangle(testRect, wallRect)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private getRandomZombieType(): ZombieType {

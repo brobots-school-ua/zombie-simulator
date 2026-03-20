@@ -70,7 +70,7 @@ export class UIScene extends Phaser.Scene {
     this.hpBar.setDepth(99);
 
     this.hpText.setText(`HP: ${p.hp}/${p.maxHp}`);
-    this.ammoText.setText(`Ammo: ${p.ammo}/${p.maxAmmo}`);
+    this.ammoText.setText(`Ammo: ${p.magazineAmmo}/${p.maxMagazine} | Reserve: ${p.reserveAmmo}`);
     this.scoreText.setText(`Score: ${p.score} | Kills: ${p.kills}`);
     this.waveText.setText(`Wave ${this.gameScene.wave}`);
     this.reloadText.setVisible(p.isReloading);
