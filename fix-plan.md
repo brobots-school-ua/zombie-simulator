@@ -1,21 +1,30 @@
-# Fix Plan
+# Fix Plan — Round 3
 
-## Bug 1: Pickups spawn from zombies → ammo should spawn randomly on map
-**Problem:** Pickups (health + ammo) drop when zombie dies.
-**Fix:** Remove drop logic from zombie death. Remove health pickups entirely. Only ammo spawns on random map positions every 10-15 seconds.
+## 1. Зменшити кількість куль з пікапу
+**Problem:** Гравець отримує забагато куль за раз (15 в запас).
+**Fix:** Зменшити `value` для ammo pickup з 15 до 5-7 куль.
+**Files:** `src/entities/Pickup.ts`
+
+## 2. Zombie spawn rates — більше танків і раннерів
+**Problem:** Танки майже не з'являються, раннерів мало.
+**Fix:** Змінити ймовірності:
+- Wave 1-2: 100% walkers (як зараз)
+- Wave 3+: 60% walker, 30% runner, 10% tank
+- Wave 5+: 40% walker, 35% runner, 25% tank
+- Wave 8+: 30% walker, 35% runner, 35% tank
 **Files:** `src/scenes/GameScene.ts`
 
-## Bug 2: Remove health pickups, add HP regeneration
-**Problem:** Health pickups are not needed.
-**Fix:** Remove health pickup logic. Add passive HP regen to player: +1 HP every second (only player, not zombies).
-**Files:** `src/entities/Player.ts`, `src/scenes/GameScene.ts`
+## 3. HP bar для зомбі
+**Problem:** Гравець не бачить скільки HP залишилось у зомбі.
+**Fix:** Додати маленький HP bar над кожним зомбі (зелений/жовтий/червоний залежно від %). Малювати через `Graphics` об'єкт прив'язаний до зомбі.
+**Files:** `src/entities/Zombie.ts`
 
-## Bug 3: Player can walk through map edges — no border walls
-**Problem:** World bounds not enforced visually.
-**Fix:** Enable `setCollideWorldBounds(true)` on player and zombies. Add visible wall sprites around the entire map border.
-**Files:** `src/entities/Player.ts`, `src/scenes/GameScene.ts`
+## 4. Красивіші текстури — трава
+**Problem:** Трава — просто зелений квадрат.
+**Fix:** Генерувати текстуру трави з варіаціями кольору, крапками різних відтінків зеленого, маленькими травинками. Додати 2-3 варіанти тайлів для різноманітності.
+**Files:** `src/scenes/BootScene.ts`, `src/scenes/GameScene.ts`
 
-## Bug 4: Bullets fly through walls
-**Problem:** No collision between bullets and walls.
-**Fix:** Add `physics.add.overlap(bullets, walls)` that destroys bullet on contact.
-**Files:** `src/scenes/GameScene.ts`
+## 5. Красивіші текстури — каміння замість стін
+**Problem:** Стіни — сірі квадрати без деталей.
+**Fix:** Замінити текстуру `wall` на каміння: сірі/коричневі відтінки з нерівностями, тріщинами, тінями. Зробити вигляд натурального каменю.
+**Files:** `src/scenes/BootScene.ts`

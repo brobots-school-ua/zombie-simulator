@@ -41,6 +41,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
 // Zombie entity with simple AI
 export class Zombie extends Phaser.Physics.Arcade.Sprite {
   hp: number;
+  maxHp: number;
   zombieType: ZombieType;
   speed: number;
   damage: number;
@@ -49,6 +50,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   private attackCooldown: number = 0;
   private wanderAngle: number = Math.random() * Math.PI * 2;
   private wanderTimer: number = 0;
+  private hpBar: Phaser.GameObjects.Graphics;
 
   constructor(scene: Phaser.Scene, x: number, y: number, type: ZombieType = 'walker') {
     const config = ZOMBIE_CONFIG[type];
@@ -56,6 +58,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
 
     this.zombieType = type;
     this.hp = config.hp;
+    this.maxHp = config.hp;
     this.speed = config.speed;
     this.damage = config.damage;
     this.scoreValue = config.score;
@@ -64,6 +67,10 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(5);
+
+    // HP bar above zombie
+    this.hpBar = scene.add.graphics();
+    this.hpBar.setDepth(6);
   }
 
   // Reference to walls group, set by GameScene
@@ -102,6 +109,21 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     if (this.attackCooldown > 0) {
       this.attackCooldown -= delta;
     }
+
+    // Draw HP bar
+    this.hpBar.clear();
+    const barWidth = 30;
+    const barHeight = 4;
+    const barX = this.x - barWidth / 2;
+    const barY = this.y - this.displayHeight / 2 - 8;
+    const hpPercent = this.hp / this.maxHp;
+    // Background
+    this.hpBar.fillStyle(0x000000, 0.6);
+    this.hpBar.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
+    // HP fill
+    const color = hpPercent > 0.5 ? 0x44ff44 : hpPercent > 0.25 ? 0xffaa00 : 0xff3333;
+    this.hpBar.fillStyle(color);
+    this.hpBar.fillRect(barX, barY, barWidth * hpPercent, barHeight);
   }
 
   canAttack(): boolean {
@@ -140,6 +162,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     });
 
     if (this.hp <= 0) {
+      this.hpBar.destroy();
       this.destroy();
       return true; // zombie died
     }

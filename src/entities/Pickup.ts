@@ -12,7 +12,7 @@ export class Pickup extends Phaser.Physics.Arcade.Sprite {
     super(scene, x, y, texture);
 
     this.pickupType = type;
-    this.value = type === 'health' ? 25 : 15;
+    this.value = type === 'health' ? 25 : 6;
 
     scene.add.existing(this);
     scene.physics.add.existing(this);

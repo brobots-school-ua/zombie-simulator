@@ -31,10 +31,12 @@ export class GameScene extends Phaser.Scene {
     // World bounds
     this.physics.world.setBounds(0, 0, this.mapSize, this.mapSize);
 
-    // Draw ground tiles
+    // Draw ground tiles with random grass variants
+    const grassTiles = ['ground1', 'ground2', 'ground3'];
     for (let x = 0; x < this.mapSize; x += 64) {
       for (let y = 0; y < this.mapSize; y += 64) {
-        this.add.image(x + 32, y + 32, 'ground').setDepth(0);
+        const tile = grassTiles[Phaser.Math.Between(0, 2)];
+        this.add.image(x + 32, y + 32, tile).setDepth(0);
       }
     }
 
@@ -237,9 +239,22 @@ export class GameScene extends Phaser.Scene {
 
   private getRandomZombieType(): ZombieType {
     const r = Math.random();
-    // More variety in later waves
-    if (this.wave >= 5 && r < 0.15) return 'tank';
-    if (this.wave >= 3 && r < 0.35) return 'runner';
+    if (this.wave >= 8) {
+      // 30% walker, 35% runner, 35% tank
+      if (r < 0.35) return 'tank';
+      if (r < 0.70) return 'runner';
+      return 'walker';
+    } else if (this.wave >= 5) {
+      // 40% walker, 35% runner, 25% tank
+      if (r < 0.25) return 'tank';
+      if (r < 0.60) return 'runner';
+      return 'walker';
+    } else if (this.wave >= 3) {
+      // 60% walker, 30% runner, 10% tank
+      if (r < 0.10) return 'tank';
+      if (r < 0.40) return 'runner';
+      return 'walker';
+    }
     return 'walker';
   }
 
