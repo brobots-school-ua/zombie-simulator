@@ -9,20 +9,32 @@ export class BootScene extends Phaser.Scene {
   create() {
     const g = this.add.graphics();
 
-    // Player sprite (blue square with eyes)
+    // Player body — circle (sphere look)
+    // Outer ring (darker)
+    g.fillStyle(0x2266cc);
+    g.fillCircle(16, 16, 15);
+    // Main body
     g.fillStyle(0x4488ff);
-    g.fillRect(0, 0, 32, 32);
-    // Darker border
-    g.lineStyle(2, 0x2266cc);
-    g.strokeRect(1, 1, 30, 30);
-    // Eyes
-    g.fillStyle(0xffffff);
-    g.fillRect(8, 8, 6, 6);
-    g.fillRect(18, 8, 6, 6);
-    g.fillStyle(0x000000);
-    g.fillRect(10, 10, 3, 3);
-    g.fillRect(20, 10, 3, 3);
+    g.fillCircle(16, 16, 13);
+    // Highlight (3D sphere effect)
+    g.fillStyle(0x66aaff);
+    g.fillCircle(12, 11, 6);
+    // Small bright spot
+    g.fillStyle(0x99ccff);
+    g.fillCircle(10, 9, 3);
     g.generateTexture('player', 32, 32);
+    g.clear();
+
+    // Weapon sprite (gun pointing right)
+    g.fillStyle(0x555555);
+    g.fillRect(0, 4, 24, 5);  // barrel
+    g.fillStyle(0x444444);
+    g.fillRect(0, 3, 6, 7);   // grip area
+    g.fillStyle(0x666666);
+    g.fillRect(18, 3, 6, 7);  // muzzle
+    g.fillStyle(0x333333);
+    g.fillRect(20, 5, 4, 3);  // muzzle hole
+    g.generateTexture('weapon', 24, 13);
     g.clear();
 
     // Zombie walker (rotten green with red eyes)

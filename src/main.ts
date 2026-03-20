@@ -8,8 +8,8 @@ import { MenuScene } from './scenes/MenuScene';
 // Game configuration
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: 800,
-  height: 600,
+  width: window.innerWidth,
+  height: window.innerHeight,
   parent: document.body,
   backgroundColor: '#2d572c',
   physics: {
@@ -21,7 +21,7 @@ const config: Phaser.Types.Core.GameConfig = {
   },
   scene: [BootScene, MenuScene, GameScene, UIScene, GameOverScene],
   scale: {
-    mode: Phaser.Scale.FIT,
+    mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
 };

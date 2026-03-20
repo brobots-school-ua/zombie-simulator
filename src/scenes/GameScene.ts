@@ -111,7 +111,8 @@ export class GameScene extends Phaser.Scene {
       if (this.shootCooldown <= 0) {
         const target = this.player.shoot();
         if (target) {
-          const bullet = new Bullet(this, this.player.x, this.player.y, target.x, target.y);
+          const muzzle = this.player.getMuzzlePosition();
+          const bullet = new Bullet(this, muzzle.x, muzzle.y, target.x, target.y);
           this.bullets.add(bullet);
           this.shootCooldown = 150; // fire rate in ms
         }

@@ -1,17 +1,18 @@
 import Phaser from 'phaser';
 
-// Player entity — the survivor
+// Player entity — the survivor (sphere body + rotating weapon)
 export class Player extends Phaser.Physics.Arcade.Sprite {
   hp: number = 100;
   maxHp: number = 100;
   speed: number = 200;
-  magazineAmmo: number = 30;    // bullets in current magazine
-  maxMagazine: number = 30;     // magazine capacity
-  reserveAmmo: number = 30;     // spare bullets
-  maxReserve: number = 60;      // max spare bullets
+  magazineAmmo: number = 30;
+  maxMagazine: number = 30;
+  reserveAmmo: number = 30;
+  maxReserve: number = 60;
   isReloading: boolean = false;
   score: number = 0;
   kills: number = 0;
+  weapon: Phaser.GameObjects.Sprite;
 
   private keys!: {
     W: Phaser.Input.Keyboard.Key;
@@ -26,8 +27,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
+    // Circular hitbox
+    this.body!.setCircle(13, 3, 3);
     this.setCollideWorldBounds(true);
     this.setDepth(10);
+
+    // Weapon sprite — rotates independently toward mouse
+    this.weapon = scene.add.sprite(x, y, 'weapon');
+    this.weapon.setOrigin(0, 0.5);
+    this.weapon.setDepth(11);
 
     // HP regeneration: +1 HP every second
     scene.time.addEvent({
@@ -69,11 +77,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.setVelocity(vx, vy);
 
-    // Rotate player toward mouse
+    // Player body does NOT rotate — stays as a sphere
+    // Only weapon rotates toward mouse
     const pointer = this.scene.input.activePointer;
     const worldPoint = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
     const angle = Phaser.Math.Angle.Between(this.x, this.y, worldPoint.x, worldPoint.y);
-    this.setRotation(angle);
+    this.weapon.setPosition(this.x, this.y);
+    this.weapon.setRotation(angle);
 
     // Reload
     if (this.keys.R.isDown && !this.isReloading && this.magazineAmmo < this.maxMagazine && this.reserveAmmo > 0) {
@@ -100,7 +110,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   reload() {
     this.isReloading = true;
     this.scene.time.delayedCall(1500, () => {
-      // Move bullets from reserve to magazine
       const needed = this.maxMagazine - this.magazineAmmo;
       const toLoad = Math.min(needed, this.reserveAmmo);
       this.magazineAmmo += toLoad;
@@ -120,5 +129,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const pointer = this.scene.input.activePointer;
     const worldPoint = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
     return new Phaser.Math.Vector2(worldPoint.x, worldPoint.y);
+  }
+
+  // Get the muzzle position (tip of the weapon) for bullet spawn
+  getMuzzlePosition(): { x: number; y: number } {
+    const angle = this.weapon.rotation;
+    const weaponLength = 24;
+    return {
+      x: this.x + Math.cos(angle) * weaponLength,
+      y: this.y + Math.sin(angle) * weaponLength,
+    };
+  }
+
+  destroy(fromScene?: boolean) {
+    if (this.weapon) this.weapon.destroy();
+    super.destroy(fromScene);
   }
 }

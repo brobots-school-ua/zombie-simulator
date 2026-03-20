@@ -26,43 +26,33 @@ export class UIScene extends Phaser.Scene {
       color: '#ffffff',
     };
 
-    // HP bar background
     this.hpBar = this.add.graphics();
-
-    // HP text
     this.hpText = this.add.text(20, 15, '', style).setDepth(100);
-
-    // Ammo
     this.ammoText = this.add.text(20, 50, '', style).setDepth(100);
+    this.scoreText = this.add.text(20, 80, '', style).setDepth(100);
 
-    // Reload indicator
-    this.reloadText = this.add.text(400, 300, 'RELOADING...', {
+    this.reloadText = this.add.text(0, 0, 'RELOADING...', {
       fontSize: '24px',
       fontFamily: 'monospace',
       color: '#ffff00',
     }).setOrigin(0.5).setDepth(100).setVisible(false);
 
-    // Score
-    this.scoreText = this.add.text(20, 80, '', style).setDepth(100);
-
-    // Wave
-    this.waveText = this.add.text(680, 15, '', {
+    this.waveText = this.add.text(0, 15, '', {
       ...style,
       fontSize: '22px',
       color: '#ff6666',
-    }).setDepth(100);
+    }).setOrigin(1, 0).setDepth(100);
   }
 
   update() {
     if (!this.gameScene?.player) return;
     const p = this.gameScene.player;
+    const { width, height } = this.scale;
 
     // Draw HP bar
     this.hpBar.clear();
-    // Background
     this.hpBar.fillStyle(0x333333);
     this.hpBar.fillRect(18, 36, 204, 12);
-    // Health fill
     const hpPercent = p.hp / p.maxHp;
     const barColor = hpPercent > 0.5 ? 0x44ff44 : hpPercent > 0.25 ? 0xffaa00 : 0xff3333;
     this.hpBar.fillStyle(barColor);
@@ -72,7 +62,13 @@ export class UIScene extends Phaser.Scene {
     this.hpText.setText(`HP: ${p.hp}/${p.maxHp}`);
     this.ammoText.setText(`Ammo: ${p.magazineAmmo}/${p.maxMagazine} | Reserve: ${p.reserveAmmo}`);
     this.scoreText.setText(`Score: ${p.score} | Kills: ${p.kills}`);
+
+    // Position wave text at top-right
+    this.waveText.setPosition(width - 20, 15);
     this.waveText.setText(`Wave ${this.gameScene.wave}`);
+
+    // Center reload text
+    this.reloadText.setPosition(width / 2, height / 2);
     this.reloadText.setVisible(p.isReloading);
   }
 }
