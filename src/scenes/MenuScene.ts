@@ -155,6 +155,9 @@ export class MenuScene extends Phaser.Scene {
       });
     });
 
+    // Volume slider
+    this.createVolumeSlider(width, height);
+
     // Controls info with staggered fade-in
     const controls1 = this.add.text(width / 2, height - 90, 'WASD — move  |  MOUSE — aim & shoot', {
       fontSize: '14px',
@@ -172,10 +175,84 @@ export class MenuScene extends Phaser.Scene {
     this.tweens.add({ targets: controls2, alpha: 0.8, duration: 1500, delay: 1500 });
 
     // Version
-    this.add.text(width - 10, height - 20, 'v0.5', {
+    this.add.text(width - 10, height - 20, 'v0.6', {
       fontSize: '12px',
       fontFamily: 'monospace',
       color: '#333333',
     }).setOrigin(1, 1).setDepth(10);
+  }
+
+  private createVolumeSlider(screenW: number, screenH: number) {
+    const sliderY = screenH / 2 + 145;
+    const sliderX = screenW / 2 - 100;
+    const sliderW = 200;
+
+    // Label
+    this.add.text(screenW / 2, sliderY - 20, 'Volume', {
+      fontSize: '14px',
+      fontFamily: 'monospace',
+      color: '#668866',
+    }).setOrigin(0.5).setDepth(10);
+
+    // Track background
+    const trackGraphics = this.add.graphics().setDepth(10);
+    trackGraphics.fillStyle(0x333333);
+    trackGraphics.fillRoundedRect(sliderX, sliderY - 3, sliderW, 6, 3);
+
+    // Filled portion + knob drawn on a separate graphics (redrawn on change)
+    const sliderGfx = this.add.graphics().setDepth(11);
+
+    // Percentage text
+    const pctText = this.add.text(screenW / 2 + 115, sliderY, `${audioManager.getVolumePercent()}%`, {
+      fontSize: '14px',
+      fontFamily: 'monospace',
+      color: '#44ff44',
+    }).setOrigin(0, 0.5).setDepth(10);
+
+    // Calculate knob position from current volume
+    const volToX = (vol: number) => sliderX + ((vol - 0.25) / 1.75) * sliderW;
+    const xToVol = (x: number) => 0.25 + ((x - sliderX) / sliderW) * 1.75;
+
+    const drawSlider = (vol: number) => {
+      const knobX = volToX(vol);
+      sliderGfx.clear();
+      // Filled track
+      sliderGfx.fillStyle(0x44ff44);
+      sliderGfx.fillRoundedRect(sliderX, sliderY - 3, knobX - sliderX, 6, 3);
+      // Knob
+      sliderGfx.fillStyle(0x88ff88);
+      sliderGfx.fillCircle(knobX, sliderY, 8);
+      sliderGfx.fillStyle(0x44ff44);
+      sliderGfx.fillCircle(knobX, sliderY, 6);
+      // Update text
+      pctText.setText(`${audioManager.getVolumePercent()}%`);
+    };
+
+    drawSlider(audioManager.getVolume());
+
+    // Invisible hit area for drag
+    const hitZone = this.add.zone(screenW / 2, sliderY, sliderW + 30, 30)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(12);
+
+    let dragging = false;
+
+    hitZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      dragging = true;
+      const vol = xToVol(Phaser.Math.Clamp(pointer.x, sliderX, sliderX + sliderW));
+      audioManager.setVolume(vol);
+      drawSlider(vol);
+    });
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!dragging) return;
+      const vol = xToVol(Phaser.Math.Clamp(pointer.x, sliderX, sliderX + sliderW));
+      audioManager.setVolume(vol);
+      drawSlider(vol);
+    });
+
+    this.input.on('pointerup', () => {
+      dragging = false;
+    });
   }
 }

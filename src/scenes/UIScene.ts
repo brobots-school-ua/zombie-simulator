@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GameScene } from './GameScene';
 import { Zombie } from '../entities/Zombie';
 import { Pickup } from '../entities/Pickup';
+import { audioManager } from '../systems/AudioManager';
 
 // UI overlay scene — HUD with health, ammo, score, wave info, minimap
 export class UIScene extends Phaser.Scene {
@@ -13,6 +14,7 @@ export class UIScene extends Phaser.Scene {
   private waveText!: Phaser.GameObjects.Text;
   private reloadText!: Phaser.GameObjects.Text;
   private minimap!: Phaser.GameObjects.Graphics;
+  private volumeOpen = false;
 
   private minimapSize = 160;
   private minimapMargin = 15;
@@ -51,6 +53,100 @@ export class UIScene extends Phaser.Scene {
 
     this.minimap = this.add.graphics();
     this.minimap.setDepth(100);
+
+    // Volume control in-game
+    this.createVolumeControl();
+  }
+
+  private createVolumeControl() {
+    const { width } = this.scale;
+    const btnX = width - 40;
+    const btnY = 55;
+
+    // Volume icon button
+    const volBtn = this.add.text(btnX, btnY, '♪', {
+      fontSize: '22px',
+      fontFamily: 'monospace',
+      color: '#44ff44',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(101);
+
+    // Slider container (hidden by default)
+    const sliderX = width - 195;
+    const sliderY = btnY;
+    const sliderW = 130;
+
+    const sliderBg = this.add.graphics().setDepth(101).setVisible(false);
+    const sliderGfx = this.add.graphics().setDepth(102).setVisible(false);
+    const pctText = this.add.text(sliderX - 40, sliderY, `${audioManager.getVolumePercent()}%`, {
+      fontSize: '12px',
+      fontFamily: 'monospace',
+      color: '#44ff44',
+    }).setOrigin(0, 0.5).setDepth(102).setVisible(false);
+
+    // Draw static track background
+    const drawBg = () => {
+      sliderBg.clear();
+      sliderBg.fillStyle(0x000000, 0.6);
+      sliderBg.fillRoundedRect(sliderX - 50, sliderY - 14, sliderW + 60, 28, 5);
+      sliderBg.fillStyle(0x333333);
+      sliderBg.fillRoundedRect(sliderX, sliderY - 2, sliderW, 4, 2);
+    };
+
+    const volToX = (vol: number) => sliderX + ((vol - 0.25) / 1.75) * sliderW;
+    const xToVol = (x: number) => 0.25 + ((x - sliderX) / sliderW) * 1.75;
+
+    const drawSlider = (vol: number) => {
+      const knobX = volToX(vol);
+      sliderGfx.clear();
+      sliderGfx.fillStyle(0x44ff44);
+      sliderGfx.fillRoundedRect(sliderX, sliderY - 2, knobX - sliderX, 4, 2);
+      sliderGfx.fillStyle(0x88ff88);
+      sliderGfx.fillCircle(knobX, sliderY, 6);
+      sliderGfx.fillStyle(0x44ff44);
+      sliderGfx.fillCircle(knobX, sliderY, 4);
+      pctText.setText(`${audioManager.getVolumePercent()}%`);
+    };
+
+    drawBg();
+    drawSlider(audioManager.getVolume());
+
+    // Hit zone for slider drag
+    const hitZone = this.add.zone(sliderX + sliderW / 2, sliderY, sliderW + 20, 28)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(103).setVisible(false);
+
+    // Toggle slider visibility
+    volBtn.on('pointerdown', () => {
+      this.volumeOpen = !this.volumeOpen;
+      sliderBg.setVisible(this.volumeOpen);
+      sliderGfx.setVisible(this.volumeOpen);
+      pctText.setVisible(this.volumeOpen);
+      hitZone.setVisible(this.volumeOpen);
+      if (this.volumeOpen) {
+        // Redraw with current value
+        drawSlider(audioManager.getVolume());
+      }
+    });
+
+    let dragging = false;
+
+    hitZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      dragging = true;
+      const vol = xToVol(Phaser.Math.Clamp(pointer.x, sliderX, sliderX + sliderW));
+      audioManager.setVolume(vol);
+      drawSlider(vol);
+    });
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!dragging) return;
+      const vol = xToVol(Phaser.Math.Clamp(pointer.x, sliderX, sliderX + sliderW));
+      audioManager.setVolume(vol);
+      drawSlider(vol);
+    });
+
+    this.input.on('pointerup', () => {
+      dragging = false;
+    });
   }
 
   update() {
@@ -69,7 +165,7 @@ export class UIScene extends Phaser.Scene {
     this.hpBar.setDepth(99);
 
     this.hpText.setText(`HP: ${p.hp}/${p.maxHp}`);
-    this.ammoText.setText(`Ammo: ${p.magazineAmmo}/${p.maxMagazine} | Reserve: ${p.reserveAmmo}`);
+    this.ammoText.setText(`Ammo: ${p.magazineAmmo} / ${p.reserveAmmo}`);
     this.scoreText.setText(`Score: ${p.score} | Kills: ${p.kills}`);
 
     this.waveText.setPosition(width - 20, 15);

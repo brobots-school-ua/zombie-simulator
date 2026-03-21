@@ -34,8 +34,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Weapon sprite — rotates independently toward mouse
     this.weapon = scene.add.sprite(x, y, 'weapon');
-    this.weapon.setOrigin(0, 0.5);
+    this.weapon.setOrigin(0.15, 0.5);
     this.weapon.setDepth(11);
+
+    // Sync weapon position after physics update to prevent jitter
+    scene.events.on('postupdate', () => {
+      if (this.active && this.weapon) {
+        const pointer = scene.input.activePointer;
+        const worldPoint = scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
+        const angle = Phaser.Math.Angle.Between(this.x, this.y, worldPoint.x, worldPoint.y);
+        this.weapon.setPosition(this.x, this.y);
+        this.weapon.setRotation(angle);
+      }
+    });
 
     // HP regeneration: +1 HP every second
     scene.time.addEvent({
@@ -77,13 +88,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.setVelocity(vx, vy);
 
-    // Player body does NOT rotate — stays as a sphere
-    // Only weapon rotates toward mouse
-    const pointer = this.scene.input.activePointer;
-    const worldPoint = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
-    const angle = Phaser.Math.Angle.Between(this.x, this.y, worldPoint.x, worldPoint.y);
-    this.weapon.setPosition(this.x, this.y);
-    this.weapon.setRotation(angle);
+    // Weapon position is synced in postupdate event (see constructor)
 
     // Reload
     if (this.keys.R.isDown && !this.isReloading && this.magazineAmmo < this.maxMagazine && this.reserveAmmo > 0) {

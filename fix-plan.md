@@ -139,3 +139,47 @@
 4. `GameScene.ts` — інтегрувати game music
 5. `GameOverScene.ts` — fade out музики
 6. Тест всього разом
+
+---
+
+# Fix Plan — Round 7: Weapon fix, Ammo display, Volume slider
+
+## 21. Зброя "дригається" при ходьбі
+
+**Problem:** Weapon sprite оновлює позицію в `Player.update()`, але через різницю в таймінгу між physics update та render, зброя може візуально "відставати" на 1 кадр від гравця.
+**Fix:** Оновлювати позицію зброї в `preUpdate()` замість `update()`, щоб вона завжди синхронізувалась з позицією гравця до рендеру. Також прив'язати позицію зброї безпосередньо до sprite position через scene `postupdate` event.
+**Files:** `src/entities/Player.ts`
+
+## 22. Формат відображення патронів
+
+**Problem:** Зараз показує `Ammo: 30/30 | Reserve: 30` — незрозуміло, обидва числа "30/30" не змінюються, а змінюється тільки Reserve.
+**Fix:** Змінити формат на `Ammo: 30 / 30` де перше число = кулі в магазині, друге = кулі в запасі. Без слова "Reserve".
+**Files:** `src/scenes/UIScene.ts`
+
+## 23. Повзунок гучності в меню та грі
+
+**Problem:** Немає можливості регулювати гучність музики.
+**Fix:** Додати повзунок (slider) з шкалою від 25% до 200%:
+- **В меню (MenuScene)**: повзунок в нижній частині екрану, перед контролами
+- **В грі (UIScene)**: маленька іконка/кнопка гучності, при натисканні відкриває повзунок
+- **Повзунок**: трек (сіра лінія) + рухомий кноб (зелений кружок) + відсоток тексту
+- **AudioManager**: додати метод `setVolume(value: number)` що змінює `masterGain.gain.value`
+- Зберігати значення в `localStorage` щоб зберігалось між сесіями
+**Files:** `src/systems/AudioManager.ts`, `src/scenes/MenuScene.ts`, `src/scenes/UIScene.ts`
+
+## Files to modify
+
+| File | Action |
+|---|---|
+| `src/entities/Player.ts` | **MODIFY** — weapon position sync fix |
+| `src/scenes/UIScene.ts` | **MODIFY** — ammo format + volume slider in-game |
+| `src/scenes/MenuScene.ts` | **MODIFY** — volume slider in menu |
+| `src/systems/AudioManager.ts` | **MODIFY** — add setVolume + localStorage |
+
+## Порядок
+
+1. Player.ts — фікс зброї
+2. UIScene.ts — формат патронів
+3. AudioManager.ts — метод setVolume + localStorage
+4. MenuScene.ts — повзунок гучності
+5. UIScene.ts — повзунок гучності в грі

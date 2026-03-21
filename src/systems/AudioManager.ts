@@ -8,14 +8,38 @@ export class AudioManager {
   private gameActive = false;
   private beatInterval: number | null = null;
   private stingInterval: number | null = null;
+  private _volume: number = 1.0; // 0.25 to 2.0 (25% to 200%)
 
   // Initialize AudioContext (must be called after user interaction)
   init() {
     if (this.ctx) return;
     this.ctx = new AudioContext();
     this.masterGain = this.ctx.createGain();
-    this.masterGain.gain.value = 0.5;
+    // Load saved volume from localStorage
+    const saved = localStorage.getItem('zombie-sim-volume');
+    this._volume = saved ? parseFloat(saved) : 1.0;
+    this.masterGain.gain.value = this._volume * 0.5; // base level * user volume
     this.masterGain.connect(this.ctx.destination);
+  }
+
+  // Set volume (0.25 to 2.0) and persist to localStorage
+  setVolume(value: number) {
+    this._volume = Math.max(0.25, Math.min(2.0, value));
+    localStorage.setItem('zombie-sim-volume', this._volume.toString());
+    if (this.ctx && this.masterGain) {
+      this.masterGain.gain.linearRampToValueAtTime(
+        this._volume * 0.5,
+        this.ctx.currentTime + 0.05
+      );
+    }
+  }
+
+  getVolume(): number {
+    return this._volume;
+  }
+
+  getVolumePercent(): number {
+    return Math.round(this._volume * 100);
   }
 
   // Resume context if suspended (browser autoplay policy)
@@ -356,11 +380,13 @@ export class AudioManager {
 
   // Update intensity based on wave number
   updateIntensity(wave: number) {
-    // Could be extended: higher waves = faster tempo, more layers
-    // For now we adjust master volume slightly
+    // Higher waves = slightly louder, scaled by user volume
     if (!this.ctx) return;
-    const intensity = Math.min(0.4 + wave * 0.03, 0.8);
-    this.masterGain.gain.linearRampToValueAtTime(intensity, this.ctx.currentTime + 1);
+    const baseIntensity = Math.min(0.4 + wave * 0.03, 0.8);
+    this.masterGain.gain.linearRampToValueAtTime(
+      baseIntensity * this._volume,
+      this.ctx.currentTime + 1
+    );
   }
 
   stopGameMusic(fadeTime = 2) {
