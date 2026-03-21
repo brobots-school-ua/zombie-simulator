@@ -120,13 +120,21 @@ export class MenuScene extends Phaser.Scene {
 
     startBtn.on('pointerover', () => { startBtn.setColor('#88ff88'); startBtn.setScale(1.1); });
     startBtn.on('pointerout', () => { startBtn.setColor('#44ff44'); startBtn.setScale(1); });
+    let starting = false;
     startBtn.on('pointerdown', () => {
+      if (starting) return; // prevent double click
+      starting = true;
+      startBtn.disableInteractive();
       if (this.nicknameInput) {
         leaderboard.setNickname(this.nicknameInput.value);
         this.nicknameInput.remove();
       }
+      // Make sure old game/ui scenes are fully stopped
+      if (this.scene.isActive('GameScene')) this.scene.stop('GameScene');
+      if (this.scene.isActive('UIScene')) this.scene.stop('UIScene');
       audioManager.resume();
       audioManager.stopMenuMusic(0.5);
+      audioManager.stopGameMusic(0);
       this.cameras.main.flash(300, 255, 50, 50);
       this.time.delayedCall(300, () => this.scene.start('GameScene'));
     });

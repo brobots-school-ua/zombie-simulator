@@ -87,10 +87,13 @@ export class UIScene extends Phaser.Scene {
       padding: { x: 12, y: 6 },
     }).setOrigin(0.5).setDepth(200).setVisible(false);
 
+    let exiting = false;
     const escKey = this.input.keyboard!.addKey('ESC');
     escKey.on('down', () => {
+      if (exiting) return;
       if (this.escPending) {
         // Confirmed — exit to menu
+        exiting = true;
         audioManager.stopGameMusic(0);
         this.scene.stop('GameScene');
         this.scene.stop('UIScene');
