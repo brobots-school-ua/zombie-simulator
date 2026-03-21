@@ -3,25 +3,33 @@ import { leaderboard } from './LeaderboardManager';
 const ADMIN_PASSWORD = 'nikitaadmin';
 
 // Admin console — works in any scene via HTML overlay
+// Press ` (backtick/tilde) or F2 to open command input
 export class AdminConsole {
   private scene: Phaser.Scene;
   private cmdInput: HTMLInputElement | null = null;
   private panel: HTMLDivElement | null = null;
-  private active = false;
+  private keyHandler: (e: KeyboardEvent) => void;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
 
-    // Listen for ~ key to toggle command input
-    const tildeKey = scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.BACKTICK);
-    tildeKey.on('down', () => {
-      if (this.panel) return; // admin panel open, ignore
-      if (this.cmdInput) {
-        this.closeCmdInput();
-      } else {
-        this.openCmdInput();
+    // Use global DOM listener — more reliable than Phaser for special keys
+    this.keyHandler = (e: KeyboardEvent) => {
+      // Skip if typing in an input
+      if (e.target instanceof HTMLInputElement) return;
+
+      if (e.key === '`' || e.key === '~' || e.key === 'F2') {
+        e.preventDefault();
+        if (this.panel) return;
+        if (this.cmdInput) {
+          this.closeCmdInput();
+        } else {
+          this.openCmdInput();
+        }
       }
-    });
+    };
+
+    document.addEventListener('keydown', this.keyHandler);
   }
 
   private openCmdInput() {
@@ -34,12 +42,12 @@ export class AdminConsole {
     this.cmdInput.type = 'text';
     this.cmdInput.placeholder = 'Enter command...';
     this.cmdInput.style.cssText = `
-      position: absolute;
+      position: fixed;
       left: ${rect.left + 10}px;
       bottom: 10px;
-      width: ${rect.width - 20}px;
+      width: ${Math.min(rect.width - 20, 400)}px;
       height: 30px;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.9);
       border: 1px solid #44ff44;
       color: #44ff44;
       font-family: monospace;
@@ -47,34 +55,32 @@ export class AdminConsole {
       padding: 0 10px;
       outline: none;
       z-index: 2000;
+      border-radius: 4px;
     `;
 
     this.cmdInput.addEventListener('keydown', (e) => {
-      e.stopPropagation(); // prevent game from receiving keys
+      e.stopPropagation();
       if (e.key === 'Enter') {
         const cmd = this.cmdInput?.value.trim() || '';
-        this.handleCommand(cmd);
+        this.closeCmdInput();
+        if (cmd === ADMIN_PASSWORD) {
+          this.openAdminPanel();
+        }
       }
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' || e.key === '`') {
         this.closeCmdInput();
       }
     });
 
     document.body.appendChild(this.cmdInput);
-    this.cmdInput.focus();
+    // Small delay to prevent the ` character from appearing in input
+    setTimeout(() => this.cmdInput?.focus(), 50);
   }
 
   private closeCmdInput() {
     if (this.cmdInput) {
       this.cmdInput.remove();
       this.cmdInput = null;
-    }
-  }
-
-  private handleCommand(cmd: string) {
-    this.closeCmdInput();
-    if (cmd === ADMIN_PASSWORD) {
-      this.openAdminPanel();
     }
   }
 
@@ -162,9 +168,9 @@ export class AdminConsole {
       const name = nameInput.value.trim();
       const score = parseInt(scoreInput.value, 10);
       const wave = parseInt(waveInput.value, 10);
-      if (!name) { msg.textContent = 'Enter a nickname!'; return; }
-      if (isNaN(score) || score < 0) { msg.textContent = 'Invalid score!'; return; }
-      if (isNaN(wave) || wave < 1) { msg.textContent = 'Invalid wave!'; return; }
+      if (!name) { msg.textContent = 'Enter a nickname!'; msg.style.color = '#ff4444'; return; }
+      if (isNaN(score) || score < 0) { msg.textContent = 'Invalid score!'; msg.style.color = '#ff4444'; return; }
+      if (isNaN(wave) || wave < 1) { msg.textContent = 'Invalid wave!'; msg.style.color = '#ff4444'; return; }
       leaderboard.adminAdd(name, score, wave);
       msg.textContent = `Added: ${name} — ${score} pts (wave ${wave})`;
       msg.style.color = '#44ff44';
@@ -188,8 +194,8 @@ export class AdminConsole {
     }
   }
 
-  // Call when scene shuts down
   destroy() {
+    document.removeEventListener('keydown', this.keyHandler);
     this.closeCmdInput();
     this.closeAdminPanel();
   }
