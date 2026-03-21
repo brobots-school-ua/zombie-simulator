@@ -3,6 +3,7 @@ import { GameScene } from './GameScene';
 import { Zombie } from '../entities/Zombie';
 import { Pickup } from '../entities/Pickup';
 import { audioManager } from '../systems/AudioManager';
+import { leaderboard } from '../systems/LeaderboardManager';
 
 // UI overlay scene — HUD with health, ammo, score, wave info, minimap
 export class UIScene extends Phaser.Scene {
@@ -10,10 +11,12 @@ export class UIScene extends Phaser.Scene {
   private hpBar!: Phaser.GameObjects.Graphics;
   private hpText!: Phaser.GameObjects.Text;
   private ammoText!: Phaser.GameObjects.Text;
+  private emptyMagText!: Phaser.GameObjects.Text;
   private scoreText!: Phaser.GameObjects.Text;
   private waveText!: Phaser.GameObjects.Text;
   private reloadText!: Phaser.GameObjects.Text;
   private minimap!: Phaser.GameObjects.Graphics;
+  private leaderboardTexts: Phaser.GameObjects.Text[] = [];
   private volumeOpen = false;
 
   private minimapSize = 160;
@@ -37,7 +40,12 @@ export class UIScene extends Phaser.Scene {
     this.hpBar = this.add.graphics();
     this.hpText = this.add.text(20, 15, '', style).setDepth(100);
     this.ammoText = this.add.text(20, 50, '', style).setDepth(100);
-    this.scoreText = this.add.text(20, 80, '', style).setDepth(100);
+    this.emptyMagText = this.add.text(20, 70, 'Empty mag! Press R to reload', {
+      fontSize: '14px',
+      fontFamily: 'monospace',
+      color: '#ffff00',
+    }).setDepth(100).setVisible(false);
+    this.scoreText = this.add.text(20, 90, '', style).setDepth(100);
 
     this.reloadText = this.add.text(0, 0, 'RELOADING...', {
       fontSize: '24px',
@@ -54,8 +62,37 @@ export class UIScene extends Phaser.Scene {
     this.minimap = this.add.graphics();
     this.minimap.setDepth(100);
 
+    // In-game leaderboard (top right, below wave)
+    this.createLeaderboardDisplay();
+
     // Volume control in-game
     this.createVolumeControl();
+  }
+
+  private createLeaderboardDisplay() {
+    const { width } = this.scale;
+    const top5 = leaderboard.getTop(5);
+    if (top5.length === 0) return;
+
+    const startX = width - 20;
+    const startY = 45;
+
+    const title = this.add.text(startX, startY, 'TOP', {
+      fontSize: '12px',
+      fontFamily: 'monospace',
+      color: '#ffaa00',
+      fontStyle: 'bold',
+    }).setOrigin(1, 0).setDepth(100).setAlpha(0.7);
+    this.leaderboardTexts.push(title);
+
+    top5.forEach((entry, i) => {
+      const txt = this.add.text(startX, startY + 16 + i * 14, `${i + 1}. ${entry.name}: ${entry.score}`, {
+        fontSize: '11px',
+        fontFamily: 'monospace',
+        color: '#aa8844',
+      }).setOrigin(1, 0).setDepth(100).setAlpha(0.6);
+      this.leaderboardTexts.push(txt);
+    });
   }
 
   private createVolumeControl() {
@@ -166,6 +203,10 @@ export class UIScene extends Phaser.Scene {
 
     this.hpText.setText(`HP: ${p.hp}/${p.maxHp}`);
     this.ammoText.setText(`Ammo: ${p.magazineAmmo} / ${p.reserveAmmo}`);
+
+    // Empty magazine hint
+    this.emptyMagText.setVisible(p.magazineAmmo === 0 && !p.isReloading);
+
     this.scoreText.setText(`Score: ${p.score} | Kills: ${p.kills}`);
 
     this.waveText.setPosition(width - 20, 15);
@@ -228,12 +269,13 @@ export class UIScene extends Phaser.Scene {
     mm.fillStyle(0x44ff44);
     mm.fillCircle(mmX + p.x * scale, mmY + p.y * scale, 3);
 
-    // Camera view rectangle
+    // Camera view rectangle (using worldView for accurate coordinates)
     const cam = this.gameScene.cameras.main;
-    const camX = mmX + (cam.scrollX) * scale;
-    const camY = mmY + (cam.scrollY) * scale;
-    const camW = (cam.width / cam.zoom) * scale;
-    const camH = (cam.height / cam.zoom) * scale;
+    const wv = cam.worldView;
+    const camX = mmX + wv.x * scale;
+    const camY = mmY + wv.y * scale;
+    const camW = wv.width * scale;
+    const camH = wv.height * scale;
     mm.lineStyle(1, 0xffffff, 0.4);
     mm.strokeRect(camX, camY, camW, camH);
 

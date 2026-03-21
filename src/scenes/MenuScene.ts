@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
 import { audioManager } from '../systems/AudioManager';
+import { leaderboard } from '../systems/LeaderboardManager';
 
 // Atmospheric main menu scene
 export class MenuScene extends Phaser.Scene {
+  private nicknameInput!: HTMLInputElement;
+
   constructor() {
     super({ key: 'MenuScene' });
   }
@@ -60,7 +63,6 @@ export class MenuScene extends Phaser.Scene {
     const vignette = this.add.graphics();
     vignette.fillStyle(0x000000, 0);
     vignette.fillRect(0, 0, width, height);
-    // Darken edges
     vignette.fillStyle(0x110000, 0.4);
     vignette.fillRect(0, 0, width, 60);
     vignette.fillRect(0, height - 60, width, 60);
@@ -110,6 +112,9 @@ export class MenuScene extends Phaser.Scene {
       delay: 500,
     });
 
+    // Nickname input (HTML element over canvas)
+    this.createNicknameInput(width, height);
+
     // Start button with hover effects
     const startBtn = this.add.text(width / 2, height / 2 + 80, '[ START GAME ]', {
       fontSize: '32px',
@@ -144,6 +149,11 @@ export class MenuScene extends Phaser.Scene {
       startBtn.setScale(1);
     });
     startBtn.on('pointerdown', () => {
+      // Save nickname
+      if (this.nicknameInput) {
+        leaderboard.setNickname(this.nicknameInput.value);
+        this.nicknameInput.remove();
+      }
       // Resume audio context (browser autoplay policy)
       audioManager.resume();
       // Stop menu music, start game
@@ -157,6 +167,9 @@ export class MenuScene extends Phaser.Scene {
 
     // Volume slider
     this.createVolumeSlider(width, height);
+
+    // Leaderboard + personal best
+    this.createMenuLeaderboard(width, height);
 
     // Controls info with staggered fade-in
     const controls1 = this.add.text(width / 2, height - 90, 'WASD — move  |  MOUSE — aim & shoot', {
@@ -175,11 +188,99 @@ export class MenuScene extends Phaser.Scene {
     this.tweens.add({ targets: controls2, alpha: 0.8, duration: 1500, delay: 1500 });
 
     // Version
-    this.add.text(width - 10, height - 20, 'v0.6', {
+    this.add.text(width - 10, height - 20, 'v0.7', {
       fontSize: '12px',
       fontFamily: 'monospace',
       color: '#333333',
     }).setOrigin(1, 1).setDepth(10);
+
+    // Cleanup HTML input when scene shuts down
+    this.events.on('shutdown', () => {
+      if (this.nicknameInput) {
+        this.nicknameInput.remove();
+      }
+    });
+  }
+
+  private createNicknameInput(screenW: number, screenH: number) {
+    // Get canvas position for proper alignment
+    const canvas = this.game.canvas;
+    const rect = canvas.getBoundingClientRect();
+
+    // Scale factors in case canvas is scaled
+    const scaleX = rect.width / canvas.width;
+    const scaleY = rect.height / canvas.height;
+
+    const inputW = 200;
+    const inputH = 28;
+    const inputX = rect.left + (screenW / 2 - inputW / 2) * scaleX;
+    const inputY = rect.top + (screenH / 2 + 30) * scaleY;
+
+    this.nicknameInput = document.createElement('input');
+    this.nicknameInput.type = 'text';
+    this.nicknameInput.maxLength = 16;
+    this.nicknameInput.placeholder = 'Enter nickname...';
+    this.nicknameInput.value = leaderboard.getNickname();
+    this.nicknameInput.style.cssText = `
+      position: absolute;
+      left: ${inputX}px;
+      top: ${inputY}px;
+      width: ${inputW * scaleX}px;
+      height: ${inputH * scaleY}px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #44ff44;
+      color: #44ff44;
+      font-family: monospace;
+      font-size: ${14 * scaleY}px;
+      text-align: center;
+      outline: none;
+      border-radius: 4px;
+      z-index: 1000;
+    `;
+
+    document.body.appendChild(this.nicknameInput);
+
+    // Label above input
+    this.add.text(screenW / 2, screenH / 2 + 18, 'Nickname (optional)', {
+      fontSize: '12px',
+      fontFamily: 'monospace',
+      color: '#556655',
+    }).setOrigin(0.5).setDepth(10);
+  }
+
+  private createMenuLeaderboard(screenW: number, screenH: number) {
+    const top5 = leaderboard.getTop(5);
+    const best = leaderboard.getPersonalBest();
+    const x = screenW - 40;
+    const y = screenH / 3 - 10;
+
+    // Personal best
+    if (best > 0) {
+      this.add.text(x, y - 30, `Your best: ${best}`, {
+        fontSize: '14px',
+        fontFamily: 'monospace',
+        color: '#ffaa00',
+      }).setOrigin(1, 0).setDepth(10);
+    }
+
+    if (top5.length === 0) return;
+
+    // Leaderboard title
+    this.add.text(x, y, 'LEADERBOARD', {
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      color: '#ffaa00',
+      fontStyle: 'bold',
+    }).setOrigin(1, 0).setDepth(10);
+
+    // Entries
+    top5.forEach((entry, i) => {
+      this.add.text(x, y + 22 + i * 18, `${i + 1}. ${entry.name} — ${entry.score}`, {
+        fontSize: '13px',
+        fontFamily: 'monospace',
+        color: '#aa8844',
+      }).setOrigin(1, 0).setDepth(10);
+    });
   }
 
   private createVolumeSlider(screenW: number, screenH: number) {
@@ -199,7 +300,7 @@ export class MenuScene extends Phaser.Scene {
     trackGraphics.fillStyle(0x333333);
     trackGraphics.fillRoundedRect(sliderX, sliderY - 3, sliderW, 6, 3);
 
-    // Filled portion + knob drawn on a separate graphics (redrawn on change)
+    // Filled portion + knob
     const sliderGfx = this.add.graphics().setDepth(11);
 
     // Percentage text
@@ -209,28 +310,23 @@ export class MenuScene extends Phaser.Scene {
       color: '#44ff44',
     }).setOrigin(0, 0.5).setDepth(10);
 
-    // Calculate knob position from current volume
     const volToX = (vol: number) => sliderX + ((vol - 0.25) / 1.75) * sliderW;
     const xToVol = (x: number) => 0.25 + ((x - sliderX) / sliderW) * 1.75;
 
     const drawSlider = (vol: number) => {
       const knobX = volToX(vol);
       sliderGfx.clear();
-      // Filled track
       sliderGfx.fillStyle(0x44ff44);
       sliderGfx.fillRoundedRect(sliderX, sliderY - 3, knobX - sliderX, 6, 3);
-      // Knob
       sliderGfx.fillStyle(0x88ff88);
       sliderGfx.fillCircle(knobX, sliderY, 8);
       sliderGfx.fillStyle(0x44ff44);
       sliderGfx.fillCircle(knobX, sliderY, 6);
-      // Update text
       pctText.setText(`${audioManager.getVolumePercent()}%`);
     };
 
     drawSlider(audioManager.getVolume());
 
-    // Invisible hit area for drag
     const hitZone = this.add.zone(screenW / 2, sliderY, sliderW + 30, 30)
       .setInteractive({ useHandCursor: true })
       .setDepth(12);

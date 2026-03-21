@@ -183,3 +183,52 @@
 3. AudioManager.ts — метод setVolume + localStorage
 4. MenuScene.ts — повзунок гучності
 5. UIScene.ts — повзунок гучності в грі
+
+---
+
+# Fix Plan — Round 8: Empty mag hint + Minimap fix
+
+## 24. Підказка "Empty magazine" при 0 кулях
+
+**Problem:** Коли в магазині 0 куль, гравець не бачить що потрібно перезарядитись.
+**Fix:** Біля тексту патронів (`ammoText`) показувати підказку `"Empty mag! Press R to reload"` коли `magazineAmmo === 0` і гравець не перезаряджається. Текст жовтого кольору, зникає коли гравець починає перезарядку або набирає кулі.
+**Files:** `src/scenes/UIScene.ts`
+
+## 25. Фікс мінімапи — неправильний прямокутник камери
+
+**Problem:** Camera view rectangle на мінімапі показує неточну область. Використовується `cam.scrollX/scrollY` і ручний поділ на zoom, що дає похибку.
+**Fix:** Замінити ручні розрахунки на `cam.worldView` — це вбудований Rectangle в Phaser що дає точні world-space координати видимої області (x, y, width, height), вже з урахуванням zoom.
+**Files:** `src/scenes/UIScene.ts`
+
+## 26. Система лідерборду з нікнеймами
+
+**Problem:** Немає збереження результатів і мотивації грати знову.
+**Fix:** Система лідерборду на localStorage:
+
+### Введення імені (MenuScene):
+- Текстове поле для нікнейму під кнопкою START
+- Placeholder: "Enter nickname..."
+- Можна залишити порожнім — тоді гра без запису в лідерборд
+- Нікнейм зберігається в localStorage щоб не вводити щоразу
+
+### Лідерборд у грі (UIScene):
+- Маленький блок у верхньому правому куті (під Wave)
+- Показує TOP 5 гравців (нікнейм + score)
+- Поточний гравець підсвічується якщо потрапляє в топ
+
+### Лідерборд в меню (MenuScene):
+- Блок праворуч від кнопок
+- TOP 5 гравців з іменами та результатами
+- Окремо: "Your best: XXX" — найкращий власний результат (записується навіть без нікнейму)
+
+### Збереження результату (GameOverScene):
+- При смерті — зберегти результат в localStorage
+- Якщо є нікнейм → записати в загальний лідерборд
+- Завжди → оновити персональний рекорд якщо score вищий
+
+### Структура даних (localStorage):
+- `zombie-sim-nickname`: string — поточний нікнейм
+- `zombie-sim-personal-best`: number — найкращий власний score
+- `zombie-sim-leaderboard`: JSON масив `[{name, score, wave, date}]` — топ записи
+
+**Files:** `src/scenes/MenuScene.ts`, `src/scenes/UIScene.ts`, `src/scenes/GameOverScene.ts`, `src/scenes/GameScene.ts`
