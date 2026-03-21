@@ -261,19 +261,17 @@ export class BootScene extends Phaser.Scene {
 
     // === ACCESSORY TEXTURES (bigger, more visible) ===
 
-    // Helmet (military green, 24x20)
-    g.fillStyle(0x4b5320);
-    g.fillCircle(12, 10, 12);
-    g.fillStyle(0x5a6a30);
-    g.fillCircle(12, 9, 10);
-    g.fillStyle(0x6a7a40, 0.5);
-    g.fillCircle(9, 7, 5);
-    g.lineStyle(2, 0x2d3319);
-    g.strokeCircle(12, 10, 11);
-    // Helmet band
-    g.fillStyle(0x3a4a20);
-    g.fillRect(2, 12, 20, 3);
-    g.generateTexture('acc-helmet', 24, 22);
+    // Beret (red, sits on edge of head, 14x14)
+    g.fillStyle(0xcc0000);
+    g.fillCircle(7, 7, 7);
+    g.fillStyle(0xaa0000);
+    g.fillCircle(5, 9, 3);
+    g.fillStyle(0xee2222, 0.5);
+    g.fillCircle(5, 5, 3);
+    // Small stalk on top
+    g.fillStyle(0x222222);
+    g.fillCircle(7, 1, 1.5);
+    g.generateTexture('acc-beret', 14, 14);
     g.clear();
 
     // Bandana (bright red, 28x10)
@@ -355,22 +353,23 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('acc-crown', 24, 20);
     g.clear();
 
-    // Shield (big circle, 36x36, visible behind player)
-    g.fillStyle(0x808080);
-    g.fillCircle(18, 18, 18);
-    g.lineStyle(3, 0xcccccc);
-    g.strokeCircle(18, 18, 16);
-    g.fillStyle(0x666666);
-    g.fillCircle(18, 18, 8);
+    // Backpack (tactical, 18x10, sits on lower edge)
+    g.fillStyle(0x444444);
+    g.fillRect(1, 1, 16, 8);
     g.fillStyle(0x555555);
-    g.fillCircle(18, 18, 5);
-    g.lineStyle(2, 0x999999);
-    g.strokeCircle(18, 18, 8);
-    // Cross pattern
-    g.lineStyle(2, 0x888888);
-    g.lineBetween(18, 2, 18, 34);
-    g.lineBetween(2, 18, 34, 18);
-    g.generateTexture('acc-shield', 36, 36);
+    g.fillRect(2, 2, 14, 6);
+    g.lineStyle(1, 0x333333);
+    g.strokeRect(1, 1, 16, 8);
+    // Straps
+    g.lineStyle(1, 0x666666);
+    g.lineBetween(4, 0, 4, 2);
+    g.lineBetween(14, 0, 14, 2);
+    // Pocket
+    g.fillStyle(0x3a3a3a);
+    g.fillRect(5, 4, 8, 4);
+    g.lineStyle(1, 0x2a2a2a);
+    g.strokeRect(5, 4, 8, 4);
+    g.generateTexture('acc-backpack', 18, 10);
     g.clear();
 
     // Coin icon (for HUD)
