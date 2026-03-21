@@ -391,3 +391,73 @@
 - Game: зробити ритм менш агресивним, додати варіацію — кожні 8 тактів змінювати басову лінію, додати паузи в hi-hat, зменшити загальну гучність beat, зробити pad тихішим
 - Обидва: знизити базову гучність на 30%
 **Files:** `src/systems/AudioManager.ts`
+
+---
+
+# Fix Plan — Round 13: SMG→Minigun, ammo pickup, auto-fire
+
+## 37. SMG замінено на Minigun (слот 4)
+- Порядок зброй: Rifle(1), Shotgun(2), Sniper(3), Minigun(4), Launcher(5)
+- Minigun: 6 dmg, 50ms rate (20/сек), 200 mag, 400 reserve, розкид 6°
+- Текстура: 6 стволів з затискачами, стрічка з набоями
+**Files:** `src/systems/WeaponConfig.ts`, `src/scenes/BootScene.ts`
+
+## 38. Ammo pickup дає кулі всій зброї
+- 1/5 від магазину кожній зброї (rifle +6, minigun +40)
+- Shotgun, Sniper, Launcher — фіксовано +3
+**Files:** `src/systems/WeaponConfig.ts`, `src/entities/Player.ts`, `src/scenes/GameScene.ts`
+
+## 39. Автоматична стрільба
+- Rifle та Minigun: утримання мишки = безперервна стрільба
+- Інші: одиночні постріли
+**Files:** `src/systems/WeaponConfig.ts`, `src/scenes/GameScene.ts`
+
+## 40. Адмін-панель: монети та max ammo
+- Give coins — вводиш число, отримуєш монети
+- Max ammo — заповнює всі обойми + резерв
+**Files:** `src/systems/AdminConsole.ts`
+
+---
+
+# Fix Plan — Round 14: Перемикання зброї, спавн, вигляд меню
+
+## 41. Перемикання зброї колесиком миші
+- Колесо вниз = наступна, вгору = попередня, зациклюється
+**Files:** `src/entities/Player.ts`
+
+## 42. Гравець не спавниться в стінах
+- Safe spawn: спіраль від центру, шукає вільну позицію
+- Збільшено safe zone навколо центру (200px)
+**Files:** `src/scenes/GameScene.ts`
+
+## 43. Редизайн головного меню
+- Два стовпці: ліва = кнопки, права = stats/leaderboard
+- START 42px, SHOP 30px, великі відступи
+- Nickname, volume slider, coins — все розставлено
+**Files:** `src/scenes/MenuScene.ts`
+
+---
+
+# Fix Plan — Round 15: Фікс зависань, ESC, агро зомбі
+
+## 44. Фікс зависання при виході/смерті
+- Проблема: scene switching в Phaser крашив через доступ до знищених об'єктів
+- Рішення: `window.location.reload()` для ESC виходу, Game Over кнопок
+- gameOver flag запобігає повторним смертям
+- UIScene update з try-catch і перевіркою active
+**Files:** `src/scenes/UIScene.ts`, `src/scenes/GameScene.ts`, `src/scenes/GameOverScene.ts`
+
+## 45. Агро-система зомбі
+- Побачив гравця → агро тримається поки гравець в радіусі бачення
+- Не скидає агро за стіною якщо гравець поруч
+**Files:** `src/entities/Zombie.ts`
+
+## 46. Зомбі обходять стіни
+- Детекція "stuck" (не рухається 200ms)
+- Ковзає перпендикулярно стіні, міняє напрямок кожні 800ms
+**Files:** `src/entities/Zombie.ts`
+
+## 47. START кнопка з cooldown
+- Сіра і неклікабельна 1.2с після входу в меню
+- Дає час сценам очиститися
+**Files:** `src/scenes/MenuScene.ts`
