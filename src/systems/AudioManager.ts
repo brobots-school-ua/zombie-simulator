@@ -61,7 +61,7 @@ export class AudioManager {
     // Master bus for menu
     const menuBus = ctx.createGain();
     menuBus.gain.setValueAtTime(0, now);
-    menuBus.gain.linearRampToValueAtTime(0.6, now + 3); // fade in
+    menuBus.gain.linearRampToValueAtTime(0.35, now + 4); // softer fade in
     menuBus.connect(this.masterGain);
     this.menuNodes.push(menuBus);
 
@@ -82,14 +82,14 @@ export class AudioManager {
 
     // === DRONE 1: Deep bass drone ===
     const drone1 = ctx.createOscillator();
-    drone1.type = 'sawtooth';
+    drone1.type = 'sine'; // softer than sawtooth
     drone1.frequency.value = 55; // A1
     const drone1Filter = ctx.createBiquadFilter();
     drone1Filter.type = 'lowpass';
     drone1Filter.frequency.value = 120;
     drone1Filter.Q.value = 2;
     const drone1Gain = ctx.createGain();
-    drone1Gain.gain.value = 0.25;
+    drone1Gain.gain.value = 0.12; // quieter drone
     drone1.connect(drone1Filter);
     drone1Filter.connect(drone1Gain);
     drone1Gain.connect(dryGain);
@@ -113,7 +113,7 @@ export class AudioManager {
     drone2.type = 'sine';
     drone2.frequency.value = 82; // ~E2 (slightly detuned)
     const drone2Gain = ctx.createGain();
-    drone2Gain.gain.value = 0.15;
+    drone2Gain.gain.value = 0.06;
     drone2.connect(drone2Gain);
     drone2Gain.connect(dryGain);
     drone2Gain.connect(wetGain);
@@ -125,7 +125,7 @@ export class AudioManager {
     drone3.type = 'sine';
     drone3.frequency.value = 36; // C1-ish
     const drone3Gain = ctx.createGain();
-    drone3Gain.gain.value = 0.2;
+    drone3Gain.gain.value = 0.08;
     drone3.connect(drone3Gain);
     drone3Gain.connect(dryGain);
     drone3.start(now);
@@ -141,7 +141,7 @@ export class AudioManager {
     noiseFilter.frequency.value = 400;
     noiseFilter.Q.value = 0.5;
     const noiseGain = ctx.createGain();
-    noiseGain.gain.value = 0.08;
+    noiseGain.gain.value = 0.04;
     noise.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
     noiseGain.connect(dryGain);
@@ -164,7 +164,7 @@ export class AudioManager {
     this.stingInterval = window.setInterval(() => {
       if (!this.menuActive || !this.ctx) return;
       this.playMenuSting();
-    }, 4000 + Math.random() * 6000);
+    }, 8000 + Math.random() * 7000); // less frequent stings
   }
 
   private playMenuSting() {
@@ -182,7 +182,7 @@ export class AudioManager {
 
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.04 + Math.random() * 0.03, now + 0.8);
+    gain.gain.linearRampToValueAtTime(0.02 + Math.random() * 0.015, now + 1.2);
     gain.gain.linearRampToValueAtTime(0, now + 2.5);
 
     const filter = ctx.createBiquadFilter();
@@ -239,13 +239,13 @@ export class AudioManager {
     // Master bus for game music
     const gameBus = ctx.createGain();
     gameBus.gain.setValueAtTime(0, now);
-    gameBus.gain.linearRampToValueAtTime(0.5, now + 2);
+    gameBus.gain.linearRampToValueAtTime(0.3, now + 2); // quieter overall
     gameBus.connect(this.masterGain);
     this.gameNodes.push(gameBus);
 
     // === BASS SYNTH (dark minor riff) ===
     const bassGain = ctx.createGain();
-    bassGain.gain.value = 0.3;
+    bassGain.gain.value = 0.18; // softer bass
     bassGain.connect(gameBus);
     this.gameNodes.push(bassGain);
 
@@ -268,11 +268,11 @@ export class AudioManager {
 
       // Bass note
       const bassOsc = this.ctx.createOscillator();
-      bassOsc.type = 'sawtooth';
+      bassOsc.type = 'triangle'; // softer timbre than sawtooth
       bassOsc.frequency.value = bassNotes[bassStep % bassNotes.length];
       const bassEnv = this.ctx.createGain();
-      bassEnv.gain.setValueAtTime(0.35, t);
-      bassEnv.gain.exponentialRampToValueAtTime(0.01, t + stepTime * 0.8);
+      bassEnv.gain.setValueAtTime(0.2, t);
+      bassEnv.gain.exponentialRampToValueAtTime(0.01, t + stepTime * 0.7);
       bassOsc.connect(bassEnv);
       bassEnv.connect(bassFilter);
       bassOsc.start(t);
@@ -283,8 +283,10 @@ export class AudioManager {
         this.playKick(t, gameBus);
       }
 
-      // Hi-hat on every step
-      this.playHiHat(t, gameBus);
+      // Hi-hat with variation (skip some beats)
+      if (bassStep % 2 === 0 || bassStep % 8 !== 7) {
+        this.playHiHat(t, gameBus);
+      }
 
       // Snare on beats 2, 6
       if (bassStep % 4 === 2) {
@@ -301,7 +303,7 @@ export class AudioManager {
       osc.type = 'triangle';
       osc.frequency.value = freq;
       const padGain = ctx.createGain();
-      padGain.gain.value = 0.06;
+      padGain.gain.value = 0.03; // subtle pad
       const padFilter = ctx.createBiquadFilter();
       padFilter.type = 'lowpass';
       padFilter.frequency.value = 800;
@@ -320,8 +322,8 @@ export class AudioManager {
     osc.frequency.setValueAtTime(150, time);
     osc.frequency.exponentialRampToValueAtTime(40, time + 0.12);
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.5, time);
-    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.25);
+    gain.gain.setValueAtTime(0.3, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
     osc.connect(gain);
     gain.connect(dest);
     osc.start(time);
@@ -337,8 +339,8 @@ export class AudioManager {
     const noise = ctx.createBufferSource();
     noise.buffer = noiseBuffer;
     const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.25, time);
-    noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.12);
+    noiseGain.gain.setValueAtTime(0.15, time);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
     const noiseFilter = ctx.createBiquadFilter();
     noiseFilter.type = 'highpass';
     noiseFilter.frequency.value = 1000;

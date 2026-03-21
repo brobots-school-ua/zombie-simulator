@@ -5,6 +5,7 @@ import { Bullet } from '../entities/Bullet';
 import { Pickup } from '../entities/Pickup';
 import { audioManager } from '../systems/AudioManager';
 import { leaderboard } from '../systems/LeaderboardManager';
+import { shop } from '../systems/ShopConfig';
 
 // Main game scene — where all gameplay happens
 export class GameScene extends Phaser.Scene {
@@ -90,6 +91,8 @@ export class GameScene extends Phaser.Scene {
         this.player.kills++;
         this.player.score += z.scoreValue;
         this.zombiesRemaining--;
+        shop.addCoins(z.coinValue);
+        this.player.sessionCoins += z.coinValue;
         leaderboard.saveResult(this.player.score, this.wave);
       }
 
@@ -246,6 +249,8 @@ export class GameScene extends Phaser.Scene {
           this.player.kills++;
           this.player.score += z.scoreValue;
           this.zombiesRemaining--;
+          shop.addCoins(z.coinValue);
+          this.player.sessionCoins += z.coinValue;
           leaderboard.saveResult(this.player.score, this.wave);
         }
       }

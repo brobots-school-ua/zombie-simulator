@@ -2,11 +2,13 @@ import Phaser from 'phaser';
 import { audioManager } from '../systems/AudioManager';
 import { leaderboard } from '../systems/LeaderboardManager';
 import { AdminConsole } from '../systems/AdminConsole';
+import { ACCESSORIES, shop } from '../systems/ShopConfig';
 
 // Atmospheric main menu scene
 export class MenuScene extends Phaser.Scene {
   private nicknameInput!: HTMLInputElement;
   private adminConsole!: AdminConsole;
+  private shopPanel: HTMLDivElement | null = null;
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -167,6 +169,25 @@ export class MenuScene extends Phaser.Scene {
       });
     });
 
+    // Coins display
+    this.add.text(20, 20, `Coins: ${shop.getCoins()}`, {
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      color: '#ffcc22',
+    }).setDepth(10);
+
+    // Shop button
+    const shopBtn = this.add.text(width / 2, height / 2 + 115, '[ SHOP ]', {
+      fontSize: '22px',
+      fontFamily: 'monospace',
+      color: '#ffcc22',
+      shadow: { offsetX: 0, offsetY: 0, color: '#ffaa00', blur: 8, fill: true },
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(10);
+
+    shopBtn.on('pointerover', () => shopBtn.setColor('#ffee66'));
+    shopBtn.on('pointerout', () => shopBtn.setColor('#ffcc22'));
+    shopBtn.on('pointerdown', () => this.openShop());
+
     // Volume slider
     this.createVolumeSlider(width, height);
 
@@ -201,9 +222,8 @@ export class MenuScene extends Phaser.Scene {
 
     // Cleanup HTML elements when scene shuts down
     this.events.on('shutdown', () => {
-      if (this.nicknameInput) {
-        this.nicknameInput.remove();
-      }
+      if (this.nicknameInput) this.nicknameInput.remove();
+      if (this.shopPanel) { this.shopPanel.remove(); this.shopPanel = null; }
       this.adminConsole.destroy();
     });
   }
@@ -252,6 +272,59 @@ export class MenuScene extends Phaser.Scene {
       fontFamily: 'monospace',
       color: '#556655',
     }).setOrigin(0.5).setDepth(10);
+  }
+
+  private openShop() {
+    if (this.shopPanel) return;
+
+    this.shopPanel = document.createElement('div');
+    this.shopPanel.style.cssText = `
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.95); border: 2px solid #ffcc22; border-radius: 8px;
+      padding: 24px; z-index: 3000; font-family: monospace; color: #ffcc22;
+      min-width: 360px; max-height: 80vh; overflow-y: auto;
+    `;
+
+    const renderShop = () => {
+      if (!this.shopPanel) return;
+      const equipped = shop.getEquipped();
+      this.shopPanel.innerHTML = `
+        <h3 style="margin:0 0 8px 0; color:#ffcc22; font-size:20px;">SHOP</h3>
+        <p style="color:#ffdd44; margin:0 0 16px 0;">Coins: ${shop.getCoins()}</p>
+        ${ACCESSORIES.map(acc => {
+          const owned = shop.owns(acc.id);
+          const isEquipped = equipped === acc.id;
+          const canBuy = shop.getCoins() >= acc.price;
+          return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px; margin:4px 0; border:1px solid ${isEquipped ? '#44ff44' : '#333'}; border-radius:4px; background:${isEquipped ? 'rgba(68,255,68,0.1)' : 'rgba(0,0,0,0.3)'}">
+            <span style="color:#ddd;">${acc.name} <span style="color:#888;">(${acc.price} coins)</span></span>
+            ${isEquipped ? '<button class="shop-btn" data-action="unequip" style="padding:4px 10px; background:#333; border:1px solid #44ff44; color:#44ff44; font-family:monospace; cursor:pointer; border-radius:3px;">Equipped</button>'
+            : owned ? `<button class="shop-btn" data-action="equip" data-id="${acc.id}" style="padding:4px 10px; background:#1a3a1a; border:1px solid #44ff44; color:#44ff44; font-family:monospace; cursor:pointer; border-radius:3px;">Equip</button>`
+            : `<button class="shop-btn" data-action="buy" data-id="${acc.id}" style="padding:4px 10px; background:${canBuy ? '#3a3a1a' : '#222'}; border:1px solid ${canBuy ? '#ffcc22' : '#555'}; color:${canBuy ? '#ffcc22' : '#555'}; font-family:monospace; cursor:pointer; border-radius:3px;" ${canBuy ? '' : 'disabled'}>Buy</button>`
+            }
+          </div>`;
+        }).join('')}
+        <button id="shop-close" style="width:100%; margin-top:16px; padding:8px; background:#222; border:1px solid #666; color:#aaa; font-family:monospace; cursor:pointer; border-radius:3px;">Close</button>
+      `;
+
+      // Bind events
+      this.shopPanel.querySelectorAll('.shop-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const action = (btn as HTMLElement).dataset.action;
+          const id = (btn as HTMLElement).dataset.id || '';
+          if (action === 'buy') { shop.buy(id); renderShop(); }
+          if (action === 'equip') { shop.equip(id); renderShop(); }
+          if (action === 'unequip') { shop.unequip(); renderShop(); }
+        });
+      });
+      this.shopPanel.querySelector('#shop-close')?.addEventListener('click', () => {
+        this.shopPanel?.remove();
+        this.shopPanel = null;
+      });
+    };
+
+    document.body.appendChild(this.shopPanel);
+    this.shopPanel.addEventListener('keydown', (e) => e.stopPropagation());
+    renderShop();
   }
 
   private createMenuLeaderboard(screenW: number, screenH: number) {

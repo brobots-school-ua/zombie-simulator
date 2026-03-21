@@ -5,6 +5,7 @@ import { Pickup } from '../entities/Pickup';
 import { audioManager } from '../systems/AudioManager';
 import { leaderboard } from '../systems/LeaderboardManager';
 import { AdminConsole } from '../systems/AdminConsole';
+import { shop } from '../systems/ShopConfig';
 
 // UI overlay scene — HUD with health, ammo, score, wave info, minimap
 export class UIScene extends Phaser.Scene {
@@ -339,7 +340,7 @@ export class UIScene extends Phaser.Scene {
     // Empty magazine hint
     this.emptyMagText.setVisible(p.magazineAmmo === 0 && !p.isReloading);
 
-    this.scoreText.setText(`Score: ${p.score} | Kills: ${p.kills}`);
+    this.scoreText.setText(`Score: ${p.score} | Kills: ${p.kills} | Coins: ${shop.getCoins()}`);
 
     this.waveText.setPosition(width - 20, 15);
     this.waveText.setText(`Wave ${this.gameScene.wave}`);

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { WEAPONS, WeaponDef } from '../systems/WeaponConfig';
+import { ACCESSORIES, shop } from '../systems/ShopConfig';
 
 // Per-weapon ammo state
 export interface WeaponState {
@@ -16,7 +17,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   isReloading: boolean = false;
   score: number = 0;
   kills: number = 0;
+  sessionCoins: number = 0;
   weapon: Phaser.GameObjects.Sprite;
+  private accessorySprite: Phaser.GameObjects.Sprite | null = null;
 
   // Weapon system
   weapons: WeaponState[] = [];
@@ -62,7 +65,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.weapon.setOrigin(0.15, 0.5);
     this.weapon.setDepth(11);
 
-    // Sync weapon position after physics update to prevent jitter
+    // Equipped accessory
+    const equippedId = shop.getEquipped();
+    if (equippedId) {
+      const accDef = ACCESSORIES.find(a => a.id === equippedId);
+      if (accDef) {
+        this.accessorySprite = scene.add.sprite(x, y, accDef.texture);
+        this.accessorySprite.setDepth(10 + accDef.depth);
+      }
+    }
+
+    // Sync weapon + accessory position after physics update
     scene.events.on('postupdate', () => {
       if (this.active && this.weapon) {
         const pointer = scene.input.activePointer;
@@ -70,6 +83,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const angle = Phaser.Math.Angle.Between(this.x, this.y, worldPoint.x, worldPoint.y);
         this.weapon.setPosition(this.x, this.y);
         this.weapon.setRotation(angle);
+
+        // Accessory follows player
+        if (this.accessorySprite) {
+          const accDef = ACCESSORIES.find(a => a.id === shop.getEquipped());
+          if (accDef) {
+            this.accessorySprite.setPosition(this.x + accDef.offsetX, this.y + accDef.offsetY);
+          }
+        }
       }
     });
 
@@ -199,6 +220,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   destroy(fromScene?: boolean) {
     if (this.weapon) this.weapon.destroy();
+    if (this.accessorySprite) this.accessorySprite.destroy();
     super.destroy(fromScene);
   }
 }

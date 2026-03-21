@@ -11,6 +11,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
   speed: number;
   damage: number;
   score: number;
+  coins: number;
   detectionRange: number;
 }> = {
   walker: {
@@ -20,6 +21,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     speed: 60,
     damage: 10,
     score: 10,
+    coins: 1,
     detectionRange: 300,
   },
   runner: {
@@ -29,6 +31,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     speed: 140,
     damage: 8,
     score: 20,
+    coins: 2,
     detectionRange: 400,
   },
   tank: {
@@ -38,6 +41,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     speed: 35,
     damage: 25,
     score: 50,
+    coins: 3,
     detectionRange: 250,
   },
 };
@@ -50,6 +54,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   speed: number;
   damage: number;
   scoreValue: number;
+  coinValue: number;
   detectionRange: number;
   private attackCooldown: number = 0;
   private wanderAngle: number = Math.random() * Math.PI * 2;
@@ -67,6 +72,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     this.speed = config.speed;
     this.damage = config.damage;
     this.scoreValue = config.score;
+    this.coinValue = config.coins;
     this.detectionRange = config.detectionRange;
 
     scene.add.existing(this);

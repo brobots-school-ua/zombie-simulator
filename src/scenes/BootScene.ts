@@ -27,132 +27,309 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('player', 32, 32);
     g.clear();
 
-    // === WEAPON 1: RIFLE ===
+    // === WEAPON 1: RIFLE (detailed AR-style) ===
+    // Stock (wood with grain)
     g.fillStyle(0x5a3820);
     g.fillRect(0, 4, 10, 7);
     g.fillStyle(0x6b4528);
     g.fillRect(1, 5, 8, 5);
-    g.lineStyle(1, 0x4a2e18, 0.5);
+    g.lineStyle(1, 0x4a2e18, 0.4);
     g.lineBetween(2, 6, 8, 6);
+    g.lineBetween(3, 8, 7, 8);
+    // Receiver
     g.fillStyle(0x3a3a3e);
     g.fillRect(9, 3, 12, 8);
     g.fillStyle(0x4a4a50);
     g.fillRect(10, 4, 10, 6);
+    // Trigger guard + trigger
+    g.fillStyle(0x2a2a2e);
+    g.fillRect(12, 10, 5, 3);
+    g.fillStyle(0x555560);
+    g.fillRect(14, 10, 1, 2);
+    // Ejection port
+    g.fillStyle(0x222228);
+    g.fillRect(16, 4, 3, 2);
+    // Barrel
     g.fillStyle(0x3a3a40);
     g.fillRect(20, 5, 10, 4);
     g.fillStyle(0x4a4a52);
     g.fillRect(20, 5, 10, 2);
+    // Muzzle brake
     g.fillStyle(0x2a2a30);
     g.fillRect(28, 4, 4, 6);
     g.fillStyle(0x222228);
     g.fillRect(30, 5, 2, 4);
+    g.lineStyle(1, 0x555560);
+    g.lineBetween(29, 4, 29, 10);
+    // Iron sights
     g.fillStyle(0x555560);
     g.fillRect(26, 3, 2, 2);
+    g.fillRect(14, 2, 3, 2);
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(15, 2, 1, 2);
+    // Barrel highlight
+    g.lineStyle(1, 0x6a6a72, 0.3);
+    g.lineBetween(20, 5, 28, 5);
     g.generateTexture('weapon-rifle', 32, 14);
-    g.generateTexture('weapon', 32, 14); // backward compat
+    g.generateTexture('weapon', 32, 14);
     g.clear();
 
-    // === WEAPON 2: SHOTGUN (short, wide barrel) ===
+    // === WEAPON 2: SHOTGUN (pump-action, detailed) ===
+    // Short stock
     g.fillStyle(0x5a3820);
-    g.fillRect(0, 3, 8, 8);
+    g.fillRect(0, 3, 7, 8);
     g.fillStyle(0x6b4528);
-    g.fillRect(1, 4, 6, 6);
+    g.fillRect(1, 4, 5, 6);
+    g.lineStyle(1, 0x4a2e18, 0.3);
+    g.lineBetween(2, 5, 5, 5);
+    // Receiver
     g.fillStyle(0x3a3a3e);
-    g.fillRect(7, 3, 8, 8);
+    g.fillRect(6, 2, 9, 10);
     g.fillStyle(0x4a4a50);
-    g.fillRect(8, 4, 6, 6);
-    // Double barrel
-    g.fillStyle(0x3a3a40);
-    g.fillRect(14, 3, 12, 4);
-    g.fillRect(14, 7, 12, 4);
+    g.fillRect(7, 3, 7, 8);
+    // Trigger
+    g.fillStyle(0x2a2a2e);
+    g.fillRect(9, 11, 4, 2);
+    // Double barrel (top + bottom)
+    g.fillStyle(0x333338);
+    g.fillRect(14, 2, 14, 4);
+    g.fillRect(14, 8, 14, 4);
     g.fillStyle(0x4a4a52);
-    g.fillRect(14, 3, 12, 1);
-    g.fillRect(14, 7, 12, 1);
-    // Muzzle
-    g.fillStyle(0x222228);
-    g.fillRect(25, 3, 2, 4);
-    g.fillRect(25, 7, 2, 4);
-    // Separator
+    g.fillRect(14, 2, 14, 1);
+    g.fillRect(14, 8, 14, 1);
+    // Gap between barrels
+    g.fillStyle(0x2a2a2e);
+    g.fillRect(14, 6, 14, 2);
+    // Pump grip (wood)
+    g.fillStyle(0x6b4528);
+    g.fillRect(17, 6, 6, 2);
+    g.fillStyle(0x7a5232);
+    g.fillRect(18, 6, 4, 1);
+    // Muzzle holes
+    g.fillStyle(0x1a1a1e);
+    g.fillCircle(28, 4, 1.5);
+    g.fillCircle(28, 10, 1.5);
+    g.generateTexture('weapon-shotgun', 30, 14);
+    g.clear();
+
+    // === WEAPON 3: SMG (compact with curved mag) ===
+    // Grip
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(0, 4, 5, 6);
+    g.fillStyle(0x4a4a50);
+    g.fillRect(1, 5, 3, 4);
+    // Body/receiver
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(4, 2, 12, 9);
+    g.fillStyle(0x4a4a52);
+    g.fillRect(5, 3, 10, 7);
+    // Charging handle
     g.fillStyle(0x555560);
-    g.fillRect(14, 6, 12, 1);
-    g.generateTexture('weapon-shotgun', 28, 14);
-    g.clear();
-
-    // === WEAPON 3: SMG (compact, short) ===
-    g.fillStyle(0x3a3a3e);
-    g.fillRect(0, 4, 6, 6);
-    g.fillStyle(0x4a4a50);
-    g.fillRect(1, 5, 4, 4);
-    // Body
-    g.fillStyle(0x3a3a3e);
-    g.fillRect(5, 3, 10, 8);
-    g.fillStyle(0x4a4a50);
-    g.fillRect(6, 4, 8, 6);
-    // Magazine sticking down
+    g.fillRect(8, 1, 4, 2);
+    // Curved magazine
     g.fillStyle(0x333338);
-    g.fillRect(8, 10, 4, 4);
-    // Barrel (short)
+    g.fillRect(7, 10, 5, 5);
+    g.fillStyle(0x2a2a2e);
+    g.fillRect(6, 12, 4, 4);
+    // Short barrel with suppressor rings
     g.fillStyle(0x3a3a40);
-    g.fillRect(14, 5, 8, 4);
+    g.fillRect(15, 4, 9, 5);
     g.fillStyle(0x4a4a52);
-    g.fillRect(14, 5, 8, 1);
-    g.fillStyle(0x222228);
-    g.fillRect(21, 5, 2, 4);
-    g.generateTexture('weapon-smg', 24, 14);
+    g.fillRect(15, 4, 9, 1);
+    g.lineStyle(1, 0x2a2a30);
+    g.lineBetween(18, 4, 18, 9);
+    g.lineBetween(21, 4, 21, 9);
+    // Muzzle
+    g.fillStyle(0x1a1a1e);
+    g.fillRect(23, 4, 2, 5);
+    g.generateTexture('weapon-smg', 26, 16);
     g.clear();
 
-    // === WEAPON 4: SNIPER (long barrel, scope) ===
-    g.fillStyle(0x5a3820);
-    g.fillRect(0, 5, 8, 6);
-    g.fillStyle(0x6b4528);
-    g.fillRect(1, 6, 6, 4);
+    // === WEAPON 4: SNIPER (long, scoped) ===
+    // Adjustable stock
     g.fillStyle(0x3a3a3e);
-    g.fillRect(7, 4, 10, 7);
+    g.fillRect(0, 5, 6, 6);
     g.fillStyle(0x4a4a50);
-    g.fillRect(8, 5, 8, 5);
-    // Long barrel
-    g.fillStyle(0x3a3a40);
-    g.fillRect(16, 6, 20, 3);
-    g.fillStyle(0x4a4a52);
-    g.fillRect(16, 6, 20, 1);
-    g.fillStyle(0x222228);
-    g.fillRect(35, 6, 2, 3);
-    // Scope
-    g.fillStyle(0x2a2a30);
-    g.fillRect(12, 1, 10, 3);
-    g.fillStyle(0x3a3a42);
-    g.fillCircle(12, 2, 2);
-    g.fillCircle(22, 2, 2);
-    g.fillStyle(0x4488cc, 0.4);
-    g.fillCircle(12, 2, 1);
-    g.generateTexture('weapon-sniper', 38, 14);
-    g.clear();
-
-    // === WEAPON 5: GRENADE LAUNCHER (thick barrel) ===
-    g.fillStyle(0x5a3820);
-    g.fillRect(0, 4, 7, 7);
-    g.fillStyle(0x6b4528);
-    g.fillRect(1, 5, 5, 5);
-    g.fillStyle(0x3a3a3e);
-    g.fillRect(6, 3, 8, 9);
-    g.fillStyle(0x4a4a50);
-    g.fillRect(7, 4, 6, 7);
-    // Thick barrel
-    g.fillStyle(0x3a3a40);
-    g.fillRect(13, 3, 14, 9);
-    g.fillStyle(0x4a4a52);
-    g.fillRect(13, 3, 14, 2);
-    g.fillStyle(0x2a2a30);
-    g.fillRect(13, 11, 14, 1);
-    // Muzzle (wide opening)
-    g.fillStyle(0x222228);
-    g.fillRect(26, 3, 3, 9);
+    g.fillRect(1, 6, 4, 4);
     g.fillStyle(0x333338);
-    g.fillRect(27, 4, 2, 7);
-    // Barrel ring
+    g.fillRect(0, 8, 2, 4);
+    // Receiver
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(5, 4, 12, 8);
+    g.fillStyle(0x4a4a52);
+    g.fillRect(6, 5, 10, 6);
+    // Trigger
+    g.fillStyle(0x2a2a2e);
+    g.fillRect(10, 11, 3, 2);
+    // Long heavy barrel
+    g.fillStyle(0x3a3a40);
+    g.fillRect(16, 6, 22, 4);
+    g.fillStyle(0x4a4a52);
+    g.fillRect(16, 6, 22, 1);
+    g.fillStyle(0x2a2a30);
+    g.fillRect(16, 9, 22, 1);
+    // Muzzle brake
+    g.fillStyle(0x2a2a30);
+    g.fillRect(36, 5, 4, 6);
     g.lineStyle(1, 0x555560);
-    g.lineBetween(20, 3, 20, 12);
-    g.generateTexture('weapon-grenade', 30, 14);
+    g.lineBetween(37, 5, 37, 11);
+    g.lineBetween(39, 5, 39, 11);
+    // Scope (big, detailed)
+    g.fillStyle(0x2a2a30);
+    g.fillRect(10, 0, 16, 4);
+    g.fillStyle(0x3a3a42);
+    g.fillRect(11, 1, 14, 2);
+    // Scope lenses
+    g.fillCircle(10, 2, 2.5);
+    g.fillCircle(26, 2, 2.5);
+    g.fillStyle(0x4488cc, 0.5);
+    g.fillCircle(10, 2, 1.5);
+    g.fillStyle(0x6699dd, 0.3);
+    g.fillCircle(26, 2, 1.5);
+    // Scope mount
+    g.fillStyle(0x333338);
+    g.fillRect(14, 3, 2, 2);
+    g.fillRect(22, 3, 2, 2);
+    // Bipod hint
+    g.fillStyle(0x444448);
+    g.fillRect(20, 10, 1, 3);
+    g.fillRect(24, 10, 1, 3);
+    g.generateTexture('weapon-sniper', 40, 14);
+    g.clear();
+
+    // === WEAPON 5: LAUNCHER (RPG-style) ===
+    // Grip + trigger assembly
+    g.fillStyle(0x5a3820);
+    g.fillRect(0, 5, 6, 7);
+    g.fillStyle(0x6b4528);
+    g.fillRect(1, 6, 4, 5);
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(5, 4, 6, 8);
+    g.fillStyle(0x4a4a50);
+    g.fillRect(6, 5, 4, 6);
+    // Trigger
+    g.fillStyle(0x2a2a2e);
+    g.fillRect(7, 11, 3, 2);
+    // Main tube (thick)
+    g.fillStyle(0x3a4a3a);
+    g.fillRect(10, 2, 18, 10);
+    g.fillStyle(0x4a5a4a);
+    g.fillRect(11, 3, 16, 8);
+    // Top highlight
+    g.fillStyle(0x5a6a5a, 0.4);
+    g.fillRect(11, 3, 16, 2);
+    // Bottom shadow
+    g.fillStyle(0x2a3a2a, 0.4);
+    g.fillRect(11, 9, 16, 2);
+    // Reinforcement rings
+    g.lineStyle(1, 0x2a3a2a);
+    g.lineBetween(15, 2, 15, 12);
+    g.lineBetween(22, 2, 22, 12);
+    // Muzzle (wide open)
+    g.fillStyle(0x222228);
+    g.fillRect(27, 1, 4, 12);
+    g.fillStyle(0x333338);
+    g.fillRect(28, 2, 3, 10);
+    // Rear sight
+    g.fillStyle(0x555560);
+    g.fillRect(12, 1, 2, 2);
+    // Front sight
+    g.fillStyle(0x555560);
+    g.fillRect(25, 1, 2, 2);
+    g.generateTexture('weapon-grenade', 32, 14);
+    g.clear();
+
+    // === ACCESSORY TEXTURES ===
+
+    // Helmet (military green)
+    g.fillStyle(0x4a5a2a);
+    g.fillCircle(8, 6, 8);
+    g.fillStyle(0x5a6a35);
+    g.fillCircle(8, 5, 7);
+    g.fillStyle(0x6a7a40, 0.4);
+    g.fillCircle(6, 4, 4);
+    g.lineStyle(1, 0x3a4a20);
+    g.lineBetween(3, 8, 13, 8);
+    g.generateTexture('acc-helmet', 16, 14);
+    g.clear();
+
+    // Bandana (red)
+    g.fillStyle(0xcc2222);
+    g.fillRect(2, 4, 12, 4);
+    g.fillStyle(0xaa1818);
+    g.fillRect(12, 5, 6, 3);
+    g.fillRect(14, 7, 4, 2);
+    g.fillStyle(0xdd3333, 0.5);
+    g.fillRect(4, 4, 4, 1);
+    g.generateTexture('acc-bandana', 18, 10);
+    g.clear();
+
+    // Sunglasses (dark, cool)
+    g.fillStyle(0x111111);
+    g.fillRect(2, 2, 5, 4);
+    g.fillRect(9, 2, 5, 4);
+    g.fillStyle(0x222244);
+    g.fillRect(3, 3, 3, 2);
+    g.fillRect(10, 3, 3, 2);
+    g.lineStyle(1, 0x333333);
+    g.lineBetween(7, 3, 9, 3);
+    g.lineBetween(0, 3, 2, 3);
+    g.lineBetween(14, 3, 16, 3);
+    g.generateTexture('acc-sunglasses', 16, 8);
+    g.clear();
+
+    // Scar (battle-worn)
+    g.lineStyle(2, 0xaa3333, 0.7);
+    g.lineBetween(2, 2, 10, 10);
+    g.lineStyle(1, 0x882222, 0.5);
+    g.lineBetween(8, 8, 12, 6);
+    g.generateTexture('acc-scar', 14, 12);
+    g.clear();
+
+    // Crown (gold, royal)
+    g.fillStyle(0xddaa00);
+    g.fillRect(2, 6, 12, 5);
+    g.fillStyle(0xffcc22);
+    g.fillRect(3, 7, 10, 3);
+    // Crown points
+    g.fillStyle(0xddaa00);
+    g.fillRect(2, 2, 3, 5);
+    g.fillRect(7, 3, 3, 4);
+    g.fillRect(12, 2, 3, 5);
+    // Gems
+    g.fillStyle(0xff2222);
+    g.fillCircle(3, 4, 1);
+    g.fillStyle(0x2244ff);
+    g.fillCircle(8, 5, 1);
+    g.fillStyle(0x22ff44);
+    g.fillCircle(13, 4, 1);
+    g.generateTexture('acc-crown', 16, 12);
+    g.clear();
+
+    // Shield (on back)
+    g.fillStyle(0x4a4a52);
+    g.fillCircle(8, 8, 8);
+    g.fillStyle(0x5a5a62);
+    g.fillCircle(8, 8, 6);
+    g.fillStyle(0x3366cc);
+    g.fillCircle(8, 8, 4);
+    g.fillStyle(0x4477dd, 0.5);
+    g.fillCircle(7, 7, 2);
+    g.lineStyle(1, 0x3a3a42);
+    g.strokeCircle(8, 8, 6);
+    g.generateTexture('acc-shield', 16, 16);
+    g.clear();
+
+    // Coin icon (for HUD)
+    g.fillStyle(0xddaa00);
+    g.fillCircle(6, 6, 6);
+    g.fillStyle(0xffcc22);
+    g.fillCircle(6, 6, 5);
+    g.fillStyle(0xddaa00);
+    g.fillCircle(6, 6, 3);
+    g.fillStyle(0xffdd44, 0.5);
+    g.fillCircle(5, 5, 2);
+    g.generateTexture('coin-icon', 12, 12);
     g.clear();
 
     // === PROJECTILE TEXTURES ===
