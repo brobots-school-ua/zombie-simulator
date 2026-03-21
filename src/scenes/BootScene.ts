@@ -259,85 +259,118 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('weapon-grenade', 32, 14);
     g.clear();
 
-    // === ACCESSORY TEXTURES ===
+    // === ACCESSORY TEXTURES (bigger, more visible) ===
 
-    // Helmet (military green)
-    g.fillStyle(0x4a5a2a);
-    g.fillCircle(8, 6, 8);
-    g.fillStyle(0x5a6a35);
-    g.fillCircle(8, 5, 7);
-    g.fillStyle(0x6a7a40, 0.4);
-    g.fillCircle(6, 4, 4);
-    g.lineStyle(1, 0x3a4a20);
-    g.lineBetween(3, 8, 13, 8);
-    g.generateTexture('acc-helmet', 16, 14);
+    // Helmet (military green, 24x20)
+    g.fillStyle(0x4b5320);
+    g.fillCircle(12, 10, 12);
+    g.fillStyle(0x5a6a30);
+    g.fillCircle(12, 9, 10);
+    g.fillStyle(0x6a7a40, 0.5);
+    g.fillCircle(9, 7, 5);
+    g.lineStyle(2, 0x2d3319);
+    g.strokeCircle(12, 10, 11);
+    // Helmet band
+    g.fillStyle(0x3a4a20);
+    g.fillRect(2, 12, 20, 3);
+    g.generateTexture('acc-helmet', 24, 22);
     g.clear();
 
-    // Bandana (red)
-    g.fillStyle(0xcc2222);
-    g.fillRect(2, 4, 12, 4);
-    g.fillStyle(0xaa1818);
-    g.fillRect(12, 5, 6, 3);
-    g.fillRect(14, 7, 4, 2);
-    g.fillStyle(0xdd3333, 0.5);
-    g.fillRect(4, 4, 4, 1);
-    g.generateTexture('acc-bandana', 18, 10);
+    // Bandana (bright red, 28x10)
+    g.fillStyle(0xee2222);
+    g.fillRect(0, 1, 24, 6);
+    g.fillStyle(0xcc1111);
+    g.fillRect(0, 1, 24, 2);
+    // Knot tails hanging right
+    g.fillStyle(0xdd2222);
+    g.fillRect(22, 0, 6, 4);
+    g.fillRect(24, 4, 5, 4);
+    g.fillStyle(0xbb1818);
+    g.fillRect(26, 6, 3, 3);
+    // Highlight
+    g.fillStyle(0xff6644, 0.4);
+    g.fillRect(4, 2, 8, 1);
+    g.generateTexture('acc-bandana', 30, 10);
     g.clear();
 
-    // Sunglasses (dark, cool)
+    // Sunglasses (dark, 24x10)
     g.fillStyle(0x111111);
-    g.fillRect(2, 2, 5, 4);
-    g.fillRect(9, 2, 5, 4);
-    g.fillStyle(0x222244);
-    g.fillRect(3, 3, 3, 2);
-    g.fillRect(10, 3, 3, 2);
-    g.lineStyle(1, 0x333333);
-    g.lineBetween(7, 3, 9, 3);
-    g.lineBetween(0, 3, 2, 3);
-    g.lineBetween(14, 3, 16, 3);
-    g.generateTexture('acc-sunglasses', 16, 8);
+    g.fillCircle(6, 5, 5);
+    g.fillCircle(18, 5, 5);
+    g.fillStyle(0x1a1a44);
+    g.fillCircle(6, 5, 4);
+    g.fillCircle(18, 5, 4);
+    // Glare
+    g.fillStyle(0x4466aa, 0.3);
+    g.fillCircle(5, 4, 2);
+    g.fillCircle(17, 4, 2);
+    // Bridge
+    g.lineStyle(2, 0x222222);
+    g.lineBetween(11, 5, 13, 5);
+    // Arms
+    g.lineStyle(2, 0x222222);
+    g.lineBetween(0, 5, 1, 5);
+    g.lineBetween(23, 5, 24, 5);
+    g.generateTexture('acc-sunglasses', 24, 10);
     g.clear();
 
-    // Scar (battle-worn)
-    g.lineStyle(2, 0xaa3333, 0.7);
-    g.lineBetween(2, 2, 10, 10);
-    g.lineStyle(1, 0x882222, 0.5);
-    g.lineBetween(8, 8, 12, 6);
-    g.generateTexture('acc-scar', 14, 12);
+    // Scar (bright red slash, 20x20)
+    g.lineStyle(3, 0xff3333, 0.9);
+    g.lineBetween(2, 2, 18, 18);
+    g.lineStyle(2, 0xff5555, 0.6);
+    g.lineBetween(4, 0, 20, 16);
+    g.lineStyle(1, 0xcc2222, 0.7);
+    g.lineBetween(0, 6, 14, 20);
+    // Blood drops
+    g.fillStyle(0xaa0000, 0.5);
+    g.fillCircle(16, 16, 2);
+    g.fillCircle(6, 4, 1.5);
+    g.generateTexture('acc-scar', 20, 20);
     g.clear();
 
-    // Crown (gold, royal)
-    g.fillStyle(0xddaa00);
-    g.fillRect(2, 6, 12, 5);
-    g.fillStyle(0xffcc22);
-    g.fillRect(3, 7, 10, 3);
-    // Crown points
-    g.fillStyle(0xddaa00);
-    g.fillRect(2, 2, 3, 5);
-    g.fillRect(7, 3, 3, 4);
-    g.fillRect(12, 2, 3, 5);
-    // Gems
-    g.fillStyle(0xff2222);
-    g.fillCircle(3, 4, 1);
-    g.fillStyle(0x2244ff);
-    g.fillCircle(8, 5, 1);
-    g.fillStyle(0x22ff44);
-    g.fillCircle(13, 4, 1);
-    g.generateTexture('acc-crown', 16, 12);
+    // Crown (gold, prominent, 24x20)
+    g.fillStyle(0xffcc00);
+    g.fillRect(2, 10, 20, 10);
+    g.fillStyle(0xffdd33);
+    g.fillRect(3, 11, 18, 8);
+    // Crown points (3 spikes)
+    g.fillStyle(0xffcc00);
+    g.fillRect(2, 4, 4, 8);
+    g.fillRect(10, 0, 4, 12);
+    g.fillRect(18, 4, 4, 8);
+    g.fillStyle(0xffdd33);
+    g.fillRect(3, 5, 2, 6);
+    g.fillRect(11, 1, 2, 10);
+    g.fillRect(19, 5, 2, 6);
+    // Gems (big, colorful)
+    g.fillStyle(0xff1111);
+    g.fillCircle(6, 14, 2.5);
+    g.fillStyle(0x1144ff);
+    g.fillCircle(12, 14, 2.5);
+    g.fillStyle(0x11ff44);
+    g.fillCircle(18, 14, 2.5);
+    // Outline
+    g.lineStyle(1, 0xcc9900);
+    g.strokeRect(2, 10, 20, 10);
+    g.generateTexture('acc-crown', 24, 20);
     g.clear();
 
-    // Shield (on back)
-    g.fillStyle(0x4a4a52);
-    g.fillCircle(8, 8, 8);
-    g.fillStyle(0x5a5a62);
-    g.fillCircle(8, 8, 6);
-    g.fillStyle(0x3366cc);
-    g.fillCircle(8, 8, 4);
-    g.fillStyle(0x4477dd, 0.5);
-    g.fillCircle(7, 7, 2);
-    g.lineStyle(1, 0x3a3a42);
-    g.strokeCircle(8, 8, 6);
-    g.generateTexture('acc-shield', 16, 16);
+    // Shield (big circle, 36x36, visible behind player)
+    g.fillStyle(0x808080);
+    g.fillCircle(18, 18, 18);
+    g.lineStyle(3, 0xcccccc);
+    g.strokeCircle(18, 18, 16);
+    g.fillStyle(0x666666);
+    g.fillCircle(18, 18, 8);
+    g.fillStyle(0x555555);
+    g.fillCircle(18, 18, 5);
+    g.lineStyle(2, 0x999999);
+    g.strokeCircle(18, 18, 8);
+    // Cross pattern
+    g.lineStyle(2, 0x888888);
+    g.lineBetween(18, 2, 18, 34);
+    g.lineBetween(2, 18, 34, 18);
+    g.generateTexture('acc-shield', 36, 36);
     g.clear();
 
     // Coin icon (for HUD)

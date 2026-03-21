@@ -274,7 +274,11 @@ export class MenuScene extends Phaser.Scene {
         btn.addEventListener('click', () => {
           const action = (btn as HTMLElement).dataset.action;
           const id = (btn as HTMLElement).dataset.id || '';
-          if (action === 'buy') { shop.buy(id); renderShop(); }
+          if (action === 'buy') {
+            const success = shop.buy(id);
+            if (!success) { alert('Not enough coins!'); }
+            renderShop();
+          }
           if (action === 'equip') { shop.equip(id); renderShop(); }
           if (action === 'unequip') { shop.unequip(); renderShop(); }
         });
