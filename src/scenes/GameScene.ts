@@ -25,19 +25,6 @@ export class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' });
   }
 
-  // Clean up everything when scene shuts down
-  cleanupScene() {
-    // Destroy all zombies (cleanup arms + hp bars)
-    this.zombies?.getChildren().slice().forEach(z => {
-      const zombie = z as Zombie;
-      if (zombie.active) zombie.takeDamage(9999);
-    });
-    // Destroy player (cleanup weapon + accessory sprites)
-    if (this.player?.active) {
-      this.player.destroy();
-    }
-  }
-
   create() {
     // Reset state
     this.wave = 1;
@@ -166,9 +153,6 @@ export class GameScene extends Phaser.Scene {
       });
     });
 
-    // Clean up on shutdown
-    this.events.once('shutdown', () => this.cleanupScene());
-
     // Start game music
     audioManager.resume();
     audioManager.startGameMusic();
@@ -258,8 +242,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private doAoeDamage(x: number, y: number, radius: number, damage: number) {
-    // Damage all zombies in radius
-    this.zombies.getChildren().forEach((obj) => {
+    // Damage all zombies in radius (slice to avoid modifying array during iteration)
+    this.zombies.getChildren().slice().forEach((obj) => {
       const z = obj as Zombie;
       if (!z.active) return;
       const dist = Phaser.Math.Distance.Between(x, y, z.x, z.y);

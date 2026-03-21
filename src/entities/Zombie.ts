@@ -178,17 +178,23 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
 
   takeDamage(amount: number): boolean {
     this.hp -= amount;
-    this.setTint(0xff0000);
-    this.scene.time.delayedCall(80, () => {
-      if (this.active) this.clearTint();
-    });
+    if (this.scene) {
+      this.setTint(0xff0000);
+      this.scene.time.delayedCall(80, () => {
+        if (this.active) this.clearTint();
+      });
+    }
 
     if (this.hp <= 0) {
-      this.hpBar.destroy();
-      this.arms.destroy();
       this.destroy();
       return true; // zombie died
     }
     return false;
+  }
+
+  destroy(fromScene?: boolean) {
+    if (this.hpBar) { this.hpBar.destroy(); }
+    if (this.arms) { this.arms.destroy(); }
+    super.destroy(fromScene);
   }
 }
