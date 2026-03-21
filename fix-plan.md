@@ -232,3 +232,37 @@
 - `zombie-sim-leaderboard`: JSON масив `[{name, score, wave, date}]` — топ записи
 
 **Files:** `src/scenes/MenuScene.ts`, `src/scenes/UIScene.ts`, `src/scenes/GameOverScene.ts`, `src/scenes/GameScene.ts`
+
+---
+
+# Fix Plan — Round 9: Leaderboard visibility, ESC menu, zombie arms
+
+## 27. Лідерборд в грі не видно
+
+**Problem:** Лідерборд в грі занадто темний (alpha 0.6-0.7), не видно на фоні.
+**Fix:** Додати напівпрозорий чорний фон під лідерборд, збільшити яскравість тексту (alpha 1.0), зробити кольори яскравішими.
+**Files:** `src/scenes/UIScene.ts`
+
+## 28. Вихід у головне меню з гри
+
+**Problem:** Немає способу вийти з гри в меню.
+**Fix:** Додати клавішу ESC для виходу. При натисканні — показати підтвердження "Exit to menu? [ESC] again to confirm". Повторний ESC — вихід. Будь-яка інша дія — скасувати.
+**Files:** `src/scenes/UIScene.ts`, `src/scenes/GameScene.ts`
+
+## 29. Зомбі — тіло не обертається, руки показують напрямок
+
+**Problem:** Зараз весь спрайт зомбі обертається (setRotation), тому очі і тіло крутяться — виглядає дивно.
+**Fix:** Аналогічно до гравця:
+- Текстура тіла зомбі (кулька з очима) — БЕЗ рук, НЕ обертається
+- Окремий спрайт рук — обертається у напрямку руху
+- Для кожного типу зомбі: zombie-walker-arms, zombie-runner-arms, zombie-tank-arms
+- Руки — просто текстурка, без хітбоксу
+- В BootScene: створити текстури тіла (без рук) + текстури рук окремо
+- В Zombie.ts: прибрати setRotation з тіла, додати arm sprite що обертається
+**Files:** `src/scenes/BootScene.ts`, `src/entities/Zombie.ts`
+
+## 30. Один запис на лідерборді на гравця
+
+**Problem:** Один гравець може мати кілька записів у лідерборді.
+**Fix:** При збереженні результату — якщо гравець з таким ім'ям вже є в лідерборді, оновити його запис тільки якщо новий score вищий. Інакше — не додавати.
+**Files:** `src/systems/LeaderboardManager.ts`

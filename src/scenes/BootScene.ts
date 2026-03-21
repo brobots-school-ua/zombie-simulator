@@ -79,8 +79,7 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('weapon', 32, 14);
     g.clear();
 
-    // === ZOMBIE WALKER (rotten, bloody, arm reaching) ===
-    // Body
+    // === ZOMBIE WALKER — body only (no arms, no rotation) ===
     g.fillStyle(0x4a6025);
     g.fillCircle(16, 16, 14);
     g.fillStyle(0x556b2f);
@@ -94,23 +93,27 @@ export class BootScene extends Phaser.Scene {
     g.fillCircle(20, 22, 3);
     g.fillCircle(8, 12, 2);
     g.fillCircle(24, 8, 2);
-    // Eyes
+    // Eyes (always face "up" = forward)
     g.fillStyle(0xff0000);
-    g.fillCircle(11, 12, 3);
-    g.fillCircle(21, 12, 3);
+    g.fillCircle(11, 10, 3);
+    g.fillCircle(21, 10, 3);
     g.fillStyle(0x330000);
-    g.fillCircle(11, 12, 1);
-    g.fillCircle(21, 12, 1);
-    // Reaching arm
-    g.fillStyle(0x556b2f);
-    g.fillRect(26, 10, 6, 4);
-    g.fillStyle(0x4a5e28);
-    g.fillRect(30, 9, 2, 6);
+    g.fillCircle(11, 10, 1);
+    g.fillCircle(21, 10, 1);
     g.generateTexture('zombie-walker', 32, 32);
     g.clear();
 
-    // === ZOMBIE RUNNER (lean, fast, scratched) ===
-    // Lean body
+    // Walker arms (reaching forward)
+    g.fillStyle(0x556b2f);
+    g.fillRect(0, 4, 8, 4);   // left arm
+    g.fillRect(0, 16, 8, 4);  // right arm
+    g.fillStyle(0x4a5e28);
+    g.fillRect(6, 3, 3, 6);   // left hand
+    g.fillRect(6, 15, 3, 6);  // right hand
+    g.generateTexture('zombie-walker-arms', 10, 24);
+    g.clear();
+
+    // === ZOMBIE RUNNER — body only ===
     g.fillStyle(0x6a7b35);
     g.fillCircle(16, 16, 12);
     g.fillStyle(0x7a8b3f);
@@ -126,20 +129,28 @@ export class BootScene extends Phaser.Scene {
     g.fillCircle(10, 24, 2);
     // Wild eyes
     g.fillStyle(0xff4444);
-    g.fillCircle(11, 12, 3);
-    g.fillCircle(21, 12, 3);
+    g.fillCircle(11, 10, 3);
+    g.fillCircle(21, 10, 3);
     g.fillStyle(0xffff00);
-    g.fillCircle(11, 12, 1);
-    g.fillCircle(21, 12, 1);
-    // Both arms reaching
-    g.fillStyle(0x7a8b3f);
-    g.fillRect(26, 8, 5, 3);
-    g.fillRect(26, 14, 5, 3);
+    g.fillCircle(11, 10, 1);
+    g.fillCircle(21, 10, 1);
     g.generateTexture('zombie-runner', 32, 32);
     g.clear();
 
-    // === ZOMBIE TANK (massive, armored, scarred) ===
-    // Big body
+    // Runner arms (clawing forward, thinner)
+    g.fillStyle(0x7a8b3f);
+    g.fillRect(0, 3, 10, 3);   // left arm
+    g.fillRect(0, 16, 10, 3);  // right arm
+    // Claws
+    g.fillStyle(0x5a6b2f);
+    g.fillRect(8, 2, 3, 2);
+    g.fillRect(8, 5, 3, 2);
+    g.fillRect(8, 15, 3, 2);
+    g.fillRect(8, 18, 3, 2);
+    g.generateTexture('zombie-runner-arms', 12, 22);
+    g.clear();
+
+    // === ZOMBIE TANK — body only (massive) ===
     g.fillStyle(0x2e3d16);
     g.fillCircle(20, 20, 19);
     g.fillStyle(0x3a4a1f);
@@ -161,12 +172,26 @@ export class BootScene extends Phaser.Scene {
     g.fillCircle(14, 14, 2);
     // Angry eyes
     g.fillStyle(0xff0000);
-    g.fillRect(12, 12, 6, 5);
-    g.fillRect(22, 12, 6, 5);
+    g.fillRect(12, 10, 6, 5);
+    g.fillRect(22, 10, 6, 5);
     g.fillStyle(0xcc0000);
-    g.fillRect(14, 13, 3, 3);
-    g.fillRect(24, 13, 3, 3);
+    g.fillRect(14, 11, 3, 3);
+    g.fillRect(24, 11, 3, 3);
     g.generateTexture('zombie-tank', 40, 40);
+    g.clear();
+
+    // Tank arms (thick, heavy)
+    g.fillStyle(0x3a4a1f);
+    g.fillRect(0, 3, 10, 6);   // left arm
+    g.fillRect(0, 19, 10, 6);  // right arm
+    g.fillStyle(0x2e3d16);
+    g.fillRect(8, 2, 4, 8);    // left fist
+    g.fillRect(8, 18, 4, 8);   // right fist
+    // Armor on arms
+    g.fillStyle(0x4a5a2f, 0.6);
+    g.fillRect(2, 4, 6, 4);
+    g.fillRect(2, 20, 6, 4);
+    g.generateTexture('zombie-tank-arms', 14, 28);
     g.clear();
 
     // === BULLET (tracer style — elongated capsule with glow) ===

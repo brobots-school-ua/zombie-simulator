@@ -18,6 +18,8 @@ export class UIScene extends Phaser.Scene {
   private minimap!: Phaser.GameObjects.Graphics;
   private leaderboardTexts: Phaser.GameObjects.Text[] = [];
   private volumeOpen = false;
+  private escPending = false;
+  private escText!: Phaser.GameObjects.Text;
 
   private minimapSize = 160;
   private minimapMargin = 15;
@@ -65,6 +67,35 @@ export class UIScene extends Phaser.Scene {
     // In-game leaderboard (top right, below wave)
     this.createLeaderboardDisplay();
 
+    // ESC to exit
+    this.escText = this.add.text(0, 0, 'Press ESC again to exit to menu', {
+      fontSize: '18px',
+      fontFamily: 'monospace',
+      color: '#ffff00',
+      backgroundColor: '#000000aa',
+      padding: { x: 12, y: 6 },
+    }).setOrigin(0.5).setDepth(200).setVisible(false);
+
+    const escKey = this.input.keyboard!.addKey('ESC');
+    escKey.on('down', () => {
+      if (this.escPending) {
+        // Confirmed — exit to menu
+        audioManager.stopGameMusic(0);
+        this.scene.stop('GameScene');
+        this.scene.stop('UIScene');
+        this.scene.start('MenuScene');
+      } else {
+        // First press — show confirmation
+        this.escPending = true;
+        this.escText.setVisible(true);
+        // Cancel after 2 seconds
+        this.time.delayedCall(2000, () => {
+          this.escPending = false;
+          this.escText.setVisible(false);
+        });
+      }
+    });
+
     // Volume control in-game
     this.createVolumeControl();
   }
@@ -74,23 +105,30 @@ export class UIScene extends Phaser.Scene {
     const top5 = leaderboard.getTop(5);
     if (top5.length === 0) return;
 
-    const startX = width - 20;
-    const startY = 45;
+    const startX = width - 15;
+    const startY = 42;
+    const entryH = 16;
 
-    const title = this.add.text(startX, startY, 'TOP', {
+    // Dark background panel
+    const bgH = 22 + top5.length * entryH;
+    const bg = this.add.graphics().setDepth(99);
+    bg.fillStyle(0x000000, 0.5);
+    bg.fillRoundedRect(startX - 145, startY - 4, 150, bgH, 4);
+
+    const title = this.add.text(startX, startY, 'LEADERBOARD', {
       fontSize: '12px',
       fontFamily: 'monospace',
-      color: '#ffaa00',
+      color: '#ffcc33',
       fontStyle: 'bold',
-    }).setOrigin(1, 0).setDepth(100).setAlpha(0.7);
+    }).setOrigin(1, 0).setDepth(100);
     this.leaderboardTexts.push(title);
 
     top5.forEach((entry, i) => {
-      const txt = this.add.text(startX, startY + 16 + i * 14, `${i + 1}. ${entry.name}: ${entry.score}`, {
-        fontSize: '11px',
+      const txt = this.add.text(startX, startY + 18 + i * entryH, `${i + 1}. ${entry.name}: ${entry.score}`, {
+        fontSize: '12px',
         fontFamily: 'monospace',
-        color: '#aa8844',
-      }).setOrigin(1, 0).setDepth(100).setAlpha(0.6);
+        color: '#ddaa44',
+      }).setOrigin(1, 0).setDepth(100);
       this.leaderboardTexts.push(txt);
     });
   }
@@ -214,6 +252,9 @@ export class UIScene extends Phaser.Scene {
 
     this.reloadText.setPosition(width / 2, height / 2);
     this.reloadText.setVisible(p.isReloading);
+
+    // ESC confirmation position
+    this.escText.setPosition(width / 2, height / 2 - 40);
 
     // Draw minimap
     this.drawMinimap(width, height);

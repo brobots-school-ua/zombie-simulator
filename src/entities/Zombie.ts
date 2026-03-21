@@ -6,6 +6,7 @@ export type ZombieType = 'walker' | 'runner' | 'tank';
 
 const ZOMBIE_CONFIG: Record<ZombieType, {
   texture: string;
+  armsTexture: string;
   hp: number;
   speed: number;
   damage: number;
@@ -14,6 +15,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
 }> = {
   walker: {
     texture: 'zombie-walker',
+    armsTexture: 'zombie-walker-arms',
     hp: 30,
     speed: 60,
     damage: 10,
@@ -22,6 +24,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
   },
   runner: {
     texture: 'zombie-runner',
+    armsTexture: 'zombie-runner-arms',
     hp: 20,
     speed: 140,
     damage: 8,
@@ -30,6 +33,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
   },
   tank: {
     texture: 'zombie-tank',
+    armsTexture: 'zombie-tank-arms',
     hp: 100,
     speed: 35,
     damage: 25,
@@ -51,6 +55,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   private wanderAngle: number = Math.random() * Math.PI * 2;
   private wanderTimer: number = 0;
   private hpBar: Phaser.GameObjects.Graphics;
+  private arms: Phaser.GameObjects.Sprite;
 
   constructor(scene: Phaser.Scene, x: number, y: number, type: ZombieType = 'walker') {
     const config = ZOMBIE_CONFIG[type];
@@ -68,6 +73,11 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setDepth(5);
 
+    // Arms sprite — rotates toward movement direction, no hitbox
+    this.arms = scene.add.sprite(x, y, config.armsTexture);
+    this.arms.setOrigin(0, 0.5);
+    this.arms.setDepth(4); // behind body
+
     // HP bar above zombie
     this.hpBar = scene.add.graphics();
     this.hpBar.setDepth(6);
@@ -82,14 +92,15 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     const dist = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
     const canSeePlayer = dist < this.detectionRange && this.hasLineOfSight(player);
 
+    let moveAngle: number;
+
     if (canSeePlayer) {
       // Chase player
-      const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
+      moveAngle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
       this.setVelocity(
-        Math.cos(angle) * this.speed,
-        Math.sin(angle) * this.speed
+        Math.cos(moveAngle) * this.speed,
+        Math.sin(moveAngle) * this.speed
       );
-      this.setRotation(angle);
     } else {
       // Wander randomly
       this.wanderTimer -= delta;
@@ -97,13 +108,18 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
         this.wanderAngle = Math.random() * Math.PI * 2;
         this.wanderTimer = 2000 + Math.random() * 3000;
       }
+      moveAngle = this.wanderAngle;
       const wanderSpeed = this.speed * 0.3;
       this.setVelocity(
-        Math.cos(this.wanderAngle) * wanderSpeed,
-        Math.sin(this.wanderAngle) * wanderSpeed
+        Math.cos(moveAngle) * wanderSpeed,
+        Math.sin(moveAngle) * wanderSpeed
       );
-      this.setRotation(this.wanderAngle);
     }
+
+    // Body does NOT rotate — stays upright like a ball with eyes
+    // Only arms rotate toward movement direction
+    this.arms.setPosition(this.x, this.y);
+    this.arms.setRotation(moveAngle);
 
     // Cooldown for attacks
     if (this.attackCooldown > 0) {
@@ -163,6 +179,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
 
     if (this.hp <= 0) {
       this.hpBar.destroy();
+      this.arms.destroy();
       this.destroy();
       return true; // zombie died
     }

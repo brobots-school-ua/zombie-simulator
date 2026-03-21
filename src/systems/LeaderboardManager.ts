@@ -71,11 +71,17 @@ export class LeaderboardManager {
       } catch { /* reset */ }
     }
 
-    entries.push(entry);
-    // Keep only top entries
+    // One entry per player — update only if new score is higher
+    const existing = entries.findIndex(e => e.name === name);
+    if (existing >= 0) {
+      if (entries[existing].score >= score) return; // old score is better
+      entries[existing] = entry; // replace with new best
+    } else {
+      entries.push(entry);
+    }
+
     entries.sort((a, b) => b.score - a.score);
     entries = entries.slice(0, MAX_ENTRIES);
-
     localStorage.setItem(LB_KEY, JSON.stringify(entries));
   }
 }
