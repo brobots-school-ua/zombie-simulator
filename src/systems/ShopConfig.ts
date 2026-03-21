@@ -80,10 +80,20 @@ export class ShopManager {
   }
 
   // Remove any owned accessories that no longer exist in config
+  // Called once — uses a flag so it doesn't run repeatedly
   cleanupStale() {
+    const doneKey = 'zombie-sim-cleanup-v2';
+    if (localStorage.getItem(doneKey)) return;
+    localStorage.setItem(doneKey, '1');
+
     const validIds = ACCESSORIES.map(a => a.id);
-    const owned = this.getOwned().filter(id => validIds.includes(id));
-    localStorage.setItem(OWNED_KEY, JSON.stringify(owned));
+    const owned = this.getOwned();
+    const stale = owned.filter(id => !validIds.includes(id));
+    if (stale.length > 0) {
+      // Remove stale items (no refund — they were from old versions)
+      const clean = owned.filter(id => validIds.includes(id));
+      localStorage.setItem(OWNED_KEY, JSON.stringify(clean));
+    }
     const eq = this.getEquipped();
     if (eq && !validIds.includes(eq)) this.unequip();
   }

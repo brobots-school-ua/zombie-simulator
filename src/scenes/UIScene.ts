@@ -348,7 +348,7 @@ export class UIScene extends Phaser.Scene {
     // Empty magazine hint
     this.emptyMagText.setVisible(p.magazineAmmo === 0 && !p.isReloading);
 
-    this.scoreText.setText(`Score: ${p.score} | Kills: ${p.kills} | Coins: ${shop.getCoins()}`);
+    this.scoreText.setText(`Score: ${p.score} | Kills: ${p.kills} | Coins: ${shop.getCoins()} (+${p.sessionCoins})`);
 
     this.waveText.setPosition(width - 20, 15);
     this.waveText.setText(`Wave ${this.gameScene.wave}`);
