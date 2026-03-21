@@ -104,25 +104,34 @@ export class MenuScene extends Phaser.Scene {
 
     this.createNicknameInput(LEFT_X, 300);
 
-    // START button (big!)
+    // START button (big!) — starts disabled, enables after cooldown
     const startBtn = this.add.text(LEFT_X, 400, '[ START GAME ]', {
       fontSize: '42px',
       fontFamily: 'monospace',
-      color: '#44ff44',
-      shadow: { offsetX: 0, offsetY: 0, color: '#00ff00', blur: 15, fill: true },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(10);
+      color: '#555555',
+      shadow: { offsetX: 0, offsetY: 0, color: '#333333', blur: 5, fill: true },
+    }).setOrigin(0.5).setDepth(10);
 
-    this.tweens.add({
-      targets: startBtn,
-      scaleX: 1.03, scaleY: 1.03,
-      duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+    // Cooldown before button becomes active (prevents crash after ESC)
+    let ready = false;
+    this.time.delayedCall(1200, () => {
+      ready = true;
+      startBtn.setColor('#44ff44');
+      startBtn.setShadow(0, 0, '#00ff00', 15, true);
+      startBtn.setInteractive({ useHandCursor: true });
+
+      this.tweens.add({
+        targets: startBtn,
+        scaleX: 1.03, scaleY: 1.03,
+        duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+      });
     });
 
-    startBtn.on('pointerover', () => { startBtn.setColor('#88ff88'); startBtn.setScale(1.1); });
-    startBtn.on('pointerout', () => { startBtn.setColor('#44ff44'); startBtn.setScale(1); });
+    startBtn.on('pointerover', () => { if (ready) { startBtn.setColor('#88ff88'); startBtn.setScale(1.1); } });
+    startBtn.on('pointerout', () => { if (ready) { startBtn.setColor('#44ff44'); startBtn.setScale(1); } });
     let starting = false;
     startBtn.on('pointerdown', () => {
-      if (starting) return; // prevent double click
+      if (starting || !ready) return;
       starting = true;
       startBtn.disableInteractive();
       if (this.nicknameInput) {
