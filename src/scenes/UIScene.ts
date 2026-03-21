@@ -95,9 +95,13 @@ export class UIScene extends Phaser.Scene {
         // Confirmed — exit to menu
         exiting = true;
         audioManager.stopGameMusic(0);
+        // Stop game scene first, then this UI scene will stop after transition
         this.scene.stop('GameScene');
-        this.scene.stop('UIScene');
-        this.scene.start('MenuScene');
+        // Use time delay to let GameScene cleanup before switching
+        this.time.delayedCall(50, () => {
+          this.scene.stop('UIScene');
+          this.scene.start('MenuScene');
+        });
       } else {
         // First press — show confirmation
         this.escPending = true;
@@ -431,7 +435,5 @@ export class UIScene extends Phaser.Scene {
 
   shutdown() {
     this.adminConsole.destroy();
-    this.events.removeAllListeners();
-    this.input.removeAllListeners();
   }
 }
