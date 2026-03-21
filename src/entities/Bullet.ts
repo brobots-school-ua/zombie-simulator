@@ -20,6 +20,7 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
   private maxDistance: number;
   private pierceCount: number = 0;
   private trail: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
+  private destroyed = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -62,37 +63,46 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
   // Returns true if bullet should be destroyed after hit
   onHitZombie(): boolean {
     this.pierceCount++;
-    if (this.pierceCount >= this.pierce) {
-      return true; // bullet used up all pierces
-    }
-    return false; // bullet continues through
+    return this.pierceCount >= this.pierce;
   }
 
-  // Flag so GameScene knows to explode this bullet
-  shouldExplode = false;
+  // Whether this bullet reached max range (for AoE explosion check)
+  reachedMaxRange = false;
 
   preUpdate(time: number, delta: number) {
     super.preUpdate(time, delta);
+    if (this.destroyed) return;
     const dist = Phaser.Math.Distance.Between(this.startX, this.startY, this.x, this.y);
     if (dist >= this.maxDistance) {
-      if (this.aoeRadius > 0) {
-        // Mark for explosion — GameScene will handle AoE
-        this.shouldExplode = true;
-        this.scene?.events.emit('bullet-explode', this);
-      }
-      this.destroy();
+      this.reachedMaxRange = true;
+      this.kill();
     }
   }
 
-  destroy(fromScene?: boolean) {
+  kill() {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.cleanupTrail();
+    super.destroy();
+  }
+
+  private cleanupTrail() {
     if (this.trail) {
       this.trail.stop();
       const trailRef = this.trail;
       this.trail = null;
-      this.scene?.time.delayedCall(200, () => {
+      if (this.scene) {
+        this.scene.time.delayedCall(200, () => trailRef.destroy());
+      } else {
         trailRef.destroy();
-      });
+      }
     }
+  }
+
+  destroy(fromScene?: boolean) {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.cleanupTrail();
     super.destroy(fromScene);
   }
 }

@@ -78,34 +78,27 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.bullets, this.zombies, (bullet, zombie) => {
       const b = bullet as Bullet;
       const z = zombie as Zombie;
+      if (!b.active || !z.active) return;
 
       // AoE explosion (grenade launcher)
       if (b.aoeRadius > 0) {
         this.doAoeDamage(b.x, b.y, b.aoeRadius, b.damage);
-        b.destroy();
+        b.kill();
         return;
       }
 
-      const killed = z.takeDamage(b.damage);
-
-      if (killed) {
-        this.player.kills++;
-        this.player.score += z.scoreValue;
-        this.zombiesRemaining--;
-        shop.addCoins(z.coinValue);
-        this.player.sessionCoins += z.coinValue;
-        leaderboard.saveResult(this.player.score, this.wave);
-      }
+      this.onZombieHit(z, b.damage);
 
       // Pierce: bullet continues or dies
       if (b.onHitZombie()) {
-        b.destroy();
+        b.kill();
       }
     });
 
     // Player picks up ammo — gives 1/5 mag to ALL weapons
     this.physics.add.overlap(this.player, this.pickups, (_player, pickup) => {
       const p = pickup as Pickup;
+      if (!p.active) return;
       this.player.addAmmoAll();
       p.destroy();
     });
@@ -113,17 +106,11 @@ export class GameScene extends Phaser.Scene {
     // Bullets collide with walls (rockets explode)
     this.physics.add.collider(this.bullets, this.walls, (bullet) => {
       const b = bullet as Bullet;
+      if (!b.active) return;
       if (b.aoeRadius > 0) {
         this.doAoeDamage(b.x, b.y, b.aoeRadius, b.damage);
       }
-      b.destroy();
-    });
-
-    // Rocket explodes on max range
-    this.events.on('bullet-explode', (b: Bullet) => {
-      if (b.aoeRadius > 0) {
-        this.doAoeDamage(b.x, b.y, b.aoeRadius, b.damage);
-      }
+      b.kill();
     });
 
     // Spawn ammo pickups every 10-15 seconds at safe positions
@@ -182,6 +169,21 @@ export class GameScene extends Phaser.Scene {
       this.fireWeapon();
     }
 
+    // Check for rockets that reached max range — explode them
+    this.bullets.getChildren().slice().forEach((obj) => {
+      const b = obj as Bullet;
+      if (b.reachedMaxRange && b.aoeRadius > 0 && b.active) {
+        this.doAoeDamage(b.x, b.y, b.aoeRadius, b.damage);
+      }
+    });
+
+    // Throttled leaderboard save (once per second, not every kill)
+    this.saveScoreThrottle -= delta;
+    if (this.saveScoreThrottle <= 0 && this.player.score > 0) {
+      this.saveScoreThrottle = 1000;
+      leaderboard.saveResult(this.player.score, this.wave);
+    }
+
     // Check if wave is cleared
     if (this.zombiesRemaining <= 0 && !this.waveDelay) {
       this.waveDelay = true;
@@ -194,6 +196,20 @@ export class GameScene extends Phaser.Scene {
       });
     }
   }
+
+  private onZombieHit(z: Zombie, damage: number) {
+    if (!z.active) return;
+    const killed = z.takeDamage(damage);
+    if (killed) {
+      this.player.kills++;
+      this.player.score += z.scoreValue;
+      this.zombiesRemaining--;
+      shop.addCoins(z.coinValue);
+      this.player.sessionCoins += z.coinValue;
+    }
+  }
+
+  private saveScoreThrottle = 0;
 
   private fireWeapon() {
     if (this.shootCooldown > 0) return;
@@ -243,24 +259,16 @@ export class GameScene extends Phaser.Scene {
 
   private doAoeDamage(x: number, y: number, radius: number, damage: number) {
     // Damage all zombies in radius (slice to avoid modifying array during iteration)
-    this.zombies.getChildren().slice().forEach((obj) => {
+    const targets = this.zombies.getChildren().slice();
+    for (const obj of targets) {
       const z = obj as Zombie;
-      if (!z.active) return;
+      if (!z.active) continue;
       const dist = Phaser.Math.Distance.Between(x, y, z.x, z.y);
       if (dist <= radius) {
-        // Damage falls off with distance
         const falloff = 1 - (dist / radius) * 0.5;
-        const killed = z.takeDamage(Math.round(damage * falloff));
-        if (killed) {
-          this.player.kills++;
-          this.player.score += z.scoreValue;
-          this.zombiesRemaining--;
-          shop.addCoins(z.coinValue);
-          this.player.sessionCoins += z.coinValue;
-          leaderboard.saveResult(this.player.score, this.wave);
-        }
+        this.onZombieHit(z, Math.round(damage * falloff));
       }
-    });
+    }
 
     // Visual explosion effect
     const explosion = this.add.circle(x, y, radius, 0xff6600, 0.4);
