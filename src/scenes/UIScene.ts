@@ -87,13 +87,10 @@ export class UIScene extends Phaser.Scene {
       padding: { x: 12, y: 6 },
     }).setOrigin(0.5).setDepth(200).setVisible(false);
 
-    let exiting = false;
     const escKey = this.input.keyboard!.addKey('ESC');
     escKey.on('down', () => {
-      if (exiting) return;
       if (this.escPending) {
         // Confirmed — exit to menu
-        exiting = true;
         audioManager.stopGameMusic(0);
         this.scene.stop('GameScene');
         this.scene.stop('UIScene');
@@ -323,7 +320,8 @@ export class UIScene extends Phaser.Scene {
   }
 
   update() {
-    if (!this.gameScene?.player) return;
+    if (!this.gameScene?.player?.active) return;
+    if (!this.scene.isActive('GameScene')) return;
     const p = this.gameScene.player;
     const { width, height } = this.scale;
 
@@ -366,15 +364,15 @@ export class UIScene extends Phaser.Scene {
 
   private drawMinimap(screenW: number, screenH: number) {
     const mm = this.minimap;
+    mm.clear();
+    if (!this.gameScene?.walls || !this.gameScene?.player?.active) return;
+
     const size = this.minimapSize;
     const margin = this.minimapMargin;
-    const mapSize = 2000; // same as GameScene.mapSize
-
+    const mapSize = 2000;
     const mmX = screenW - size - margin;
     const mmY = screenH - size - margin;
     const scale = size / mapSize;
-
-    mm.clear();
 
     // Background with border
     mm.fillStyle(0x000000, 0.6);
