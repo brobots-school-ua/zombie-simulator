@@ -76,15 +76,26 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.bullets, this.zombies, (bullet, zombie) => {
       const b = bullet as Bullet;
       const z = zombie as Zombie;
+
+      // AoE explosion (grenade launcher)
+      if (b.aoeRadius > 0) {
+        this.doAoeDamage(b.x, b.y, b.aoeRadius, b.damage);
+        b.destroy();
+        return;
+      }
+
       const killed = z.takeDamage(b.damage);
-      b.destroy();
 
       if (killed) {
         this.player.kills++;
         this.player.score += z.scoreValue;
         this.zombiesRemaining--;
-        // Auto-save score to leaderboard
         leaderboard.saveResult(this.player.score, this.wave);
+      }
+
+      // Pierce: bullet continues or dies
+      if (b.onHitZombie()) {
+        b.destroy();
       }
     });
 
@@ -113,15 +124,7 @@ export class GameScene extends Phaser.Scene {
 
     // Shooting
     this.input.on('pointerdown', () => {
-      if (this.shootCooldown <= 0) {
-        const target = this.player.shoot();
-        if (target) {
-          const muzzle = this.player.getMuzzlePosition();
-          const bullet = new Bullet(this, muzzle.x, muzzle.y, target.x, target.y);
-          this.bullets.add(bullet);
-          this.shootCooldown = 150; // fire rate in ms
-        }
-      }
+      this.fireWeapon();
     });
 
     // Player death
@@ -170,6 +173,82 @@ export class GameScene extends Phaser.Scene {
         this.waveDelay = false;
       });
     }
+  }
+
+  private fireWeapon() {
+    if (this.shootCooldown > 0) return;
+
+    const target = this.player.shoot();
+    if (!target) return;
+
+    const wDef = this.player.activeWeapon.def;
+    const muzzle = this.player.getMuzzlePosition();
+    const baseAngle = Phaser.Math.Angle.Between(muzzle.x, muzzle.y, target.x, target.y);
+
+    const bulletConfig = {
+      damage: wDef.damage,
+      speed: wDef.bulletSpeed,
+      maxRange: wDef.maxRange,
+      pierce: wDef.pierce,
+      aoeRadius: wDef.aoeRadius,
+    };
+
+    if (wDef.pellets > 1) {
+      // Shotgun: multiple pellets in a fan
+      const totalSpread = wDef.pelletSpread * (wDef.pellets - 1);
+      const startAngle = baseAngle - Phaser.Math.DegToRad(totalSpread / 2);
+      for (let i = 0; i < wDef.pellets; i++) {
+        const angle = startAngle + Phaser.Math.DegToRad(wDef.pelletSpread * i);
+        const tx = muzzle.x + Math.cos(angle) * 100;
+        const ty = muzzle.y + Math.sin(angle) * 100;
+        const b = new Bullet(this, muzzle.x, muzzle.y, tx, ty, bulletConfig);
+        this.bullets.add(b);
+      }
+    } else {
+      // Single bullet with optional spread
+      let finalAngle = baseAngle;
+      if (wDef.spread > 0) {
+        const spreadRad = Phaser.Math.DegToRad(wDef.spread);
+        finalAngle += (Math.random() - 0.5) * spreadRad * 2;
+      }
+      const tx = muzzle.x + Math.cos(finalAngle) * 100;
+      const ty = muzzle.y + Math.sin(finalAngle) * 100;
+      const b = new Bullet(this, muzzle.x, muzzle.y, tx, ty, bulletConfig);
+      this.bullets.add(b);
+    }
+
+    this.shootCooldown = wDef.fireRate;
+  }
+
+  private doAoeDamage(x: number, y: number, radius: number, damage: number) {
+    // Damage all zombies in radius
+    this.zombies.getChildren().forEach((obj) => {
+      const z = obj as Zombie;
+      if (!z.active) return;
+      const dist = Phaser.Math.Distance.Between(x, y, z.x, z.y);
+      if (dist <= radius) {
+        // Damage falls off with distance
+        const falloff = 1 - (dist / radius) * 0.5;
+        const killed = z.takeDamage(Math.round(damage * falloff));
+        if (killed) {
+          this.player.kills++;
+          this.player.score += z.scoreValue;
+          this.zombiesRemaining--;
+          leaderboard.saveResult(this.player.score, this.wave);
+        }
+      }
+    });
+
+    // Visual explosion effect
+    const explosion = this.add.circle(x, y, radius, 0xff6600, 0.4);
+    explosion.setDepth(9);
+    this.tweens.add({
+      targets: explosion,
+      alpha: 0,
+      scale: 1.5,
+      duration: 300,
+      onComplete: () => explosion.destroy(),
+    });
   }
 
   private spawnWave() {

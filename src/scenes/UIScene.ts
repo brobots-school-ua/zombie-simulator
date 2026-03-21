@@ -21,6 +21,8 @@ export class UIScene extends Phaser.Scene {
   private lbTitle!: Phaser.GameObjects.Text;
   private lbEntries: Phaser.GameObjects.Text[] = [];
   private volumeOpen = false;
+  private weaponBarGfx!: Phaser.GameObjects.Graphics;
+  private weaponBarTexts: Phaser.GameObjects.Text[] = [];
   private escPending = false;
   private escText!: Phaser.GameObjects.Text;
   private adminConsole!: AdminConsole;
@@ -68,6 +70,10 @@ export class UIScene extends Phaser.Scene {
     this.minimap = this.add.graphics();
     this.minimap.setDepth(100);
 
+    // Weapon bar at bottom
+    this.weaponBarGfx = this.add.graphics().setDepth(100);
+    this.createWeaponBar();
+
     // In-game leaderboard (top right, below wave)
     this.createLeaderboardDisplay();
 
@@ -105,6 +111,61 @@ export class UIScene extends Phaser.Scene {
 
     // Volume control in-game
     this.createVolumeControl();
+  }
+
+  private createWeaponBar() {
+    const { width, height } = this.scale;
+    const slotW = 90;
+    const slotH = 36;
+    const gap = 4;
+    const totalW = 5 * slotW + 4 * gap;
+    const startX = (width - totalW) / 2;
+    const y = height - slotH - 8;
+
+    for (let i = 0; i < 5; i++) {
+      const x = startX + i * (slotW + gap);
+      const txt = this.add.text(x + slotW / 2, y + slotH / 2, '', {
+        fontSize: '11px',
+        fontFamily: 'monospace',
+        color: '#aaaaaa',
+        align: 'center',
+      }).setOrigin(0.5).setDepth(101);
+      this.weaponBarTexts.push(txt);
+    }
+  }
+
+  private updateWeaponBar() {
+    if (!this.gameScene?.player) return;
+    const p = this.gameScene.player;
+    const { width, height } = this.scale;
+    const slotW = 90;
+    const slotH = 36;
+    const gap = 4;
+    const totalW = 5 * slotW + 4 * gap;
+    const startX = (width - totalW) / 2;
+    const y = height - slotH - 8;
+
+    this.weaponBarGfx.clear();
+
+    for (let i = 0; i < p.weapons.length; i++) {
+      const w = p.weapons[i];
+      const x = startX + i * (slotW + gap);
+      const isActive = i === p.activeWeaponIndex;
+
+      // Slot background
+      this.weaponBarGfx.fillStyle(0x000000, isActive ? 0.7 : 0.4);
+      this.weaponBarGfx.fillRoundedRect(x, y, slotW, slotH, 4);
+
+      // Border
+      this.weaponBarGfx.lineStyle(isActive ? 2 : 1, isActive ? 0x44ff44 : 0x444444);
+      this.weaponBarGfx.strokeRoundedRect(x, y, slotW, slotH, 4);
+
+      // Text
+      const txt = this.weaponBarTexts[i];
+      txt.setText(`${i + 1} ${w.def.name}\n${w.magazineAmmo}/${w.reserveAmmo}`);
+      txt.setColor(isActive ? '#44ff44' : '#888888');
+      txt.setPosition(x + slotW / 2, y + slotH / 2);
+    }
   }
 
   private createLeaderboardDisplay() {
@@ -288,6 +349,9 @@ export class UIScene extends Phaser.Scene {
 
     // ESC confirmation position
     this.escText.setPosition(width / 2, height / 2 - 40);
+
+    // Update weapon bar
+    this.updateWeaponBar();
 
     // Update leaderboard live
     this.updateLeaderboard();

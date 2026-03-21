@@ -1,18 +1,33 @@
 import Phaser from 'phaser';
+import { WEAPONS, WeaponDef } from '../systems/WeaponConfig';
 
-// Player entity — the survivor (sphere body + rotating weapon)
+// Per-weapon ammo state
+export interface WeaponState {
+  def: WeaponDef;
+  magazineAmmo: number;
+  reserveAmmo: number;
+}
+
+// Player entity — the survivor with multiple weapons
 export class Player extends Phaser.Physics.Arcade.Sprite {
   hp: number = 100;
   maxHp: number = 100;
   speed: number = 200;
-  magazineAmmo: number = 30;
-  maxMagazine: number = 30;
-  reserveAmmo: number = 30;
-  maxReserve: number = 60;
   isReloading: boolean = false;
   score: number = 0;
   kills: number = 0;
   weapon: Phaser.GameObjects.Sprite;
+
+  // Weapon system
+  weapons: WeaponState[] = [];
+  activeWeaponIndex: number = 0;
+
+  // Expose current weapon ammo for UI compatibility
+  get magazineAmmo() { return this.weapons[this.activeWeaponIndex].magazineAmmo; }
+  get reserveAmmo() { return this.weapons[this.activeWeaponIndex].reserveAmmo; }
+  get maxMagazine() { return this.weapons[this.activeWeaponIndex].def.magazineSize; }
+  get maxReserve() { return this.weapons[this.activeWeaponIndex].def.maxReserve; }
+  get activeWeapon() { return this.weapons[this.activeWeaponIndex]; }
 
   private keys!: {
     W: Phaser.Input.Keyboard.Key;
@@ -21,6 +36,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     D: Phaser.Input.Keyboard.Key;
     R: Phaser.Input.Keyboard.Key;
   };
+  private weaponKeys: Phaser.Input.Keyboard.Key[] = [];
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'player');
@@ -32,8 +48,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setCollideWorldBounds(true);
     this.setDepth(10);
 
+    // Initialize all weapons with full ammo
+    for (const def of WEAPONS) {
+      this.weapons.push({
+        def,
+        magazineAmmo: def.magazineSize,
+        reserveAmmo: def.maxReserve,
+      });
+    }
+
     // Weapon sprite — rotates independently toward mouse
-    this.weapon = scene.add.sprite(x, y, 'weapon');
+    this.weapon = scene.add.sprite(x, y, this.activeWeapon.def.texture);
     this.weapon.setOrigin(0.15, 0.5);
     this.weapon.setDepth(11);
 
@@ -59,7 +84,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       },
     });
 
-    // Setup keyboard controls
+    // Movement keys
     this.keys = {
       W: scene.input.keyboard!.addKey('W'),
       A: scene.input.keyboard!.addKey('A'),
@@ -67,41 +92,62 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       D: scene.input.keyboard!.addKey('D'),
       R: scene.input.keyboard!.addKey('R'),
     };
+
+    // Weapon switch keys (1-5)
+    for (const def of WEAPONS) {
+      const key = scene.input.keyboard!.addKey(def.key);
+      this.weaponKeys.push(key);
+    }
   }
 
   update() {
     // Movement
     let vx = 0;
     let vy = 0;
-
     if (this.keys.W.isDown) vy = -1;
     if (this.keys.S.isDown) vy = 1;
     if (this.keys.A.isDown) vx = -1;
     if (this.keys.D.isDown) vx = 1;
 
-    // Normalize diagonal movement
     const len = Math.sqrt(vx * vx + vy * vy);
     if (len > 0) {
       vx = (vx / len) * this.speed;
       vy = (vy / len) * this.speed;
     }
-
     this.setVelocity(vx, vy);
 
-    // Weapon position is synced in postupdate event (see constructor)
+    // Weapon switching (1-5)
+    for (let i = 0; i < this.weaponKeys.length; i++) {
+      if (Phaser.Input.Keyboard.JustDown(this.weaponKeys[i])) {
+        this.switchWeapon(i);
+      }
+    }
 
     // Reload
-    if (this.keys.R.isDown && !this.isReloading && this.magazineAmmo < this.maxMagazine && this.reserveAmmo > 0) {
-      this.reload();
+    if (this.keys.R.isDown && !this.isReloading) {
+      const w = this.activeWeapon;
+      if (w.magazineAmmo < w.def.magazineSize && w.reserveAmmo > 0) {
+        this.reload();
+      }
     }
+  }
+
+  switchWeapon(index: number) {
+    if (index === this.activeWeaponIndex) return;
+    if (index < 0 || index >= this.weapons.length) return;
+
+    // Cancel current reload
+    this.isReloading = false;
+    this.activeWeaponIndex = index;
+
+    // Update weapon sprite texture
+    this.weapon.setTexture(this.activeWeapon.def.texture);
   }
 
   takeDamage(amount: number) {
     this.hp -= amount;
-    // Flash red
     this.setTint(0xff0000);
     this.scene.time.delayedCall(100, () => this.clearTint());
-
     if (this.hp <= 0) {
       this.hp = 0;
       this.scene.events.emit('player-died');
@@ -114,29 +160,34 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   reload() {
     this.isReloading = true;
-    this.scene.time.delayedCall(1500, () => {
-      const needed = this.maxMagazine - this.magazineAmmo;
-      const toLoad = Math.min(needed, this.reserveAmmo);
-      this.magazineAmmo += toLoad;
-      this.reserveAmmo -= toLoad;
+    const w = this.activeWeapon;
+    this.scene.time.delayedCall(w.def.reloadTime, () => {
+      // Make sure we're still on the same weapon
+      if (!this.isReloading) return;
+      const needed = w.def.magazineSize - w.magazineAmmo;
+      const toLoad = Math.min(needed, w.reserveAmmo);
+      w.magazineAmmo += toLoad;
+      w.reserveAmmo -= toLoad;
       this.isReloading = false;
     });
   }
 
   addAmmo(amount: number) {
-    this.reserveAmmo = Math.min(this.reserveAmmo + amount, this.maxReserve);
+    const w = this.activeWeapon;
+    w.reserveAmmo = Math.min(w.reserveAmmo + amount, w.def.maxReserve);
   }
 
+  // Returns target point if can shoot, null if can't
   shoot(): Phaser.Math.Vector2 | null {
-    if (this.magazineAmmo <= 0 || this.isReloading) return null;
-    this.magazineAmmo--;
+    const w = this.activeWeapon;
+    if (w.magazineAmmo <= 0 || this.isReloading) return null;
+    w.magazineAmmo--;
 
     const pointer = this.scene.input.activePointer;
     const worldPoint = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
     return new Phaser.Math.Vector2(worldPoint.x, worldPoint.y);
   }
 
-  // Get the muzzle position (tip of the weapon) for bullet spawn
   getMuzzlePosition(): { x: number; y: number } {
     const angle = this.weapon.rotation;
     const weaponLength = 24;

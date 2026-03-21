@@ -27,56 +27,132 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('player', 32, 32);
     g.clear();
 
-    // === WEAPON (detailed rifle pointing right) ===
-    // Stock (wooden)
+    // === WEAPON 1: RIFLE ===
     g.fillStyle(0x5a3820);
     g.fillRect(0, 4, 10, 7);
     g.fillStyle(0x6b4528);
     g.fillRect(1, 5, 8, 5);
-    // Wood grain lines
     g.lineStyle(1, 0x4a2e18, 0.5);
     g.lineBetween(2, 6, 8, 6);
-    g.lineBetween(2, 8, 7, 8);
-    // Receiver body
     g.fillStyle(0x3a3a3e);
     g.fillRect(9, 3, 12, 8);
     g.fillStyle(0x4a4a50);
     g.fillRect(10, 4, 10, 6);
-    // Trigger guard
-    g.fillStyle(0x2a2a2e);
-    g.fillRect(12, 10, 5, 3);
-    g.fillStyle(0x3a3a3e);
-    g.fillRect(13, 10, 3, 2);
-    // Trigger
-    g.fillStyle(0x555560);
-    g.fillRect(14, 10, 1, 2);
-    // Barrel
     g.fillStyle(0x3a3a40);
     g.fillRect(20, 5, 10, 4);
     g.fillStyle(0x4a4a52);
-    g.fillRect(20, 5, 10, 2); // top highlight
-    // Muzzle brake
+    g.fillRect(20, 5, 10, 2);
     g.fillStyle(0x2a2a30);
     g.fillRect(28, 4, 4, 6);
     g.fillStyle(0x222228);
-    g.fillRect(30, 5, 2, 4); // muzzle hole
-    g.lineStyle(1, 0x555560);
-    g.lineBetween(29, 4, 29, 10); // brake slot
-    // Iron sight (front)
+    g.fillRect(30, 5, 2, 4);
     g.fillStyle(0x555560);
     g.fillRect(26, 3, 2, 2);
-    // Iron sight (rear)
-    g.fillStyle(0x555560);
-    g.fillRect(14, 2, 3, 2);
+    g.generateTexture('weapon-rifle', 32, 14);
+    g.generateTexture('weapon', 32, 14); // backward compat
+    g.clear();
+
+    // === WEAPON 2: SHOTGUN (short, wide barrel) ===
+    g.fillStyle(0x5a3820);
+    g.fillRect(0, 3, 8, 8);
+    g.fillStyle(0x6b4528);
+    g.fillRect(1, 4, 6, 6);
     g.fillStyle(0x3a3a3e);
-    g.fillRect(15, 2, 1, 2); // notch
-    // Metal highlights along barrel
-    g.lineStyle(1, 0x6a6a72, 0.4);
-    g.lineBetween(20, 5, 28, 5);
-    // Ejection port
+    g.fillRect(7, 3, 8, 8);
+    g.fillStyle(0x4a4a50);
+    g.fillRect(8, 4, 6, 6);
+    // Double barrel
+    g.fillStyle(0x3a3a40);
+    g.fillRect(14, 3, 12, 4);
+    g.fillRect(14, 7, 12, 4);
+    g.fillStyle(0x4a4a52);
+    g.fillRect(14, 3, 12, 1);
+    g.fillRect(14, 7, 12, 1);
+    // Muzzle
     g.fillStyle(0x222228);
-    g.fillRect(16, 4, 3, 2);
-    g.generateTexture('weapon', 32, 14);
+    g.fillRect(25, 3, 2, 4);
+    g.fillRect(25, 7, 2, 4);
+    // Separator
+    g.fillStyle(0x555560);
+    g.fillRect(14, 6, 12, 1);
+    g.generateTexture('weapon-shotgun', 28, 14);
+    g.clear();
+
+    // === WEAPON 3: SMG (compact, short) ===
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(0, 4, 6, 6);
+    g.fillStyle(0x4a4a50);
+    g.fillRect(1, 5, 4, 4);
+    // Body
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(5, 3, 10, 8);
+    g.fillStyle(0x4a4a50);
+    g.fillRect(6, 4, 8, 6);
+    // Magazine sticking down
+    g.fillStyle(0x333338);
+    g.fillRect(8, 10, 4, 4);
+    // Barrel (short)
+    g.fillStyle(0x3a3a40);
+    g.fillRect(14, 5, 8, 4);
+    g.fillStyle(0x4a4a52);
+    g.fillRect(14, 5, 8, 1);
+    g.fillStyle(0x222228);
+    g.fillRect(21, 5, 2, 4);
+    g.generateTexture('weapon-smg', 24, 14);
+    g.clear();
+
+    // === WEAPON 4: SNIPER (long barrel, scope) ===
+    g.fillStyle(0x5a3820);
+    g.fillRect(0, 5, 8, 6);
+    g.fillStyle(0x6b4528);
+    g.fillRect(1, 6, 6, 4);
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(7, 4, 10, 7);
+    g.fillStyle(0x4a4a50);
+    g.fillRect(8, 5, 8, 5);
+    // Long barrel
+    g.fillStyle(0x3a3a40);
+    g.fillRect(16, 6, 20, 3);
+    g.fillStyle(0x4a4a52);
+    g.fillRect(16, 6, 20, 1);
+    g.fillStyle(0x222228);
+    g.fillRect(35, 6, 2, 3);
+    // Scope
+    g.fillStyle(0x2a2a30);
+    g.fillRect(12, 1, 10, 3);
+    g.fillStyle(0x3a3a42);
+    g.fillCircle(12, 2, 2);
+    g.fillCircle(22, 2, 2);
+    g.fillStyle(0x4488cc, 0.4);
+    g.fillCircle(12, 2, 1);
+    g.generateTexture('weapon-sniper', 38, 14);
+    g.clear();
+
+    // === WEAPON 5: GRENADE LAUNCHER (thick barrel) ===
+    g.fillStyle(0x5a3820);
+    g.fillRect(0, 4, 7, 7);
+    g.fillStyle(0x6b4528);
+    g.fillRect(1, 5, 5, 5);
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(6, 3, 8, 9);
+    g.fillStyle(0x4a4a50);
+    g.fillRect(7, 4, 6, 7);
+    // Thick barrel
+    g.fillStyle(0x3a3a40);
+    g.fillRect(13, 3, 14, 9);
+    g.fillStyle(0x4a4a52);
+    g.fillRect(13, 3, 14, 2);
+    g.fillStyle(0x2a2a30);
+    g.fillRect(13, 11, 14, 1);
+    // Muzzle (wide opening)
+    g.fillStyle(0x222228);
+    g.fillRect(26, 3, 3, 9);
+    g.fillStyle(0x333338);
+    g.fillRect(27, 4, 2, 7);
+    // Barrel ring
+    g.lineStyle(1, 0x555560);
+    g.lineBetween(20, 3, 20, 12);
+    g.generateTexture('weapon-grenade', 30, 14);
     g.clear();
 
     // === ZOMBIE WALKER — body only (no arms, no rotation) ===
