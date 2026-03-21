@@ -205,6 +205,13 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
+  update() {
+    // Keep coins display always up to date
+    if (this.coinsText) {
+      this.coinsText.setText(`Coins: ${shop.getCoins()}`);
+    }
+  }
+
   private createNicknameInput(centerX: number, centerY: number) {
     const canvas = this.game.canvas;
     const rect = canvas.getBoundingClientRect();
