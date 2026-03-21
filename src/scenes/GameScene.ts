@@ -52,8 +52,9 @@ export class GameScene extends Phaser.Scene {
     this.bullets = this.add.group({ runChildUpdate: false });
     this.pickups = this.add.group();
 
-    // Create player at center
-    this.player = new Player(this, this.mapSize / 2, this.mapSize / 2);
+    // Create player at center — find safe position
+    const playerPos = this.getSafePlayerSpawn();
+    this.player = new Player(this, playerPos.x, playerPos.y);
 
     // Camera follows player with zoom
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
@@ -373,6 +374,22 @@ export class GameScene extends Phaser.Scene {
     return 'walker';
   }
 
+  private getSafePlayerSpawn(): { x: number; y: number } {
+    const cx = this.mapSize / 2;
+    const cy = this.mapSize / 2;
+    // Try center first, then spiral outward
+    for (let r = 0; r < 300; r += 20) {
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+        const x = cx + Math.cos(a) * r;
+        const y = cy + Math.sin(a) * r;
+        if (!this.isPositionBlocked(x, y)) {
+          return { x, y };
+        }
+      }
+    }
+    return { x: cx, y: cy };
+  }
+
   private generateObstacles() {
     // Border walls around the entire map
     for (let i = 0; i < this.mapSize; i += 64) {
@@ -399,10 +416,10 @@ export class GameScene extends Phaser.Scene {
       const bw = Phaser.Math.Between(1, 4);
       const bh = Phaser.Math.Between(1, 3);
 
-      // Skip if too close to center (player spawn)
+      // Skip if too close to center (player spawn safe zone)
       const cx = this.mapSize / 2;
       const cy = this.mapSize / 2;
-      if (Math.abs(bx - cx) < 150 && Math.abs(by - cy) < 150) continue;
+      if (Math.abs(bx - cx) < 200 && Math.abs(by - cy) < 200) continue;
 
       for (let wx = 0; wx < bw; wx++) {
         for (let wy = 0; wy < bh; wy++) {

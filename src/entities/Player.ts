@@ -94,6 +94,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       }
     });
 
+    // Mouse wheel to switch weapons
+    scene.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gos: any[], _dx: number, dy: number) => {
+      if (dy > 0) {
+        this.switchWeapon((this.activeWeaponIndex + 1) % this.weapons.length);
+      } else if (dy < 0) {
+        this.switchWeapon((this.activeWeaponIndex - 1 + this.weapons.length) % this.weapons.length);
+      }
+    });
+
     // HP regeneration: +1 HP every second
     scene.time.addEvent({
       delay: 1000,
