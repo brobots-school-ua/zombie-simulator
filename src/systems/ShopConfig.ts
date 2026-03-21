@@ -79,6 +79,25 @@ export class ShopManager {
     localStorage.removeItem(EQUIPPED_KEY);
   }
 
+  // Remove any owned accessories that no longer exist in config
+  cleanupStale() {
+    const validIds = ACCESSORIES.map(a => a.id);
+    const owned = this.getOwned().filter(id => validIds.includes(id));
+    localStorage.setItem(OWNED_KEY, JSON.stringify(owned));
+    const eq = this.getEquipped();
+    if (eq && !validIds.includes(eq)) this.unequip();
+  }
+
+  resetShop() {
+    // Refund all owned accessories
+    for (const id of this.getOwned()) {
+      const acc = ACCESSORIES.find(a => a.id === id);
+      if (acc) this.addCoins(acc.price);
+    }
+    localStorage.setItem(OWNED_KEY, JSON.stringify([]));
+    this.unequip();
+  }
+
   refund(id: string): boolean {
     const acc = ACCESSORIES.find(a => a.id === id);
     if (!acc) return false;

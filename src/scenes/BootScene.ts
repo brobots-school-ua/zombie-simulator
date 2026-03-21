@@ -261,17 +261,21 @@ export class BootScene extends Phaser.Scene {
 
     // === ACCESSORY TEXTURES (bigger, more visible) ===
 
-    // Beret (red, sits on edge of head, 14x14)
-    g.fillStyle(0xcc0000);
-    g.fillCircle(7, 7, 7);
-    g.fillStyle(0xaa0000);
-    g.fillCircle(5, 9, 3);
-    g.fillStyle(0xee2222, 0.5);
-    g.fillCircle(5, 5, 3);
-    // Small stalk on top
-    g.fillStyle(0x222222);
-    g.fillCircle(7, 1, 1.5);
-    g.generateTexture('acc-beret', 14, 14);
+    // Beret (military green, flat cap shape, 16x10)
+    // Flat top shape
+    g.fillStyle(0x2d4a1e);
+    g.fillCircle(8, 7, 7);
+    g.fillStyle(0x3a5a28);
+    g.fillCircle(8, 6, 6);
+    // Brim edge
+    g.fillStyle(0x1e3a14);
+    g.fillRect(1, 8, 14, 2);
+    // Badge
+    g.fillStyle(0xddaa00);
+    g.fillCircle(8, 5, 2);
+    g.fillStyle(0xffcc22);
+    g.fillCircle(8, 5, 1);
+    g.generateTexture('acc-beret', 16, 10);
     g.clear();
 
     // Bandana (bright red, 28x10)
@@ -353,23 +357,30 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('acc-crown', 24, 20);
     g.clear();
 
-    // Backpack (tactical, 18x10, sits on lower edge)
-    g.fillStyle(0x444444);
-    g.fillRect(1, 1, 16, 8);
-    g.fillStyle(0x555555);
-    g.fillRect(2, 2, 14, 6);
-    g.lineStyle(1, 0x333333);
-    g.strokeRect(1, 1, 16, 8);
-    // Straps
-    g.lineStyle(1, 0x666666);
-    g.lineBetween(4, 0, 4, 2);
-    g.lineBetween(14, 0, 14, 2);
-    // Pocket
-    g.fillStyle(0x3a3a3a);
-    g.fillRect(5, 4, 8, 4);
-    g.lineStyle(1, 0x2a2a2a);
-    g.strokeRect(5, 4, 8, 4);
-    g.generateTexture('acc-backpack', 18, 10);
+    // Backpack (olive green military, 16x12)
+    // Main body
+    g.fillStyle(0x4a5a2a);
+    g.fillRect(2, 2, 12, 8);
+    g.fillStyle(0x5a6a35);
+    g.fillRect(3, 3, 10, 6);
+    // Top flap
+    g.fillStyle(0x3a4a20);
+    g.fillRect(2, 1, 12, 3);
+    // Straps going up (toward player)
+    g.fillStyle(0x4a5a2a);
+    g.fillRect(4, 0, 2, 2);
+    g.fillRect(10, 0, 2, 2);
+    // Buckle
+    g.fillStyle(0x888866);
+    g.fillRect(6, 4, 4, 2);
+    // Side pockets
+    g.fillStyle(0x3a4a20);
+    g.fillRect(0, 3, 3, 5);
+    g.fillRect(13, 3, 3, 5);
+    // Bottom
+    g.fillStyle(0x2a3a18);
+    g.fillRect(2, 9, 12, 2);
+    g.generateTexture('acc-backpack', 16, 12);
     g.clear();
 
     // Coin icon (for HUD)

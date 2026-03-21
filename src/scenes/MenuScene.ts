@@ -242,6 +242,7 @@ export class MenuScene extends Phaser.Scene {
 
   private openShop() {
     if (this.shopPanel) return;
+    shop.cleanupStale(); // remove old accessories from renamed items
 
     this.shopPanel = document.createElement('div');
     this.shopPanel.style.cssText = `
@@ -319,7 +320,10 @@ export class MenuScene extends Phaser.Scene {
           </div>`;
         }).join('')}
         </div>
-        <button id="shop-close" style="width:100%; margin-top:12px; padding:8px; background:#222; border:1px solid #666; color:#aaa; font-family:monospace; cursor:pointer; border-radius:3px;">Close</button>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button id="shop-reset" style="flex:1; padding:8px; background:#3a1a1a; border:1px solid #ff4444; color:#ff4444; font-family:monospace; cursor:pointer; border-radius:3px; font-size:11px;">Reset All (refund)</button>
+          <button id="shop-close" style="flex:2; padding:8px; background:#222; border:1px solid #666; color:#aaa; font-family:monospace; cursor:pointer; border-radius:3px;">Close</button>
+        </div>
       `;
 
       // Button events
@@ -351,6 +355,11 @@ export class MenuScene extends Phaser.Scene {
 
       // Draw initial preview
       drawPreview(shop.getEquipped());
+
+      this.shopPanel.querySelector('#shop-reset')?.addEventListener('click', () => {
+        shop.resetShop();
+        renderShop();
+      });
 
       this.shopPanel.querySelector('#shop-close')?.addEventListener('click', () => {
         this.closeShop();
