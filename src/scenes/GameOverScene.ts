@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { audioManager } from '../systems/AudioManager';
 
 // Game Over scene — shows final stats and restart option
 export class GameOverScene extends Phaser.Scene {
@@ -51,6 +52,7 @@ export class GameOverScene extends Phaser.Scene {
     restartBtn.on('pointerover', () => restartBtn.setColor('#88ff88'));
     restartBtn.on('pointerout', () => restartBtn.setColor('#44ff44'));
     restartBtn.on('pointerdown', () => {
+      audioManager.stopGameMusic(0);
       this.scene.start('GameScene');
     });
 
@@ -64,6 +66,7 @@ export class GameOverScene extends Phaser.Scene {
     menuBtn.on('pointerover', () => menuBtn.setColor('#ffffff'));
     menuBtn.on('pointerout', () => menuBtn.setColor('#aaaaaa'));
     menuBtn.on('pointerdown', () => {
+      audioManager.stopGameMusic(0);
       this.scene.start('MenuScene');
     });
   }

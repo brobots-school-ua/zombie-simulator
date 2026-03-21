@@ -27,23 +27,56 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('player', 32, 32);
     g.clear();
 
-    // === WEAPON (gun pointing right) ===
-    // Main barrel
-    g.fillStyle(0x4a4a4a);
-    g.fillRect(0, 3, 28, 6);
-    // Grip
-    g.fillStyle(0x5a3a2a);
-    g.fillRect(0, 2, 8, 8);
-    // Muzzle
-    g.fillStyle(0x3a3a3a);
-    g.fillRect(22, 2, 6, 8);
-    // Muzzle flash hole
-    g.fillStyle(0x222222);
-    g.fillRect(26, 4, 2, 4);
-    // Metal highlight
-    g.fillStyle(0x6a6a6a);
-    g.fillRect(8, 3, 14, 2);
-    g.generateTexture('weapon', 28, 12);
+    // === WEAPON (detailed rifle pointing right) ===
+    // Stock (wooden)
+    g.fillStyle(0x5a3820);
+    g.fillRect(0, 4, 10, 7);
+    g.fillStyle(0x6b4528);
+    g.fillRect(1, 5, 8, 5);
+    // Wood grain lines
+    g.lineStyle(1, 0x4a2e18, 0.5);
+    g.lineBetween(2, 6, 8, 6);
+    g.lineBetween(2, 8, 7, 8);
+    // Receiver body
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(9, 3, 12, 8);
+    g.fillStyle(0x4a4a50);
+    g.fillRect(10, 4, 10, 6);
+    // Trigger guard
+    g.fillStyle(0x2a2a2e);
+    g.fillRect(12, 10, 5, 3);
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(13, 10, 3, 2);
+    // Trigger
+    g.fillStyle(0x555560);
+    g.fillRect(14, 10, 1, 2);
+    // Barrel
+    g.fillStyle(0x3a3a40);
+    g.fillRect(20, 5, 10, 4);
+    g.fillStyle(0x4a4a52);
+    g.fillRect(20, 5, 10, 2); // top highlight
+    // Muzzle brake
+    g.fillStyle(0x2a2a30);
+    g.fillRect(28, 4, 4, 6);
+    g.fillStyle(0x222228);
+    g.fillRect(30, 5, 2, 4); // muzzle hole
+    g.lineStyle(1, 0x555560);
+    g.lineBetween(29, 4, 29, 10); // brake slot
+    // Iron sight (front)
+    g.fillStyle(0x555560);
+    g.fillRect(26, 3, 2, 2);
+    // Iron sight (rear)
+    g.fillStyle(0x555560);
+    g.fillRect(14, 2, 3, 2);
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(15, 2, 1, 2); // notch
+    // Metal highlights along barrel
+    g.lineStyle(1, 0x6a6a72, 0.4);
+    g.lineBetween(20, 5, 28, 5);
+    // Ejection port
+    g.fillStyle(0x222228);
+    g.fillRect(16, 4, 3, 2);
+    g.generateTexture('weapon', 32, 14);
     g.clear();
 
     // === ZOMBIE WALKER (rotten, bloody, arm reaching) ===
@@ -178,43 +211,103 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('ammo-pack', 24, 24);
     g.clear();
 
-    // Grass tiles
-    this.generateGrassTile(g, 'ground1', 0x3a7a3a);
-    this.generateGrassTile(g, 'ground2', 0x3d8040);
-    this.generateGrassTile(g, 'ground3', 0x357535);
+    // Grass tiles — rich natural variants
+    this.generateGrassTile(g, 'ground1', 0x3a7a3a, 0);
+    this.generateGrassTile(g, 'ground2', 0x3d8040, 1);
+    this.generateGrassTile(g, 'ground3', 0x357535, 2);
 
-    // Stone wall texture
-    g.fillStyle(0x7a7a72);
+    // Stone wall texture — weathered apocalyptic bricks
+    // Base mortar color (dark grout)
+    g.fillStyle(0x3a3832);
     g.fillRect(0, 0, 64, 64);
-    g.fillStyle(0x6e6e66);
-    g.fillRect(2, 2, 28, 14);
-    g.fillRect(34, 2, 28, 14);
-    g.fillRect(18, 20, 28, 14);
-    g.fillRect(2, 20, 12, 14);
-    g.fillRect(50, 20, 12, 14);
-    g.fillRect(2, 38, 28, 14);
-    g.fillRect(34, 38, 28, 14);
-    g.fillRect(18, 54, 28, 8);
-    g.fillStyle(0x8a8a82);
-    g.fillRect(4, 4, 12, 4);
-    g.fillRect(36, 4, 12, 4);
-    g.fillRect(20, 22, 12, 4);
-    g.fillRect(4, 40, 12, 4);
-    g.fillRect(36, 40, 12, 4);
-    g.lineStyle(2, 0x4a4a44);
-    g.lineBetween(0, 17, 64, 17);
-    g.lineBetween(0, 36, 64, 36);
-    g.lineBetween(0, 53, 64, 53);
-    g.lineBetween(32, 0, 32, 17);
-    g.lineBetween(16, 17, 16, 36);
-    g.lineBetween(48, 17, 48, 36);
-    g.lineBetween(32, 36, 32, 53);
-    g.lineStyle(1, 0x555550);
-    g.lineBetween(10, 6, 14, 12);
-    g.lineBetween(44, 24, 40, 30);
-    g.lineBetween(8, 42, 14, 48);
-    g.lineBetween(52, 8, 56, 14);
-    g.lineStyle(1, 0x3a3a35);
+
+    // Brick rows with offset pattern — each brick has 3D shading
+    const brickRows = [
+      { y: 1, h: 14, offX: 0 },
+      { y: 18, h: 14, offX: 16 },
+      { y: 35, h: 14, offX: 0 },
+      { y: 52, h: 11, offX: 16 },
+    ];
+
+    brickRows.forEach(row => {
+      for (let bx = -16 + row.offX; bx < 64; bx += 33) {
+        const x = Math.max(bx, 0);
+        const w = Math.min(bx + 30, 64) - x;
+        if (w <= 0) continue;
+
+        // Brick body — varied color
+        const shade = ((bx * 7 + row.y * 13) % 20) - 10;
+        const r = Math.min(255, Math.max(0, 0x5e + shade));
+        const gc = Math.min(255, Math.max(0, 0x56 + shade));
+        const b = Math.min(255, Math.max(0, 0x4a + shade));
+        g.fillStyle((r << 16) | (gc << 8) | b);
+        g.fillRect(x, row.y, w, row.h);
+
+        // Top highlight (3D effect)
+        g.fillStyle(0x7a7268, 0.5);
+        g.fillRect(x, row.y, w, 2);
+
+        // Bottom shadow
+        g.fillStyle(0x2a2822, 0.5);
+        g.fillRect(x, row.y + row.h - 2, w, 2);
+
+        // Left highlight
+        g.fillStyle(0x6e6860, 0.3);
+        g.fillRect(x, row.y, 1, row.h);
+
+        // Right shadow
+        g.fillStyle(0x2e2c26, 0.3);
+        g.fillRect(x + w - 1, row.y, 1, row.h);
+      }
+    });
+
+    // Mortar line details (varied thickness)
+    g.lineStyle(2, 0x33312c);
+    g.lineBetween(0, 16, 64, 16);
+    g.lineBetween(0, 33, 64, 33);
+    g.lineBetween(0, 50, 64, 50);
+    g.lineStyle(1, 0x2e2c28);
+    g.lineBetween(30, 0, 30, 16);
+    g.lineBetween(14, 17, 14, 33);
+    g.lineBetween(46, 17, 46, 33);
+    g.lineBetween(30, 34, 30, 50);
+    g.lineBetween(14, 51, 14, 64);
+    g.lineBetween(46, 51, 46, 64);
+
+    // Cracks (branching lines)
+    g.lineStyle(1, 0x222020);
+    g.lineBetween(12, 4, 18, 10);
+    g.lineBetween(18, 10, 22, 9);
+    g.lineBetween(18, 10, 16, 15);
+    g.lineBetween(42, 38, 50, 44);
+    g.lineBetween(50, 44, 52, 42);
+    g.lineBetween(50, 44, 48, 49);
+
+    // Moss patches (green in corners and crevices)
+    g.fillStyle(0x3a5a2a, 0.6);
+    g.fillCircle(3, 3, 4);
+    g.fillCircle(60, 61, 5);
+    g.fillStyle(0x4a6a35, 0.4);
+    g.fillCircle(32, 33, 3);
+    g.fillCircle(14, 50, 3);
+    g.fillStyle(0x2d4a1e, 0.5);
+    g.fillCircle(48, 16, 3);
+
+    // Blood/rust stains
+    g.fillStyle(0x5a1a1a, 0.3);
+    g.fillCircle(40, 8, 4);
+    g.fillCircle(42, 10, 3);
+    g.fillStyle(0x6a3a1a, 0.25);
+    g.fillCircle(10, 42, 5);
+    g.fillCircle(55, 26, 3);
+
+    // Weathering — dark spots
+    g.fillStyle(0x2a2826, 0.2);
+    g.fillCircle(22, 24, 4);
+    g.fillCircle(50, 6, 3);
+
+    // Border outline
+    g.lineStyle(1, 0x2a2826);
     g.strokeRect(0, 0, 64, 64);
     g.generateTexture('wall', 64, 64);
     g.clear();
@@ -250,46 +343,108 @@ export class BootScene extends Phaser.Scene {
     this.scene.start('MenuScene');
   }
 
-  private generateGrassTile(g: Phaser.GameObjects.Graphics, key: string, baseColor: number) {
+  private generateGrassTile(g: Phaser.GameObjects.Graphics, key: string, baseColor: number, variant: number) {
+    // Base fill
     g.fillStyle(baseColor);
     g.fillRect(0, 0, 64, 64);
 
-    g.fillStyle(baseColor - 0x0a0a0a);
-    g.fillRect(8, 12, 10, 8);
-    g.fillRect(38, 40, 12, 10);
-    g.fillRect(50, 8, 8, 6);
+    // Organic color variation — overlapping circles instead of rectangles
+    const darkShade = baseColor - 0x0c0c08;
+    const lightShade = baseColor + 0x0e0e06;
+    const warmShade = baseColor + 0x0a0400;
 
-    g.fillStyle(baseColor + 0x101008);
-    g.fillRect(20, 30, 14, 10);
-    g.fillRect(4, 48, 10, 8);
-    g.fillRect(44, 22, 8, 8);
+    // Dark patches (shadow areas)
+    g.fillStyle(darkShade, 0.6);
+    g.fillCircle(12, 14, 8);
+    g.fillCircle(44, 44, 10);
+    g.fillCircle(52, 10, 6);
+    g.fillCircle(8, 52, 7);
 
-    // Random grass blades
-    const bladeColors = [0x4a9a4a, 0x3a8a3a, 0x5aaa50, 0x2d7a2d];
-    for (let i = 0; i < 25; i++) {
-      const bx = (i * 17 + 7) % 60 + 2;
-      const by = (i * 23 + 11) % 56 + 4;
-      g.lineStyle(1, bladeColors[i % bladeColors.length]);
-      g.lineBetween(bx, by, bx + (i % 3 - 1), by - 5 - (i % 4));
+    // Light patches (sun-lit areas)
+    g.fillStyle(lightShade, 0.5);
+    g.fillCircle(28, 32, 10);
+    g.fillCircle(48, 24, 7);
+    g.fillCircle(16, 44, 6);
+
+    // Warm earth undertone
+    g.fillStyle(warmShade, 0.3);
+    g.fillCircle(36, 12, 8);
+    g.fillCircle(20, 56, 7);
+
+    // Dirt/mud patches — irregular shapes (overlapping circles)
+    if (variant === 0) {
+      g.fillStyle(0x5a4e32, 0.5);
+      g.fillCircle(40, 50, 6);
+      g.fillCircle(44, 52, 5);
+      g.fillCircle(38, 54, 4);
+    } else if (variant === 1) {
+      g.fillStyle(0x564a30, 0.45);
+      g.fillCircle(14, 20, 5);
+      g.fillCircle(18, 22, 4);
+      g.fillCircle(12, 24, 3);
+    } else {
+      g.fillStyle(0x52462e, 0.5);
+      g.fillCircle(50, 14, 7);
+      g.fillCircle(54, 18, 5);
     }
 
-    // Small pebbles
-    g.fillStyle(0x5a6a3a);
-    g.fillRect(15, 10, 2, 2);
-    g.fillRect(45, 50, 2, 2);
-    g.fillRect(30, 5, 2, 2);
-    g.fillRect(55, 35, 2, 2);
+    // Grass blades — varied length, direction, color
+    const bladeColors = [0x4a9a4a, 0x3a8a3a, 0x5aaa50, 0x2d7a2d, 0x48a045, 0x358535, 0x5ab858];
+    for (let i = 0; i < 35; i++) {
+      const bx = (i * 17 + 7 + variant * 11) % 60 + 2;
+      const by = (i * 23 + 11 + variant * 7) % 56 + 4;
+      const len = 4 + (i % 5);
+      const sway = (i % 5) - 2;
+      g.lineStyle(1, bladeColors[i % bladeColors.length], 0.7 + (i % 3) * 0.1);
+      g.lineBetween(bx, by, bx + sway, by - len);
+      // Some blades are thicker (tufts)
+      if (i % 7 === 0) {
+        g.lineBetween(bx - 1, by, bx + sway - 1, by - len + 1);
+      }
+    }
 
-    if (key === 'ground2') {
-      g.fillStyle(0xdddd44);
-      g.fillRect(12, 28, 2, 2);
-      g.fillRect(48, 16, 2, 2);
+    // Small wildflowers
+    if (variant === 0) {
+      // Yellow flowers
+      g.fillStyle(0xe8d840);
+      g.fillCircle(18, 36, 1.5);
+      g.fillCircle(50, 28, 1.5);
+      g.fillStyle(0xf0e050);
+      g.fillCircle(18, 36, 0.8);
+    } else if (variant === 1) {
+      // White flowers
+      g.fillStyle(0xddeedd);
+      g.fillCircle(36, 18, 1.5);
+      g.fillCircle(8, 40, 1.5);
+      g.fillStyle(0xffffe8);
+      g.fillCircle(36, 18, 0.8);
+    } else {
+      // Purple/violet flowers
+      g.fillStyle(0x8844aa);
+      g.fillCircle(24, 46, 1.5);
+      g.fillCircle(52, 34, 1.5);
+      g.fillStyle(0xaa66cc);
+      g.fillCircle(24, 46, 0.8);
     }
-    if (key === 'ground3') {
-      g.fillStyle(0x4a3a2a);
-      g.fillRect(20, 40, 6, 4);
-      g.fillRect(42, 12, 4, 4);
-    }
+
+    // Pebbles with highlights
+    const pebblePositions = [
+      { x: 15, y: 10 }, { x: 45, y: 50 },
+      { x: 30, y: 5 }, { x: 55, y: 35 },
+    ];
+    pebblePositions.forEach((p, i) => {
+      // Stone body
+      g.fillStyle(0x6a6a5a, 0.6);
+      g.fillCircle(p.x, p.y, 1.5 + (i % 2) * 0.5);
+      // Highlight dot
+      g.fillStyle(0x8a8a7a, 0.5);
+      g.fillCircle(p.x - 0.5, p.y - 0.5, 0.8);
+    });
+
+    // Shadow patches for depth
+    g.fillStyle(0x1a3a1a, 0.12);
+    g.fillCircle(24, 22, 9);
+    g.fillCircle(42, 38, 7);
 
     g.generateTexture(key, 64, 64);
     g.clear();

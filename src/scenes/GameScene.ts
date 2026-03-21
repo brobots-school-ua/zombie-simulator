@@ -3,6 +3,7 @@ import { Player } from '../entities/Player';
 import { Zombie, ZombieType } from '../entities/Zombie';
 import { Bullet } from '../entities/Bullet';
 import { Pickup } from '../entities/Pickup';
+import { audioManager } from '../systems/AudioManager';
 
 // Main game scene — where all gameplay happens
 export class GameScene extends Phaser.Scene {
@@ -122,6 +123,7 @@ export class GameScene extends Phaser.Scene {
 
     // Player death
     this.events.on('player-died', () => {
+      audioManager.stopGameMusic(1.5);
       this.scene.stop('UIScene');
       this.scene.start('GameOverScene', {
         score: this.player.score,
@@ -129,6 +131,10 @@ export class GameScene extends Phaser.Scene {
         wave: this.wave,
       });
     });
+
+    // Start game music
+    audioManager.resume();
+    audioManager.startGameMusic();
 
     // Launch UI overlay
     this.scene.launch('UIScene', { gameScene: this });
@@ -166,6 +172,9 @@ export class GameScene extends Phaser.Scene {
   private spawnWave() {
     const count = 5 + this.wave * 3;
     this.zombiesRemaining = count;
+
+    // Increase music intensity with wave
+    audioManager.updateIntensity(this.wave);
 
     for (let i = 0; i < count; i++) {
       this.time.delayedCall(i * 300, () => {

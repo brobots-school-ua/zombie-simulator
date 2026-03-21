@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { audioManager } from '../systems/AudioManager';
 
 // Atmospheric main menu scene
 export class MenuScene extends Phaser.Scene {
@@ -11,6 +12,10 @@ export class MenuScene extends Phaser.Scene {
 
     // Dark background
     this.cameras.main.setBackgroundColor('#0a0a0a');
+
+    // Start menu music (will init AudioContext on first user click)
+    audioManager.init();
+    audioManager.startMenuMusic();
 
     // Fog particles drifting across the screen
     for (let i = 0; i < 12; i++) {
@@ -139,6 +144,10 @@ export class MenuScene extends Phaser.Scene {
       startBtn.setScale(1);
     });
     startBtn.on('pointerdown', () => {
+      // Resume audio context (browser autoplay policy)
+      audioManager.resume();
+      // Stop menu music, start game
+      audioManager.stopMenuMusic(0.5);
       // Flash screen before starting
       this.cameras.main.flash(300, 255, 50, 50);
       this.time.delayedCall(300, () => {
