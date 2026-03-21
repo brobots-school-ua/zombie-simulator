@@ -106,9 +106,20 @@ export class GameScene extends Phaser.Scene {
       p.destroy();
     });
 
-    // Bullets collide with walls
+    // Bullets collide with walls (rockets explode)
     this.physics.add.collider(this.bullets, this.walls, (bullet) => {
-      bullet.destroy();
+      const b = bullet as Bullet;
+      if (b.aoeRadius > 0) {
+        this.doAoeDamage(b.x, b.y, b.aoeRadius, b.damage);
+      }
+      b.destroy();
+    });
+
+    // Rocket explodes on max range
+    this.events.on('bullet-explode', (b: Bullet) => {
+      if (b.aoeRadius > 0) {
+        this.doAoeDamage(b.x, b.y, b.aoeRadius, b.damage);
+      }
     });
 
     // Spawn ammo pickups every 10-15 seconds at safe positions
@@ -191,6 +202,7 @@ export class GameScene extends Phaser.Scene {
       maxRange: wDef.maxRange,
       pierce: wDef.pierce,
       aoeRadius: wDef.aoeRadius,
+      texture: wDef.bulletTexture,
     };
 
     if (wDef.pellets > 1) {

@@ -155,6 +155,73 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('weapon-grenade', 30, 14);
     g.clear();
 
+    // === PROJECTILE TEXTURES ===
+
+    // Rifle bullet — orange/yellow tracer
+    g.fillStyle(0xffaa00, 0.3);
+    g.fillEllipse(10, 4, 18, 6);
+    g.fillStyle(0xffcc44, 0.8);
+    g.fillEllipse(12, 4, 12, 4);
+    g.fillStyle(0xffffff);
+    g.fillEllipse(14, 4, 6, 2);
+    g.generateTexture('bullet-rifle', 20, 8);
+    g.generateTexture('bullet', 20, 8); // backward compat
+    g.clear();
+
+    // Shotgun pellet — small hot red ball
+    g.fillStyle(0xff4400, 0.4);
+    g.fillCircle(4, 4, 4);
+    g.fillStyle(0xff6633, 0.8);
+    g.fillCircle(4, 4, 3);
+    g.fillStyle(0xffcc88);
+    g.fillCircle(3, 3, 1.5);
+    g.generateTexture('bullet-shotgun', 8, 8);
+    g.clear();
+
+    // SMG bullet — small green tracer
+    g.fillStyle(0x44ff44, 0.3);
+    g.fillEllipse(7, 3, 14, 5);
+    g.fillStyle(0x88ff88, 0.7);
+    g.fillEllipse(8, 3, 10, 3);
+    g.fillStyle(0xccffcc);
+    g.fillEllipse(9, 3, 4, 2);
+    g.generateTexture('bullet-smg', 14, 6);
+    g.clear();
+
+    // Sniper bullet — long blue/white piercing round
+    g.fillStyle(0x4488ff, 0.3);
+    g.fillEllipse(12, 3, 24, 5);
+    g.fillStyle(0x66aaff, 0.7);
+    g.fillEllipse(14, 3, 18, 3);
+    g.fillStyle(0xccddff);
+    g.fillEllipse(16, 3, 8, 2);
+    g.fillStyle(0xffffff);
+    g.fillEllipse(18, 3, 4, 1);
+    g.generateTexture('bullet-sniper', 24, 6);
+    g.clear();
+
+    // Rocket — chunky dark body with red warhead and flame tail
+    g.fillStyle(0x444444);
+    g.fillRect(2, 2, 10, 6);
+    g.fillStyle(0x555555);
+    g.fillRect(3, 3, 8, 4);
+    // Warhead (red tip)
+    g.fillStyle(0xcc2222);
+    g.fillRect(11, 2, 4, 6);
+    g.fillStyle(0xff4444);
+    g.fillRect(12, 3, 3, 4);
+    // Fins at back
+    g.fillStyle(0x333333);
+    g.fillRect(0, 1, 3, 2);
+    g.fillRect(0, 7, 3, 2);
+    // Flame exhaust
+    g.fillStyle(0xff8800, 0.6);
+    g.fillCircle(1, 5, 2);
+    g.fillStyle(0xffcc00, 0.4);
+    g.fillCircle(0, 5, 1.5);
+    g.generateTexture('bullet-rocket', 16, 10);
+    g.clear();
+
     // === ZOMBIE WALKER — body only (no arms, no rotation) ===
     g.fillStyle(0x4a6025);
     g.fillCircle(16, 16, 14);

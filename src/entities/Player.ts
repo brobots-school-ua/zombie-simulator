@@ -48,12 +48,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setCollideWorldBounds(true);
     this.setDepth(10);
 
-    // Initialize all weapons with full ammo
+    // Initialize all weapons with starting ammo
     for (const def of WEAPONS) {
       this.weapons.push({
         def,
         magazineAmmo: def.magazineSize,
-        reserveAmmo: def.maxReserve,
+        reserveAmmo: def.startReserve,
       });
     }
 

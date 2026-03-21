@@ -7,6 +7,7 @@ export interface BulletConfig {
   maxRange: number;
   pierce: number;
   aoeRadius: number;
+  texture?: string;
 }
 
 // Bullet entity with configurable stats and particle trail
@@ -26,7 +27,7 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
     targetX: number, targetY: number,
     config: BulletConfig
   ) {
-    super(scene, x, y, 'bullet');
+    super(scene, x, y, config.texture || 'bullet');
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
@@ -67,10 +68,18 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
     return false; // bullet continues through
   }
 
+  // Flag so GameScene knows to explode this bullet
+  shouldExplode = false;
+
   preUpdate(time: number, delta: number) {
     super.preUpdate(time, delta);
     const dist = Phaser.Math.Distance.Between(this.startX, this.startY, this.x, this.y);
     if (dist >= this.maxDistance) {
+      if (this.aoeRadius > 0) {
+        // Mark for explosion — GameScene will handle AoE
+        this.shouldExplode = true;
+        this.scene?.events.emit('bullet-explode', this);
+      }
       this.destroy();
     }
   }
