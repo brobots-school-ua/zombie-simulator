@@ -27,6 +27,7 @@ export class UIScene extends Phaser.Scene {
   private escPending = false;
   private escText!: Phaser.GameObjects.Text;
   private adminConsole!: AdminConsole;
+  private exiting = false;
 
   private minimapSize = 160;
   private minimapMargin = 15;
@@ -78,7 +79,7 @@ export class UIScene extends Phaser.Scene {
     // In-game leaderboard (top right, below wave)
     this.createLeaderboardDisplay();
 
-    // ESC to exit
+    // ESC to exit — simple reload approach (no scene juggling)
     this.escText = this.add.text(0, 0, 'Press ESC again to exit to menu', {
       fontSize: '18px',
       fontFamily: 'monospace',
@@ -89,8 +90,18 @@ export class UIScene extends Phaser.Scene {
 
     const escKey = this.input.keyboard!.addKey('ESC');
     escKey.on('down', () => {
+      if (this.exiting) return;
       if (this.escPending) {
-        this.exitToMenu();
+        this.exiting = true;
+        // Save score before exit
+        const gs = this.gameScene;
+        if (gs?.player) {
+          leaderboard.saveResult(gs.player.score, gs.wave);
+        }
+        audioManager.stopGameMusic(0);
+        audioManager.stopMenuMusic(0);
+        // Reload page — guaranteed clean state
+        window.location.reload();
       } else {
         this.escPending = true;
         this.escText.setVisible(true);
@@ -313,20 +324,8 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
-  private exited = false;
-
-  private exitToMenu() {
-    if (this.exited) return;
-    this.exited = true;
-    audioManager.stopGameMusic(0);
-    // Let Phaser handle cleanup — just switch scenes
-    this.scene.stop('UIScene');
-    this.scene.stop('GameScene');
-    this.scene.start('MenuScene');
-  }
-
   update() {
-    if (this.exited) return;
+    if (this.exiting) return;
     try {
       if (!this.gameScene?.player?.active) return;
     } catch { return; }
