@@ -90,19 +90,13 @@ export class UIScene extends Phaser.Scene {
     const escKey = this.input.keyboard!.addKey('ESC');
     escKey.on('down', () => {
       if (this.escPending) {
-        // Confirmed — exit to menu
-        audioManager.stopGameMusic(0);
-        this.scene.stop('GameScene');
-        this.scene.stop('UIScene');
-        this.scene.start('MenuScene');
+        this.exitToMenu();
       } else {
-        // First press — show confirmation
         this.escPending = true;
         this.escText.setVisible(true);
-        // Cancel after 2 seconds
         this.time.delayedCall(2000, () => {
           this.escPending = false;
-          this.escText.setVisible(false);
+          if (this.escText) this.escText.setVisible(false);
         });
       }
     });
@@ -319,9 +313,23 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
+  private exited = false;
+
+  private exitToMenu() {
+    if (this.exited) return;
+    this.exited = true;
+    audioManager.stopGameMusic(0);
+    // Let Phaser handle cleanup — just switch scenes
+    this.scene.stop('UIScene');
+    this.scene.stop('GameScene');
+    this.scene.start('MenuScene');
+  }
+
   update() {
-    if (!this.gameScene?.player?.active) return;
-    if (!this.scene.isActive('GameScene')) return;
+    if (this.exited) return;
+    try {
+      if (!this.gameScene?.player?.active) return;
+    } catch { return; }
     const p = this.gameScene.player;
     const { width, height } = this.scale;
 
@@ -352,14 +360,11 @@ export class UIScene extends Phaser.Scene {
     // ESC confirmation position
     this.escText.setPosition(width / 2, height / 2 - 40);
 
-    // Update weapon bar
-    this.updateWeaponBar();
-
-    // Update leaderboard live
-    this.updateLeaderboard();
-
-    // Draw minimap
-    this.drawMinimap(width, height);
+    try {
+      this.updateWeaponBar();
+      this.updateLeaderboard();
+      this.drawMinimap(width, height);
+    } catch { /* scene shutting down */ }
   }
 
   private drawMinimap(screenW: number, screenH: number) {

@@ -59,7 +59,11 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   private attackCooldown: number = 0;
   private wanderAngle: number = Math.random() * Math.PI * 2;
   private wanderTimer: number = 0;
-  private aggroed: boolean = false; // once seen player, stays aggro
+  private aggroed: boolean = false;
+  private stuckTimer: number = 0;
+  private slideDir: number = 1; // 1 or -1, wall slide direction
+  private lastX: number = 0;
+  private lastY: number = 0;
   private hpBar: Phaser.GameObjects.Graphics;
   private arms: Phaser.GameObjects.Sprite;
 
@@ -109,8 +113,27 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     let moveAngle: number;
 
     if (this.aggroed) {
-      // Chase player (even behind walls, as long as in range)
       moveAngle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
+
+      // Detect if stuck (barely moved since last frame)
+      const moved = Math.abs(this.x - this.lastX) + Math.abs(this.y - this.lastY);
+      if (moved < 0.5 && dist > 40) {
+        this.stuckTimer += delta;
+        if (this.stuckTimer > 200) {
+          // Slide perpendicular to direction to get around wall
+          moveAngle += (Math.PI / 2) * this.slideDir;
+          // Flip slide direction periodically
+          if (this.stuckTimer > 800) {
+            this.slideDir *= -1;
+            this.stuckTimer = 200;
+          }
+        }
+      } else {
+        this.stuckTimer = 0;
+      }
+      this.lastX = this.x;
+      this.lastY = this.y;
+
       this.setVelocity(
         Math.cos(moveAngle) * this.speed,
         Math.sin(moveAngle) * this.speed
