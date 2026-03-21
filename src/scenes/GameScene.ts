@@ -59,9 +59,8 @@ export class GameScene extends Phaser.Scene {
 
     this.physics.add.collider(this.player, this.walls);
     this.physics.add.collider(this.zombies, this.walls);
-
-    // Zombie hits player
-    this.physics.add.overlap(this.player, this.zombies, (_player, zombie) => {
+    // Zombies collide with player (push against, don't pass through)
+    this.physics.add.collider(this.player, this.zombies, (_player, zombie) => {
       if (this.gameOver) return;
       const z = zombie as Zombie;
       if (z.active && z.canAttack()) {

@@ -14,7 +14,7 @@ export const ACCESSORIES: Accessory[] = [
   { id: 'bandana', name: 'Bandana', texture: 'acc-bandana', price: 8, offsetX: 0, offsetY: -6, depth: 1 },
   { id: 'sunglasses', name: 'Sunglasses', texture: 'acc-sunglasses', price: 12, offsetX: 0, offsetY: -2, depth: 2 },
   { id: 'scar', name: 'Battle Scar', texture: 'acc-scar', price: 5, offsetX: 2, offsetY: 0, depth: 1 },
-  { id: 'crown', name: 'Crown', texture: 'acc-crown', price: 50, offsetX: 0, offsetY: -10, depth: 3 },
+  { id: 'crown', name: 'Crown', texture: 'acc-crown', price: 50, offsetX: 0, offsetY: -16, depth: 3 },
   { id: 'shield', name: 'Shield', texture: 'acc-shield', price: 30, offsetX: 0, offsetY: 2, depth: -1 },
 ];
 
@@ -72,6 +72,23 @@ export class ShopManager {
 
   unequip() {
     localStorage.removeItem(EQUIPPED_KEY);
+  }
+
+  refund(id: string): boolean {
+    const acc = ACCESSORIES.find(a => a.id === id);
+    if (!acc) return false;
+    if (!this.owns(id)) return false;
+
+    // Unequip if this is the equipped one
+    if (this.getEquipped() === id) this.unequip();
+
+    // Remove from owned
+    const owned = this.getOwned().filter(a => a !== id);
+    localStorage.setItem(OWNED_KEY, JSON.stringify(owned));
+
+    // Return coins
+    this.addCoins(acc.price);
+    return true;
   }
 }
 

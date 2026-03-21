@@ -199,7 +199,7 @@ export class MenuScene extends Phaser.Scene {
     // Cleanup
     this.events.on('shutdown', () => {
       if (this.nicknameInput) this.nicknameInput.remove();
-      if (this.shopPanel) { this.shopPanel.remove(); this.shopPanel = null; }
+      this.closeShop();
       this.adminConsole.destroy();
     });
   }
@@ -239,6 +239,8 @@ export class MenuScene extends Phaser.Scene {
     document.body.appendChild(this.nicknameInput);
   }
 
+  private previewSprites: Phaser.GameObjects.Sprite[] = [];
+
   private openShop() {
     if (this.shopPanel) return;
 
@@ -246,52 +248,114 @@ export class MenuScene extends Phaser.Scene {
     this.shopPanel.style.cssText = `
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: rgba(0,0,0,0.95); border: 2px solid #ffcc22; border-radius: 8px;
-      padding: 24px; z-index: 3000; font-family: monospace; color: #ffcc22;
-      min-width: 360px; max-height: 80vh; overflow-y: auto;
+      padding: 20px; z-index: 3000; font-family: monospace; color: #ffcc22;
+      width: 500px; max-height: 85vh; overflow-y: auto;
+      display: flex; flex-direction: column;
     `;
+
+    // Preview area using Phaser sprites (drawn on the game canvas behind the panel)
+    const { width, height } = this.scale;
+    const previewX = width / 2;
+    const previewY = height / 2;
+
+    // Player preview sprite
+    const previewPlayer = this.add.sprite(previewX - 180, previewY - 40, 'player').setDepth(50).setScale(3);
+    this.previewSprites.push(previewPlayer);
+
+    let previewAcc: Phaser.GameObjects.Sprite | null = null;
+
+    const showPreview = (accId: string) => {
+      if (previewAcc) { previewAcc.destroy(); previewAcc = null; }
+      const accDef = ACCESSORIES.find(a => a.id === accId);
+      if (accDef) {
+        previewAcc = this.add.sprite(
+          previewPlayer.x + accDef.offsetX * 3,
+          previewPlayer.y + accDef.offsetY * 3,
+          accDef.texture
+        ).setDepth(50 + accDef.depth).setScale(3);
+        this.previewSprites.push(previewAcc);
+      }
+    };
+
+    // Show currently equipped
+    const currentEquip = shop.getEquipped();
+    if (currentEquip) showPreview(currentEquip);
 
     const renderShop = () => {
       if (!this.shopPanel) return;
       const equipped = shop.getEquipped();
       this.shopPanel.innerHTML = `
-        <h3 style="margin:0 0 8px 0; color:#ffcc22; font-size:20px;">SHOP</h3>
-        <p style="color:#ffdd44; margin:0 0 16px 0;">Coins: ${shop.getCoins()}</p>
+        <h3 style="margin:0 0 4px 0; color:#ffcc22; font-size:20px;">SHOP</h3>
+        <p style="color:#ffdd44; margin:0 0 12px 0;">Coins: ${shop.getCoins()}</p>
+        <p style="color:#556655; margin:0 0 12px 0; font-size:11px;">Hover to preview</p>
+        <div id="shop-items" style="flex:1;">
         ${ACCESSORIES.map(acc => {
           const owned = shop.owns(acc.id);
           const isEquipped = equipped === acc.id;
           const canBuy = shop.getCoins() >= acc.price;
-          return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px; margin:4px 0; border:1px solid ${isEquipped ? '#44ff44' : '#333'}; border-radius:4px; background:${isEquipped ? 'rgba(68,255,68,0.1)' : 'rgba(0,0,0,0.3)'}">
-            <span style="color:#ddd;">${acc.name} <span style="color:#888;">(${acc.price} coins)</span></span>
-            ${isEquipped ? '<button class="shop-btn" data-action="unequip" style="padding:4px 10px; background:#333; border:1px solid #44ff44; color:#44ff44; font-family:monospace; cursor:pointer; border-radius:3px;">Equipped</button>'
-            : owned ? `<button class="shop-btn" data-action="equip" data-id="${acc.id}" style="padding:4px 10px; background:#1a3a1a; border:1px solid #44ff44; color:#44ff44; font-family:monospace; cursor:pointer; border-radius:3px;">Equip</button>`
-            : `<button class="shop-btn" data-action="buy" data-id="${acc.id}" style="padding:4px 10px; background:${canBuy ? '#3a3a1a' : '#222'}; border:1px solid ${canBuy ? '#ffcc22' : '#555'}; color:${canBuy ? '#ffcc22' : '#555'}; font-family:monospace; cursor:pointer; border-radius:3px;" ${canBuy ? '' : 'disabled'}>Buy</button>`}
+
+          let buttons = '';
+          if (isEquipped) {
+            buttons = `<button class="shop-btn" data-action="unequip" style="padding:4px 8px; background:#333; border:1px solid #44ff44; color:#44ff44; font-family:monospace; cursor:pointer; border-radius:3px; font-size:11px;">Equipped</button>`;
+          } else if (owned) {
+            buttons = `
+              <button class="shop-btn" data-action="equip" data-id="${acc.id}" style="padding:4px 8px; background:#1a3a1a; border:1px solid #44ff44; color:#44ff44; font-family:monospace; cursor:pointer; border-radius:3px; font-size:11px;">Equip</button>
+              <button class="shop-btn" data-action="refund" data-id="${acc.id}" style="padding:4px 8px; background:#3a1a1a; border:1px solid #ff6644; color:#ff6644; font-family:monospace; cursor:pointer; border-radius:3px; font-size:11px; margin-left:4px;">Refund</button>`;
+          } else {
+            buttons = `<button class="shop-btn" data-action="buy" data-id="${acc.id}" style="padding:4px 8px; background:${canBuy ? '#3a3a1a' : '#222'}; border:1px solid ${canBuy ? '#ffcc22' : '#555'}; color:${canBuy ? '#ffcc22' : '#555'}; font-family:monospace; cursor:pointer; border-radius:3px; font-size:11px;" ${canBuy ? '' : 'disabled'}>Buy</button>`;
+          }
+
+          return `<div class="shop-item" data-preview="${acc.id}" style="display:flex; justify-content:space-between; align-items:center; padding:8px; margin:3px 0; border:1px solid ${isEquipped ? '#44ff44' : '#333'}; border-radius:4px; background:${isEquipped ? 'rgba(68,255,68,0.1)' : 'rgba(0,0,0,0.3)'}; cursor:pointer;">
+            <span style="color:#ddd;">${acc.name} <span style="color:#888;">(${acc.price})</span></span>
+            <div>${buttons}</div>
           </div>`;
         }).join('')}
-        <button id="shop-close" style="width:100%; margin-top:16px; padding:8px; background:#222; border:1px solid #666; color:#aaa; font-family:monospace; cursor:pointer; border-radius:3px;">Close</button>
+        </div>
+        <button id="shop-close" style="width:100%; margin-top:12px; padding:8px; background:#222; border:1px solid #666; color:#aaa; font-family:monospace; cursor:pointer; border-radius:3px;">Close</button>
       `;
 
+      // Button events
       this.shopPanel.querySelectorAll('.shop-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
           const action = (btn as HTMLElement).dataset.action;
           const id = (btn as HTMLElement).dataset.id || '';
           if (action === 'buy') {
-            const success = shop.buy(id);
-            if (!success) { alert('Not enough coins!'); }
+            if (!shop.buy(id)) { alert('Not enough coins!'); }
             renderShop();
           }
-          if (action === 'equip') { shop.equip(id); renderShop(); }
-          if (action === 'unequip') { shop.unequip(); renderShop(); }
+          if (action === 'equip') { shop.equip(id); showPreview(id); renderShop(); }
+          if (action === 'unequip') { shop.unequip(); if (previewAcc) { previewAcc.destroy(); previewAcc = null; } renderShop(); }
+          if (action === 'refund') { shop.refund(id); if (previewAcc) { previewAcc.destroy(); previewAcc = null; } renderShop(); }
         });
       });
+
+      // Hover preview
+      this.shopPanel.querySelectorAll('.shop-item').forEach(item => {
+        item.addEventListener('mouseenter', () => {
+          const id = (item as HTMLElement).dataset.preview || '';
+          showPreview(id);
+        });
+      });
+
       this.shopPanel.querySelector('#shop-close')?.addEventListener('click', () => {
-        this.shopPanel?.remove();
-        this.shopPanel = null;
+        this.closeShop();
       });
     };
 
     document.body.appendChild(this.shopPanel);
     this.shopPanel.addEventListener('keydown', (e) => e.stopPropagation());
     renderShop();
+  }
+
+  private closeShop() {
+    if (this.shopPanel) {
+      this.shopPanel.remove();
+      this.shopPanel = null;
+    }
+    // Cleanup preview sprites
+    this.previewSprites.forEach(s => { if (s) s.destroy(); });
+    this.previewSprites = [];
   }
 
   private createMenuLeaderboard(centerX: number, startY: number) {
