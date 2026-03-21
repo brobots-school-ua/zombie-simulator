@@ -59,6 +59,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   private attackCooldown: number = 0;
   private wanderAngle: number = Math.random() * Math.PI * 2;
   private wanderTimer: number = 0;
+  private aggroed: boolean = false; // once seen player, stays aggro
   private hpBar: Phaser.GameObjects.Graphics;
   private arms: Phaser.GameObjects.Sprite;
 
@@ -98,10 +99,17 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     const dist = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
     const canSeePlayer = dist < this.detectionRange && this.hasLineOfSight(player);
 
+    // Once aggro, stay aggro until player leaves detection range
+    if (canSeePlayer) {
+      this.aggroed = true;
+    } else if (dist > this.detectionRange) {
+      this.aggroed = false;
+    }
+
     let moveAngle: number;
 
-    if (canSeePlayer) {
-      // Chase player
+    if (this.aggroed) {
+      // Chase player (even behind walls, as long as in range)
       moveAngle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
       this.setVelocity(
         Math.cos(moveAngle) * this.speed,

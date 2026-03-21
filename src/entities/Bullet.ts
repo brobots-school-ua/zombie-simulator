@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 
-// Bullet config passed from weapon
 export interface BulletConfig {
   damage: number;
   speed: number;
@@ -20,14 +19,8 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
   private maxDistance: number;
   private pierceCount: number = 0;
   private trail: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
-  private destroyed = false;
 
-  constructor(
-    scene: Phaser.Scene,
-    x: number, y: number,
-    targetX: number, targetY: number,
-    config: BulletConfig
-  ) {
+  constructor(scene: Phaser.Scene, x: number, y: number, targetX: number, targetY: number, config: BulletConfig) {
     super(scene, x, y, config.texture || 'bullet');
     scene.add.existing(this);
     scene.physics.add.existing(this);
@@ -41,13 +34,9 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(8);
 
     const angle = Phaser.Math.Angle.Between(x, y, targetX, targetY);
-    this.setVelocity(
-      Math.cos(angle) * config.speed,
-      Math.sin(angle) * config.speed
-    );
+    this.setVelocity(Math.cos(angle) * config.speed, Math.sin(angle) * config.speed);
     this.setRotation(angle);
 
-    // Particle trail
     this.trail = scene.add.particles(0, 0, 'bullet-trail', {
       speed: { min: 5, max: 20 },
       scale: { start: 0.8, end: 0 },
@@ -60,49 +49,30 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
     this.trail.setDepth(7);
   }
 
-  // Returns true if bullet should be destroyed after hit
   onHitZombie(): boolean {
     this.pierceCount++;
     return this.pierceCount >= this.pierce;
   }
 
-  // Whether this bullet reached max range (for AoE explosion check)
-  reachedMaxRange = false;
-
   preUpdate(time: number, delta: number) {
     super.preUpdate(time, delta);
-    if (this.destroyed) return;
     const dist = Phaser.Math.Distance.Between(this.startX, this.startY, this.x, this.y);
     if (dist >= this.maxDistance) {
-      this.reachedMaxRange = true;
-      this.kill();
-    }
-  }
-
-  kill() {
-    if (this.destroyed) return;
-    this.destroyed = true;
-    this.cleanupTrail();
-    super.destroy();
-  }
-
-  private cleanupTrail() {
-    if (this.trail) {
-      this.trail.stop();
-      const trailRef = this.trail;
-      this.trail = null;
-      if (this.scene) {
-        this.scene.time.delayedCall(200, () => trailRef.destroy());
-      } else {
-        trailRef.destroy();
-      }
+      this.destroy();
     }
   }
 
   destroy(fromScene?: boolean) {
-    if (this.destroyed) return;
-    this.destroyed = true;
-    this.cleanupTrail();
+    if (this.trail) {
+      this.trail.stop();
+      const ref = this.trail;
+      this.trail = null;
+      if (this.scene) {
+        this.scene.time.delayedCall(200, () => ref.destroy());
+      } else {
+        ref.destroy();
+      }
+    }
     super.destroy(fromScene);
   }
 }

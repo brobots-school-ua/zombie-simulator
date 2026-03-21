@@ -27,43 +27,36 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    // Reset state
     this.wave = 1;
     this.shootCooldown = 0;
     this.waveDelay = false;
     this.gameOver = false;
 
-    // World bounds
     this.physics.world.setBounds(0, 0, this.mapSize, this.mapSize);
 
-    // Draw ground tiles with random grass variants
+    // Ground tiles
     const grassTiles = ['ground1', 'ground2', 'ground3'];
     for (let x = 0; x < this.mapSize; x += 64) {
       for (let y = 0; y < this.mapSize; y += 64) {
-        const tile = grassTiles[Phaser.Math.Between(0, 2)];
-        this.add.image(x + 32, y + 32, tile).setDepth(0);
+        this.add.image(x + 32, y + 32, grassTiles[Phaser.Math.Between(0, 2)]).setDepth(0);
       }
     }
 
-    // Create walls / obstacles
     this.walls = this.physics.add.staticGroup();
     this.generateObstacles();
 
-    // Create groups
     this.zombies = this.add.group({ runChildUpdate: false });
     this.bullets = this.add.group({ runChildUpdate: false });
     this.pickups = this.add.group();
 
-    // Create player at center — find safe position
+    // Safe player spawn
     const playerPos = this.getSafePlayerSpawn();
     this.player = new Player(this, playerPos.x, playerPos.y);
 
-    // Camera follows player with zoom
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cameras.main.setBounds(0, 0, this.mapSize, this.mapSize);
     this.cameras.main.setZoom(1.5);
 
-    // Collisions
     this.physics.add.collider(this.player, this.walls);
     this.physics.add.collider(this.zombies, this.walls);
 
@@ -78,26 +71,28 @@ export class GameScene extends Phaser.Scene {
 
     // Bullet hits zombie
     this.physics.add.overlap(this.bullets, this.zombies, (bullet, zombie) => {
+      if (this.gameOver) return;
       const b = bullet as Bullet;
       const z = zombie as Zombie;
       if (!b.active || !z.active) return;
 
-      // AoE explosion (grenade launcher)
       if (b.aoeRadius > 0) {
         this.doAoeDamage(b.x, b.y, b.aoeRadius, b.damage);
-        b.kill();
+        b.destroy();
         return;
       }
 
-      this.onZombieHit(z, b.damage);
+      const killed = z.takeDamage(b.damage);
+      if (killed) {
+        this.onZombieKilled(z);
+      }
 
-      // Pierce: bullet continues or dies
       if (b.onHitZombie()) {
-        b.kill();
+        b.destroy();
       }
     });
 
-    // Player picks up ammo — gives 1/5 mag to ALL weapons
+    // Pickups
     this.physics.add.overlap(this.player, this.pickups, (_player, pickup) => {
       const p = pickup as Pickup;
       if (!p.active) return;
@@ -105,343 +100,204 @@ export class GameScene extends Phaser.Scene {
       p.destroy();
     });
 
-    // Bullets collide with walls (rockets explode)
+    // Bullets hit walls
     this.physics.add.collider(this.bullets, this.walls, (bullet) => {
       const b = bullet as Bullet;
       if (!b.active) return;
       if (b.aoeRadius > 0) {
         this.doAoeDamage(b.x, b.y, b.aoeRadius, b.damage);
       }
-      b.kill();
+      b.destroy();
     });
 
-    // Spawn ammo pickups every 10-15 seconds at safe positions
+    // Ammo spawner
     this.time.addEvent({
       delay: Phaser.Math.Between(10000, 15000),
       loop: true,
       callback: () => {
+        if (this.gameOver) return;
         const pos = this.getSafeSpawnPosition();
-        const pickup = new Pickup(this, pos.x, pos.y, 'ammo');
-        this.pickups.add(pickup);
+        this.pickups.add(new Pickup(this, pos.x, pos.y, 'ammo'));
       },
     });
 
-    // Shooting (single shot on click)
+    // Shooting
     this.input.on('pointerdown', () => {
-      this.fireWeapon();
+      if (!this.gameOver) this.fireWeapon();
     });
 
-    // Player death — only trigger once!
+    // Player death — ONCE only
     this.events.once('player-died', () => {
       if (this.gameOver) return;
       this.gameOver = true;
       leaderboard.saveResult(this.player.score, this.wave);
       audioManager.stopGameMusic(1.5);
-      // Save data before stopping scenes
-      const finalData = {
-        score: this.player.score,
-        kills: this.player.kills,
-        wave: this.wave,
-      };
+      const data = { score: this.player.score, kills: this.player.kills, wave: this.wave };
       this.scene.stop('UIScene');
-      this.scene.start('GameOverScene', finalData);
+      this.scene.start('GameOverScene', data);
     });
 
-    // Start game music
     audioManager.resume();
     audioManager.startGameMusic();
-
-    // Launch UI overlay
     this.scene.launch('UIScene', { gameScene: this });
-
-    // Start first wave
     this.spawnWave();
   }
 
-  update(time: number, delta: number) {
+  update(_time: number, delta: number) {
     if (this.gameOver || !this.player?.active) return;
+
     this.player.update();
 
-    // Update zombies
     this.zombies.getChildren().forEach((z) => {
-      (z as Zombie).update(this.player, time, delta);
+      (z as Zombie).update(this.player, _time, delta);
     });
 
-    // Shoot cooldown
-    if (this.shootCooldown > 0) {
-      this.shootCooldown -= delta;
-    }
+    if (this.shootCooldown > 0) this.shootCooldown -= delta;
 
-    // Auto-fire: hold mouse for rifle/minigun
-    if (this.input.activePointer.isDown && this.player.activeWeapon.def.auto) {
+    // Auto-fire for rifle/minigun
+    if (this.input.activePointer.isDown && this.player.activeWeapon.def.auto && !this.gameOver) {
       this.fireWeapon();
     }
 
-    // Check for rockets that reached max range — explode them
-    this.bullets.getChildren().slice().forEach((obj) => {
-      const b = obj as Bullet;
-      if (b.reachedMaxRange && b.aoeRadius > 0 && b.active) {
-        this.doAoeDamage(b.x, b.y, b.aoeRadius, b.damage);
-      }
-    });
-
-    // Throttled leaderboard save (once per second, not every kill)
-    this.saveScoreThrottle -= delta;
-    if (this.saveScoreThrottle <= 0 && this.player.score > 0) {
-      this.saveScoreThrottle = 1000;
-      leaderboard.saveResult(this.player.score, this.wave);
-    }
-
-    // Check if wave is cleared
+    // Wave check
     if (this.zombiesRemaining <= 0 && !this.waveDelay) {
       this.waveDelay = true;
       this.wave++;
-
-      // Brief pause between waves
       this.time.delayedCall(3000, () => {
-        this.spawnWave();
-        this.waveDelay = false;
+        if (!this.gameOver) { this.spawnWave(); this.waveDelay = false; }
       });
     }
   }
 
-  private onZombieHit(z: Zombie, damage: number) {
-    if (!z.active) return;
-    const killed = z.takeDamage(damage);
-    if (killed) {
-      this.player.kills++;
-      this.player.score += z.scoreValue;
-      this.zombiesRemaining--;
-      shop.addCoins(z.coinValue);
-      this.player.sessionCoins += z.coinValue;
-    }
+  private onZombieKilled(z: Zombie) {
+    this.player.kills++;
+    this.player.score += z.scoreValue;
+    this.zombiesRemaining--;
+    shop.addCoins(z.coinValue);
+    this.player.sessionCoins += z.coinValue;
   }
-
-  private saveScoreThrottle = 0;
 
   private fireWeapon() {
     if (this.shootCooldown > 0) return;
-
     const target = this.player.shoot();
     if (!target) return;
 
     const wDef = this.player.activeWeapon.def;
     const muzzle = this.player.getMuzzlePosition();
     const baseAngle = Phaser.Math.Angle.Between(muzzle.x, muzzle.y, target.x, target.y);
-
-    const bulletConfig = {
-      damage: wDef.damage,
-      speed: wDef.bulletSpeed,
-      maxRange: wDef.maxRange,
-      pierce: wDef.pierce,
-      aoeRadius: wDef.aoeRadius,
-      texture: wDef.bulletTexture,
-    };
+    const cfg = { damage: wDef.damage, speed: wDef.bulletSpeed, maxRange: wDef.maxRange, pierce: wDef.pierce, aoeRadius: wDef.aoeRadius, texture: wDef.bulletTexture };
 
     if (wDef.pellets > 1) {
-      // Shotgun: multiple pellets in a fan
-      const totalSpread = wDef.pelletSpread * (wDef.pellets - 1);
-      const startAngle = baseAngle - Phaser.Math.DegToRad(totalSpread / 2);
+      const total = wDef.pelletSpread * (wDef.pellets - 1);
+      const start = baseAngle - Phaser.Math.DegToRad(total / 2);
       for (let i = 0; i < wDef.pellets; i++) {
-        const angle = startAngle + Phaser.Math.DegToRad(wDef.pelletSpread * i);
-        const tx = muzzle.x + Math.cos(angle) * 100;
-        const ty = muzzle.y + Math.sin(angle) * 100;
-        const b = new Bullet(this, muzzle.x, muzzle.y, tx, ty, bulletConfig);
-        this.bullets.add(b);
+        const a = start + Phaser.Math.DegToRad(wDef.pelletSpread * i);
+        this.bullets.add(new Bullet(this, muzzle.x, muzzle.y, muzzle.x + Math.cos(a) * 100, muzzle.y + Math.sin(a) * 100, cfg));
       }
     } else {
-      // Single bullet with optional spread
-      let finalAngle = baseAngle;
-      if (wDef.spread > 0) {
-        const spreadRad = Phaser.Math.DegToRad(wDef.spread);
-        finalAngle += (Math.random() - 0.5) * spreadRad * 2;
-      }
-      const tx = muzzle.x + Math.cos(finalAngle) * 100;
-      const ty = muzzle.y + Math.sin(finalAngle) * 100;
-      const b = new Bullet(this, muzzle.x, muzzle.y, tx, ty, bulletConfig);
-      this.bullets.add(b);
+      let a = baseAngle;
+      if (wDef.spread > 0) a += (Math.random() - 0.5) * Phaser.Math.DegToRad(wDef.spread) * 2;
+      this.bullets.add(new Bullet(this, muzzle.x, muzzle.y, muzzle.x + Math.cos(a) * 100, muzzle.y + Math.sin(a) * 100, cfg));
     }
-
     this.shootCooldown = wDef.fireRate;
   }
 
   private doAoeDamage(x: number, y: number, radius: number, damage: number) {
-    // Damage all zombies in radius (slice to avoid modifying array during iteration)
     const targets = this.zombies.getChildren().slice();
     for (const obj of targets) {
       const z = obj as Zombie;
       if (!z.active) continue;
       const dist = Phaser.Math.Distance.Between(x, y, z.x, z.y);
       if (dist <= radius) {
-        const falloff = 1 - (dist / radius) * 0.5;
-        this.onZombieHit(z, Math.round(damage * falloff));
+        const killed = z.takeDamage(Math.round(damage * (1 - (dist / radius) * 0.5)));
+        if (killed) this.onZombieKilled(z);
       }
     }
-
-    // Visual explosion effect
-    const explosion = this.add.circle(x, y, radius, 0xff6600, 0.4);
-    explosion.setDepth(9);
-    this.tweens.add({
-      targets: explosion,
-      alpha: 0,
-      scale: 1.5,
-      duration: 300,
-      onComplete: () => explosion.destroy(),
-    });
+    const expl = this.add.circle(x, y, radius, 0xff6600, 0.4).setDepth(9);
+    this.tweens.add({ targets: expl, alpha: 0, scale: 1.5, duration: 300, onComplete: () => expl.destroy() });
   }
 
   private spawnWave() {
     const count = 5 + this.wave * 3;
     this.zombiesRemaining = count;
-
-    // Increase music intensity with wave
     audioManager.updateIntensity(this.wave);
-
     for (let i = 0; i < count; i++) {
       this.time.delayedCall(i * 300, () => {
+        if (this.gameOver) return;
         const pos = this.getSafeSpawnPosition();
-        const type = this.getRandomZombieType();
-        const zombie = new Zombie(this, pos.x, pos.y, type);
+        const zombie = new Zombie(this, pos.x, pos.y, this.getRandomZombieType());
         zombie.wallsGroup = this.walls;
         this.zombies.add(zombie);
       });
     }
   }
 
-  private getSpawnPosition(): { x: number; y: number } {
-    // Spawn outside camera view but within map
-    const cam = this.cameras.main;
-    const margin = 100;
-    const side = Phaser.Math.Between(0, 3);
-
-    let x: number, y: number;
-
-    switch (side) {
-      case 0: // top
-        x = Phaser.Math.Between(cam.scrollX - margin, cam.scrollX + cam.width + margin);
-        y = cam.scrollY - margin;
-        break;
-      case 1: // right
-        x = cam.scrollX + cam.width + margin;
-        y = Phaser.Math.Between(cam.scrollY - margin, cam.scrollY + cam.height + margin);
-        break;
-      case 2: // bottom
-        x = Phaser.Math.Between(cam.scrollX - margin, cam.scrollX + cam.width + margin);
-        y = cam.scrollY + cam.height + margin;
-        break;
-      default: // left
-        x = cam.scrollX - margin;
-        y = Phaser.Math.Between(cam.scrollY - margin, cam.scrollY + cam.height + margin);
+  private getSafePlayerSpawn(): { x: number; y: number } {
+    const cx = this.mapSize / 2, cy = this.mapSize / 2;
+    for (let r = 0; r < 300; r += 20) {
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+        const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+        if (!this.isPositionBlocked(x, y)) return { x, y };
+      }
     }
+    return { x: cx, y: cy };
+  }
 
-    // Clamp to map bounds
-    x = Phaser.Math.Clamp(x, 50, this.mapSize - 50);
-    y = Phaser.Math.Clamp(y, 50, this.mapSize - 50);
-
-    return { x, y };
+  private getSpawnPosition(): { x: number; y: number } {
+    const cam = this.cameras.main;
+    const m = 100;
+    const side = Phaser.Math.Between(0, 3);
+    let x: number, y: number;
+    switch (side) {
+      case 0: x = Phaser.Math.Between(cam.scrollX - m, cam.scrollX + cam.width + m); y = cam.scrollY - m; break;
+      case 1: x = cam.scrollX + cam.width + m; y = Phaser.Math.Between(cam.scrollY - m, cam.scrollY + cam.height + m); break;
+      case 2: x = Phaser.Math.Between(cam.scrollX - m, cam.scrollX + cam.width + m); y = cam.scrollY + cam.height + m; break;
+      default: x = cam.scrollX - m; y = Phaser.Math.Between(cam.scrollY - m, cam.scrollY + cam.height + m);
+    }
+    return { x: Phaser.Math.Clamp(x, 50, this.mapSize - 50), y: Phaser.Math.Clamp(y, 50, this.mapSize - 50) };
   }
 
   private getSafeSpawnPosition(): { x: number; y: number } {
-    // Try up to 20 times to find a position not inside a wall
-    for (let attempt = 0; attempt < 20; attempt++) {
+    for (let i = 0; i < 20; i++) {
       const pos = this.getSpawnPosition();
-      if (!this.isPositionBlocked(pos.x, pos.y)) {
-        return pos;
-      }
+      if (!this.isPositionBlocked(pos.x, pos.y)) return pos;
     }
     return this.getSpawnPosition();
   }
 
   private isPositionBlocked(x: number, y: number): boolean {
-    const testRect = new Phaser.Geom.Rectangle(x - 16, y - 16, 32, 32);
-    const walls = this.walls.getChildren() as Phaser.Physics.Arcade.Sprite[];
-    for (const wall of walls) {
-      const wallRect = new Phaser.Geom.Rectangle(
-        wall.x - wall.displayWidth / 2,
-        wall.y - wall.displayHeight / 2,
-        wall.displayWidth,
-        wall.displayHeight
-      );
-      if (Phaser.Geom.Intersects.RectangleToRectangle(testRect, wallRect)) {
-        return true;
-      }
+    const r = new Phaser.Geom.Rectangle(x - 16, y - 16, 32, 32);
+    for (const wall of this.walls.getChildren() as Phaser.Physics.Arcade.Sprite[]) {
+      if (Phaser.Geom.Intersects.RectangleToRectangle(r, new Phaser.Geom.Rectangle(wall.x - wall.displayWidth / 2, wall.y - wall.displayHeight / 2, wall.displayWidth, wall.displayHeight))) return true;
     }
     return false;
   }
 
   private getRandomZombieType(): ZombieType {
     const r = Math.random();
-    if (this.wave >= 8) {
-      // 30% walker, 35% runner, 35% tank
-      if (r < 0.35) return 'tank';
-      if (r < 0.70) return 'runner';
-      return 'walker';
-    } else if (this.wave >= 5) {
-      // 40% walker, 35% runner, 25% tank
-      if (r < 0.25) return 'tank';
-      if (r < 0.60) return 'runner';
-      return 'walker';
-    } else if (this.wave >= 3) {
-      // 60% walker, 30% runner, 10% tank
-      if (r < 0.10) return 'tank';
-      if (r < 0.40) return 'runner';
-      return 'walker';
-    }
+    if (this.wave >= 8) { if (r < 0.35) return 'tank'; if (r < 0.70) return 'runner'; return 'walker'; }
+    if (this.wave >= 5) { if (r < 0.25) return 'tank'; if (r < 0.60) return 'runner'; return 'walker'; }
+    if (this.wave >= 3) { if (r < 0.10) return 'tank'; if (r < 0.40) return 'runner'; return 'walker'; }
     return 'walker';
   }
 
-  private getSafePlayerSpawn(): { x: number; y: number } {
-    const cx = this.mapSize / 2;
-    const cy = this.mapSize / 2;
-    // Try center first, then spiral outward
-    for (let r = 0; r < 300; r += 20) {
-      for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
-        const x = cx + Math.cos(a) * r;
-        const y = cy + Math.sin(a) * r;
-        if (!this.isPositionBlocked(x, y)) {
-          return { x, y };
-        }
-      }
-    }
-    return { x: cx, y: cy };
-  }
-
   private generateObstacles() {
-    // Border walls around the entire map
     for (let i = 0; i < this.mapSize; i += 64) {
-      // Top edge
-      const wTop = this.walls.create(i + 32, 32, 'wall') as Phaser.Physics.Arcade.Sprite;
-      wTop.setDepth(2).refreshBody();
-      // Bottom edge
-      const wBot = this.walls.create(i + 32, this.mapSize - 32, 'wall') as Phaser.Physics.Arcade.Sprite;
-      wBot.setDepth(2).refreshBody();
-      // Left edge
-      const wLeft = this.walls.create(32, i + 32, 'wall') as Phaser.Physics.Arcade.Sprite;
-      wLeft.setDepth(2).refreshBody();
-      // Right edge
-      const wRight = this.walls.create(this.mapSize - 32, i + 32, 'wall') as Phaser.Physics.Arcade.Sprite;
-      wRight.setDepth(2).refreshBody();
+      (this.walls.create(i + 32, 32, 'wall') as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
+      (this.walls.create(i + 32, this.mapSize - 32, 'wall') as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
+      (this.walls.create(32, i + 32, 'wall') as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
+      (this.walls.create(this.mapSize - 32, i + 32, 'wall') as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
     }
-
-    // Scatter walls and buildings around the map
-    const buildingCount = 15 + Math.floor(Math.random() * 10);
-
-    for (let i = 0; i < buildingCount; i++) {
+    const count = 15 + Math.floor(Math.random() * 10);
+    for (let i = 0; i < count; i++) {
       const bx = Phaser.Math.Between(200, this.mapSize - 200);
       const by = Phaser.Math.Between(200, this.mapSize - 200);
-      const bw = Phaser.Math.Between(1, 4);
-      const bh = Phaser.Math.Between(1, 3);
-
-      // Skip if too close to center (player spawn safe zone)
-      const cx = this.mapSize / 2;
-      const cy = this.mapSize / 2;
+      const cx = this.mapSize / 2, cy = this.mapSize / 2;
       if (Math.abs(bx - cx) < 200 && Math.abs(by - cy) < 200) continue;
-
+      const bw = Phaser.Math.Between(1, 4), bh = Phaser.Math.Between(1, 3);
       for (let wx = 0; wx < bw; wx++) {
         for (let wy = 0; wy < bh; wy++) {
-          const wall = this.walls.create(bx + wx * 64, by + wy * 64, 'wall') as Phaser.Physics.Arcade.Sprite;
-          wall.setDepth(2);
-          wall.refreshBody();
+          (this.walls.create(bx + wx * 64, by + wy * 64, 'wall') as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
         }
       }
     }
