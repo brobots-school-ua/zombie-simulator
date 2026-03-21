@@ -233,6 +233,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   destroy(fromScene?: boolean) {
+    // Remove event listeners to prevent leaks on scene restart
+    this.scene.events.off('postupdate');
+    this.scene.input.off('wheel');
     if (this.weapon) this.weapon.destroy();
     if (this.accessorySprite) this.accessorySprite.destroy();
     super.destroy(fromScene);

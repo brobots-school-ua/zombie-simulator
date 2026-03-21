@@ -25,6 +25,22 @@ export class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' });
   }
 
+  // Clean up everything when scene shuts down
+  shutdown() {
+    // Remove all event listeners
+    this.events.removeAllListeners();
+    this.input.removeAllListeners();
+    // Destroy all zombies (cleanup arms + hp bars)
+    this.zombies?.getChildren().forEach(z => {
+      const zombie = z as Zombie;
+      if (zombie.active) zombie.takeDamage(9999);
+    });
+    // Destroy player (cleanup weapon + accessory sprites)
+    if (this.player) {
+      this.player.destroy();
+    }
+  }
+
   create() {
     // Reset state
     this.wave = 1;
@@ -152,6 +168,9 @@ export class GameScene extends Phaser.Scene {
         wave: this.wave,
       });
     });
+
+    // Clean up on shutdown
+    this.events.once('shutdown', () => this.shutdown());
 
     // Start game music
     audioManager.resume();

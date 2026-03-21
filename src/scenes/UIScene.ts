@@ -431,5 +431,7 @@ export class UIScene extends Phaser.Scene {
 
   shutdown() {
     this.adminConsole.destroy();
+    this.events.removeAllListeners();
+    this.input.removeAllListeners();
   }
 }
