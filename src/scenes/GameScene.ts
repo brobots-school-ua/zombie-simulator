@@ -4,6 +4,7 @@ import { Zombie, ZombieType } from '../entities/Zombie';
 import { Bullet } from '../entities/Bullet';
 import { Pickup } from '../entities/Pickup';
 import { audioManager } from '../systems/AudioManager';
+import { leaderboard } from '../systems/LeaderboardManager';
 
 // Main game scene — where all gameplay happens
 export class GameScene extends Phaser.Scene {
@@ -82,6 +83,8 @@ export class GameScene extends Phaser.Scene {
         this.player.kills++;
         this.player.score += z.scoreValue;
         this.zombiesRemaining--;
+        // Auto-save score to leaderboard
+        leaderboard.saveResult(this.player.score, this.wave);
       }
     });
 

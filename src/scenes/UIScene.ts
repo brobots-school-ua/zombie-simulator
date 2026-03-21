@@ -17,7 +17,9 @@ export class UIScene extends Phaser.Scene {
   private waveText!: Phaser.GameObjects.Text;
   private reloadText!: Phaser.GameObjects.Text;
   private minimap!: Phaser.GameObjects.Graphics;
-  private leaderboardTexts: Phaser.GameObjects.Text[] = [];
+  private lbBg!: Phaser.GameObjects.Graphics;
+  private lbTitle!: Phaser.GameObjects.Text;
+  private lbEntries: Phaser.GameObjects.Text[] = [];
   private volumeOpen = false;
   private escPending = false;
   private escText!: Phaser.GameObjects.Text;
@@ -107,35 +109,61 @@ export class UIScene extends Phaser.Scene {
 
   private createLeaderboardDisplay() {
     const { width } = this.scale;
-    const top5 = leaderboard.getTop(5);
-    if (top5.length === 0) return;
-
     const startX = width - 15;
     const startY = 42;
-    const entryH = 16;
 
-    // Dark background panel
-    const bgH = 22 + top5.length * entryH;
-    const bg = this.add.graphics().setDepth(99);
-    bg.fillStyle(0x000000, 0.5);
-    bg.fillRoundedRect(startX - 145, startY - 4, 150, bgH, 4);
+    // Background (redrawn in updateLeaderboard)
+    this.lbBg = this.add.graphics().setDepth(99);
 
-    const title = this.add.text(startX, startY, 'LEADERBOARD', {
+    // Title
+    this.lbTitle = this.add.text(startX, startY, 'LEADERBOARD', {
       fontSize: '12px',
       fontFamily: 'monospace',
       color: '#ffcc33',
       fontStyle: 'bold',
     }).setOrigin(1, 0).setDepth(100);
-    this.leaderboardTexts.push(title);
 
-    top5.forEach((entry, i) => {
-      const txt = this.add.text(startX, startY + 18 + i * entryH, `${i + 1}. ${entry.name}: ${entry.score}`, {
+    // Create 5 text slots
+    for (let i = 0; i < 5; i++) {
+      const txt = this.add.text(startX, startY + 18 + i * 16, '', {
         fontSize: '12px',
         fontFamily: 'monospace',
         color: '#ddaa44',
       }).setOrigin(1, 0).setDepth(100);
-      this.leaderboardTexts.push(txt);
-    });
+      this.lbEntries.push(txt);
+    }
+  }
+
+  private updateLeaderboard() {
+    const { width } = this.scale;
+    const startX = width - 15;
+    const startY = 42;
+    const top5 = leaderboard.getTop(5);
+    const currentNick = leaderboard.getNickname();
+    const currentScore = this.gameScene?.player?.score || 0;
+
+    // Redraw background
+    this.lbBg.clear();
+    const count = Math.max(top5.length, 1);
+    const bgH = 22 + count * 16;
+    this.lbBg.fillStyle(0x000000, 0.5);
+    this.lbBg.fillRoundedRect(startX - 145, startY - 4, 150, bgH, 4);
+
+    // Update entries
+    for (let i = 0; i < 5; i++) {
+      if (i < top5.length) {
+        const e = top5[i];
+        this.lbEntries[i].setText(`${i + 1}. ${e.name}: ${e.score}`);
+        // Highlight current player
+        const isMe = currentNick && e.name === currentNick;
+        this.lbEntries[i].setColor(isMe ? '#44ff44' : '#ddaa44');
+        this.lbEntries[i].setVisible(true);
+      } else {
+        this.lbEntries[i].setVisible(false);
+      }
+    }
+
+    this.lbTitle.setVisible(top5.length > 0);
   }
 
   private createVolumeControl() {
@@ -260,6 +288,9 @@ export class UIScene extends Phaser.Scene {
 
     // ESC confirmation position
     this.escText.setPosition(width / 2, height / 2 - 40);
+
+    // Update leaderboard live
+    this.updateLeaderboard();
 
     // Draw minimap
     this.drawMinimap(width, height);
