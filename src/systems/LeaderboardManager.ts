@@ -84,6 +84,39 @@ export class LeaderboardManager {
     entries = entries.slice(0, MAX_ENTRIES);
     localStorage.setItem(LB_KEY, JSON.stringify(entries));
   }
+
+  // Admin: add entry directly
+  adminAdd(name: string, score: number, wave: number) {
+    const entry: LeaderboardEntry = {
+      name: name.trim(),
+      score,
+      wave,
+      date: new Date().toISOString().split('T')[0],
+    };
+
+    let entries: LeaderboardEntry[] = [];
+    const data = localStorage.getItem(LB_KEY);
+    if (data) {
+      try { entries = JSON.parse(data); } catch { /* reset */ }
+    }
+
+    const existing = entries.findIndex(e => e.name === entry.name);
+    if (existing >= 0) {
+      if (entries[existing].score < score) entries[existing] = entry;
+    } else {
+      entries.push(entry);
+    }
+
+    entries.sort((a, b) => b.score - a.score);
+    entries = entries.slice(0, MAX_ENTRIES);
+    localStorage.setItem(LB_KEY, JSON.stringify(entries));
+  }
+
+  // Admin: clear all leaderboard data
+  clearLeaderboard() {
+    localStorage.removeItem(LB_KEY);
+    localStorage.removeItem(BEST_KEY);
+  }
 }
 
 // Singleton

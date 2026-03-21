@@ -4,6 +4,7 @@ import { Zombie } from '../entities/Zombie';
 import { Pickup } from '../entities/Pickup';
 import { audioManager } from '../systems/AudioManager';
 import { leaderboard } from '../systems/LeaderboardManager';
+import { AdminConsole } from '../systems/AdminConsole';
 
 // UI overlay scene — HUD with health, ammo, score, wave info, minimap
 export class UIScene extends Phaser.Scene {
@@ -20,6 +21,7 @@ export class UIScene extends Phaser.Scene {
   private volumeOpen = false;
   private escPending = false;
   private escText!: Phaser.GameObjects.Text;
+  private adminConsole!: AdminConsole;
 
   private minimapSize = 160;
   private minimapMargin = 15;
@@ -95,6 +97,9 @@ export class UIScene extends Phaser.Scene {
         });
       }
     });
+
+    // Admin console (~ key)
+    this.adminConsole = new AdminConsole(this);
 
     // Volume control in-game
     this.createVolumeControl();
@@ -323,5 +328,9 @@ export class UIScene extends Phaser.Scene {
     // Border
     mm.lineStyle(1, 0x44ff44, 0.5);
     mm.strokeRect(mmX, mmY, size, size);
+  }
+
+  shutdown() {
+    this.adminConsole.destroy();
   }
 }

@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import { audioManager } from '../systems/AudioManager';
 import { leaderboard } from '../systems/LeaderboardManager';
+import { AdminConsole } from '../systems/AdminConsole';
 
 // Atmospheric main menu scene
 export class MenuScene extends Phaser.Scene {
   private nicknameInput!: HTMLInputElement;
+  private adminConsole!: AdminConsole;
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -194,11 +196,15 @@ export class MenuScene extends Phaser.Scene {
       color: '#333333',
     }).setOrigin(1, 1).setDepth(10);
 
-    // Cleanup HTML input when scene shuts down
+    // Admin console (~ key)
+    this.adminConsole = new AdminConsole(this);
+
+    // Cleanup HTML elements when scene shuts down
     this.events.on('shutdown', () => {
       if (this.nicknameInput) {
         this.nicknameInput.remove();
       }
+      this.adminConsole.destroy();
     });
   }
 
