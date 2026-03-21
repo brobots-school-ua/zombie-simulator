@@ -1,4 +1,5 @@
 import { leaderboard } from './LeaderboardManager';
+import { shop } from './ShopConfig';
 
 const ADMIN_PASSWORD = 'nikitaadmin';
 
@@ -147,6 +148,28 @@ export class AdminConsole {
         ">Clear leaderboard</button>
       </div>
 
+      <hr style="border-color: #333; margin: 14px 0;">
+
+      <div style="margin-bottom: 12px; display: flex; gap: 10px; align-items: end;">
+        <div style="flex: 1;">
+          <label style="display: block; margin-bottom: 4px; color: #888;">Give coins:</label>
+          <input id="admin-coins" type="number" value="100" style="
+            width: 100%; box-sizing: border-box; padding: 6px 8px;
+            background: #111; border: 1px solid #ffcc22; color: #ffcc22;
+            font-family: monospace; font-size: 14px; outline: none;
+          ">
+        </div>
+        <button id="admin-give-coins" style="
+          padding: 8px 12px; background: #3a3a1a; border: 1px solid #ffcc22;
+          color: #ffcc22; font-family: monospace; font-size: 13px; cursor: pointer;
+        ">Give</button>
+      </div>
+
+      <button id="admin-max-ammo" style="
+        width: 100%; padding: 8px; background: #1a2a3a; border: 1px solid #4488ff;
+        color: #4488ff; font-family: monospace; font-size: 13px; cursor: pointer;
+      ">Max ammo (all weapons)</button>
+
       <button id="admin-close" style="
         width: 100%; margin-top: 12px; padding: 8px; background: #222;
         border: 1px solid #666; color: #aaa; font-family: monospace;
@@ -180,6 +203,31 @@ export class AdminConsole {
       leaderboard.clearLeaderboard();
       msg.textContent = 'Leaderboard cleared!';
       msg.style.color = '#ff4444';
+    });
+
+    this.panel.querySelector('#admin-give-coins')!.addEventListener('click', () => {
+      const coinsInput = this.panel!.querySelector('#admin-coins') as HTMLInputElement;
+      const amount = parseInt(coinsInput.value, 10);
+      if (isNaN(amount) || amount <= 0) { msg.textContent = 'Invalid amount!'; msg.style.color = '#ff4444'; return; }
+      shop.addCoins(amount);
+      msg.textContent = `+${amount} coins! Total: ${shop.getCoins()}`;
+      msg.style.color = '#ffcc22';
+    });
+
+    this.panel.querySelector('#admin-max-ammo')!.addEventListener('click', () => {
+      // Find the active GameScene player
+      const gameScene = this.scene.scene.get('GameScene') as any;
+      if (gameScene?.player) {
+        for (const w of gameScene.player.weapons) {
+          w.magazineAmmo = w.def.magazineSize;
+          w.reserveAmmo = w.def.maxReserve;
+        }
+        msg.textContent = 'All weapons maxed out!';
+        msg.style.color = '#4488ff';
+      } else {
+        msg.textContent = 'Start a game first!';
+        msg.style.color = '#ff4444';
+      }
     });
 
     this.panel.querySelector('#admin-close')!.addEventListener('click', () => {

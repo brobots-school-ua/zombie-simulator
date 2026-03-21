@@ -136,7 +136,7 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
-    // Shooting
+    // Shooting (single shot on click)
     this.input.on('pointerdown', () => {
       this.fireWeapon();
     });
@@ -174,6 +174,11 @@ export class GameScene extends Phaser.Scene {
     // Shoot cooldown
     if (this.shootCooldown > 0) {
       this.shootCooldown -= delta;
+    }
+
+    // Auto-fire: hold mouse for rifle/minigun
+    if (this.input.activePointer.isDown && this.player.activeWeapon.def.auto) {
+      this.fireWeapon();
     }
 
     // Check if wave is cleared

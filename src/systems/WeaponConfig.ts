@@ -18,6 +18,7 @@ export interface WeaponDef {
   pierce: number;         // how many zombies bullet passes through (1 = normal)
   aoeRadius: number;      // explosion radius (0 = none)
   ammoPickupFixed: number; // fixed ammo from pickup (0 = use 1/5 of mag)
+  auto: boolean;          // full-auto (hold mouse to keep firing)
   key: string;            // keyboard key (1-5)
 }
 
@@ -41,6 +42,7 @@ export const WEAPONS: WeaponDef[] = [
     pierce: 1,
     aoeRadius: 0,
     ammoPickupFixed: 0,
+    auto: true,
     key: 'ONE',
   },
   {
@@ -62,6 +64,7 @@ export const WEAPONS: WeaponDef[] = [
     pierce: 1,
     aoeRadius: 0,
     ammoPickupFixed: 3,
+    auto: false,
     key: 'TWO',
   },
   {
@@ -83,6 +86,7 @@ export const WEAPONS: WeaponDef[] = [
     pierce: 3,
     aoeRadius: 0,
     ammoPickupFixed: 3,
+    auto: false,
     key: 'THREE',
   },
   {
@@ -104,6 +108,7 @@ export const WEAPONS: WeaponDef[] = [
     pierce: 1,
     aoeRadius: 0,
     ammoPickupFixed: 0,
+    auto: true,
     key: 'FOUR',
   },
   {
@@ -125,6 +130,7 @@ export const WEAPONS: WeaponDef[] = [
     pierce: 1,
     aoeRadius: 80,
     ammoPickupFixed: 3,
+    auto: false,
     key: 'FIVE',
   },
 ];
