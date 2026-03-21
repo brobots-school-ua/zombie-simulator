@@ -15,7 +15,7 @@ export const ACCESSORIES: Accessory[] = [
   { id: 'sunglasses', name: 'Sunglasses', texture: 'acc-sunglasses', price: 12, offsetX: 0, offsetY: -2, depth: 2 },
   { id: 'scar', name: 'Battle Scar', texture: 'acc-scar', price: 5, offsetX: 2, offsetY: 0, depth: 1 },
   { id: 'crown', name: 'Crown', texture: 'acc-crown', price: 50, offsetX: 0, offsetY: -16, depth: 3 },
-  { id: 'shield', name: 'Shield', texture: 'acc-shield', price: 30, offsetX: 0, offsetY: 2, depth: -1 },
+  { id: 'shield', name: 'Shield', texture: 'acc-shield', price: 30, offsetX: 0, offsetY: 10, depth: -1 },
 ];
 
 const COINS_KEY = 'zombie-sim-coins';

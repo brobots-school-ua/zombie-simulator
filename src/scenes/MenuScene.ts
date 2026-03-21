@@ -9,6 +9,7 @@ export class MenuScene extends Phaser.Scene {
   private nicknameInput!: HTMLInputElement;
   private adminConsole!: AdminConsole;
   private shopPanel: HTMLDivElement | null = null;
+  private coinsText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -165,8 +166,8 @@ export class MenuScene extends Phaser.Scene {
 
     // ============ RIGHT COLUMN — Stats ============
 
-    // Coins
-    this.add.text(RIGHT_X, 230, `Coins: ${shop.getCoins()}`, {
+    // Coins (updated when shop closes)
+    this.coinsText = this.add.text(RIGHT_X, 230, `Coins: ${shop.getCoins()}`, {
       fontSize: '20px', fontFamily: 'monospace', color: '#ffcc22',
     }).setOrigin(0.5).setDepth(10);
 
@@ -365,6 +366,10 @@ export class MenuScene extends Phaser.Scene {
     if (this.shopPanel) {
       this.shopPanel.remove();
       this.shopPanel = null;
+    }
+    // Update coins display in menu
+    if (this.coinsText) {
+      this.coinsText.setText(`Coins: ${shop.getCoins()}`);
     }
   }
 
