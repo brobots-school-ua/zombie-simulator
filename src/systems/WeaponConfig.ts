@@ -61,7 +61,7 @@ export const WEAPONS: WeaponDef[] = [
     pelletSpread: 8,
     pierce: 1,
     aoeRadius: 0,
-    ammoPickupFixed: 0,
+    ammoPickupFixed: 3,
     key: 'TWO',
   },
   {
@@ -82,7 +82,7 @@ export const WEAPONS: WeaponDef[] = [
     pelletSpread: 0,
     pierce: 3,
     aoeRadius: 0,
-    ammoPickupFixed: 0,
+    ammoPickupFixed: 3,
     key: 'THREE',
   },
   {
