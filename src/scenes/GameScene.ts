@@ -20,6 +20,7 @@ export class GameScene extends Phaser.Scene {
   private waveDelay: boolean = false;
   private shootCooldown: number = 0;
   private mapSize = 2000;
+  private gameOver = false;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -30,6 +31,7 @@ export class GameScene extends Phaser.Scene {
     this.wave = 1;
     this.shootCooldown = 0;
     this.waveDelay = false;
+    this.gameOver = false;
 
     // World bounds
     this.physics.world.setBounds(0, 0, this.mapSize, this.mapSize);
@@ -67,10 +69,10 @@ export class GameScene extends Phaser.Scene {
 
     // Zombie hits player
     this.physics.add.overlap(this.player, this.zombies, (_player, zombie) => {
+      if (this.gameOver) return;
       const z = zombie as Zombie;
-      if (z.canAttack()) {
+      if (z.active && z.canAttack()) {
         this.player.takeDamage(z.damage);
-        this.events.emit('player-hit');
       }
     });
 
@@ -129,15 +131,20 @@ export class GameScene extends Phaser.Scene {
       this.fireWeapon();
     });
 
-    // Player death
-    this.events.on('player-died', () => {
+    // Player death — only trigger once!
+    this.events.once('player-died', () => {
+      if (this.gameOver) return;
+      this.gameOver = true;
+      leaderboard.saveResult(this.player.score, this.wave);
       audioManager.stopGameMusic(1.5);
-      this.scene.stop('UIScene');
-      this.scene.start('GameOverScene', {
+      // Save data before stopping scenes
+      const finalData = {
         score: this.player.score,
         kills: this.player.kills,
         wave: this.wave,
-      });
+      };
+      this.scene.stop('UIScene');
+      this.scene.start('GameOverScene', finalData);
     });
 
     // Start game music
@@ -152,6 +159,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number) {
+    if (this.gameOver || !this.player?.active) return;
     this.player.update();
 
     // Update zombies
