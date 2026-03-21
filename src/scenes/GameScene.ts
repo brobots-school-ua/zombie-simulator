@@ -102,10 +102,10 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    // Player picks up ammo (goes to reserve, not magazine)
+    // Player picks up ammo — gives 1/5 mag to ALL weapons
     this.physics.add.overlap(this.player, this.pickups, (_player, pickup) => {
       const p = pickup as Pickup;
-      this.player.addAmmo(p.value);
+      this.player.addAmmoAll();
       p.destroy();
     });
 

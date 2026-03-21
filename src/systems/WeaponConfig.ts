@@ -17,6 +17,7 @@ export interface WeaponDef {
   pelletSpread: number;   // degrees between pellets (shotgun fan)
   pierce: number;         // how many zombies bullet passes through (1 = normal)
   aoeRadius: number;      // explosion radius (0 = none)
+  ammoPickupFixed: number; // fixed ammo from pickup (0 = use 1/5 of mag)
   key: string;            // keyboard key (1-5)
 }
 
@@ -39,6 +40,7 @@ export const WEAPONS: WeaponDef[] = [
     pelletSpread: 0,
     pierce: 1,
     aoeRadius: 0,
+    ammoPickupFixed: 0,
     key: 'ONE',
   },
   {
@@ -59,27 +61,8 @@ export const WEAPONS: WeaponDef[] = [
     pelletSpread: 8,
     pierce: 1,
     aoeRadius: 0,
+    ammoPickupFixed: 0,
     key: 'TWO',
-  },
-  {
-    id: 'smg',
-    name: 'SMG',
-    texture: 'weapon-smg',
-    bulletTexture: 'bullet-smg',
-    damage: 8,
-    fireRate: 50,
-    magazineSize: 45,
-    startReserve: 90,
-    maxReserve: 90,
-    bulletSpeed: 450,
-    maxRange: 350,
-    reloadTime: 1200,
-    spread: 5,
-    pellets: 1,
-    pelletSpread: 0,
-    pierce: 1,
-    aoeRadius: 0,
-    key: 'THREE',
   },
   {
     id: 'sniper',
@@ -99,6 +82,28 @@ export const WEAPONS: WeaponDef[] = [
     pelletSpread: 0,
     pierce: 3,
     aoeRadius: 0,
+    ammoPickupFixed: 0,
+    key: 'THREE',
+  },
+  {
+    id: 'minigun',
+    name: 'Minigun',
+    texture: 'weapon-minigun',
+    bulletTexture: 'bullet-smg',
+    damage: 6,
+    fireRate: 50,
+    magazineSize: 200,
+    startReserve: 400,
+    maxReserve: 400,
+    bulletSpeed: 500,
+    maxRange: 400,
+    reloadTime: 4000,
+    spread: 6,
+    pellets: 1,
+    pelletSpread: 0,
+    pierce: 1,
+    aoeRadius: 0,
+    ammoPickupFixed: 0,
     key: 'FOUR',
   },
   {
@@ -119,6 +124,7 @@ export const WEAPONS: WeaponDef[] = [
     pelletSpread: 0,
     pierce: 1,
     aoeRadius: 80,
+    ammoPickupFixed: 3,
     key: 'FIVE',
   },
 ];

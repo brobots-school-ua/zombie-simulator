@@ -112,40 +112,7 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('weapon-shotgun', 30, 14);
     g.clear();
 
-    // === WEAPON 3: SMG (compact with curved mag) ===
-    // Grip
-    g.fillStyle(0x3a3a3e);
-    g.fillRect(0, 4, 5, 6);
-    g.fillStyle(0x4a4a50);
-    g.fillRect(1, 5, 3, 4);
-    // Body/receiver
-    g.fillStyle(0x3a3a3e);
-    g.fillRect(4, 2, 12, 9);
-    g.fillStyle(0x4a4a52);
-    g.fillRect(5, 3, 10, 7);
-    // Charging handle
-    g.fillStyle(0x555560);
-    g.fillRect(8, 1, 4, 2);
-    // Curved magazine
-    g.fillStyle(0x333338);
-    g.fillRect(7, 10, 5, 5);
-    g.fillStyle(0x2a2a2e);
-    g.fillRect(6, 12, 4, 4);
-    // Short barrel with suppressor rings
-    g.fillStyle(0x3a3a40);
-    g.fillRect(15, 4, 9, 5);
-    g.fillStyle(0x4a4a52);
-    g.fillRect(15, 4, 9, 1);
-    g.lineStyle(1, 0x2a2a30);
-    g.lineBetween(18, 4, 18, 9);
-    g.lineBetween(21, 4, 21, 9);
-    // Muzzle
-    g.fillStyle(0x1a1a1e);
-    g.fillRect(23, 4, 2, 5);
-    g.generateTexture('weapon-smg', 26, 16);
-    g.clear();
-
-    // === WEAPON 4: SNIPER (long, scoped) ===
+    // === WEAPON 3: SNIPER (long, scoped) — now slot 3 ===
     // Adjustable stock
     g.fillStyle(0x3a3a3e);
     g.fillRect(0, 5, 6, 6);
@@ -195,6 +162,59 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(20, 10, 1, 3);
     g.fillRect(24, 10, 1, 3);
     g.generateTexture('weapon-sniper', 40, 14);
+    g.clear();
+
+    // === WEAPON 4: MINIGUN (multi-barrel rotary) ===
+    // Rear housing / motor
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(0, 3, 8, 10);
+    g.fillStyle(0x4a4a50);
+    g.fillRect(1, 4, 6, 8);
+    // Handle/grip
+    g.fillStyle(0x5a3820);
+    g.fillRect(2, 12, 5, 4);
+    g.fillStyle(0x6b4528);
+    g.fillRect(3, 12, 3, 3);
+    // Main body
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(7, 2, 10, 12);
+    g.fillStyle(0x4a4a52);
+    g.fillRect(8, 3, 8, 10);
+    // Ammo belt feed
+    g.fillStyle(0x8B7355);
+    g.fillRect(10, 13, 6, 3);
+    g.fillStyle(0xffcc00);
+    g.fillRect(11, 14, 1, 2);
+    g.fillRect(13, 14, 1, 2);
+    g.fillRect(15, 14, 1, 2);
+    // Multi-barrel cluster (6 barrels)
+    g.fillStyle(0x333338);
+    g.fillRect(16, 1, 16, 14);
+    g.fillStyle(0x3a3a40);
+    g.fillRect(16, 2, 16, 3);
+    g.fillRect(16, 6, 16, 3);
+    g.fillRect(16, 10, 16, 3);
+    g.fillStyle(0x4a4a52);
+    g.fillRect(16, 2, 16, 1);
+    g.fillRect(16, 6, 16, 1);
+    g.fillRect(16, 10, 16, 1);
+    // Barrel separators
+    g.lineStyle(1, 0x2a2a2e);
+    g.lineBetween(16, 5, 32, 5);
+    g.lineBetween(16, 9, 32, 9);
+    // Barrel clamp rings
+    g.fillStyle(0x555560);
+    g.fillRect(20, 1, 2, 14);
+    g.fillRect(26, 1, 2, 14);
+    // Muzzle ends
+    g.fillStyle(0x1a1a1e);
+    g.fillRect(31, 2, 2, 3);
+    g.fillRect(31, 6, 2, 3);
+    g.fillRect(31, 10, 2, 3);
+    // Flash hider
+    g.fillStyle(0x2a2a30);
+    g.fillRect(32, 1, 2, 14);
+    g.generateTexture('weapon-minigun', 34, 16);
     g.clear();
 
     // === WEAPON 5: LAUNCHER (RPG-style) ===

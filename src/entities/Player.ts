@@ -193,9 +193,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
-  addAmmo(amount: number) {
-    const w = this.activeWeapon;
-    w.reserveAmmo = Math.min(w.reserveAmmo + amount, w.def.maxReserve);
+  // Ammo pickup gives 1/5 of magazine to ALL weapons, launcher always gets fixed amount
+  addAmmoAll() {
+    for (const w of this.weapons) {
+      const amount = w.def.ammoPickupFixed > 0
+        ? w.def.ammoPickupFixed
+        : Math.max(1, Math.floor(w.def.magazineSize / 5));
+      w.reserveAmmo = Math.min(w.reserveAmmo + amount, w.def.maxReserve);
+    }
   }
 
   // Returns target point if can shoot, null if can't
