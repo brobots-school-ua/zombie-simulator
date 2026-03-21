@@ -239,8 +239,6 @@ export class MenuScene extends Phaser.Scene {
     document.body.appendChild(this.nicknameInput);
   }
 
-  private previewSprites: Phaser.GameObjects.Sprite[] = [];
-
   private openShop() {
     if (this.shopPanel) return;
 
@@ -250,45 +248,54 @@ export class MenuScene extends Phaser.Scene {
       background: rgba(0,0,0,0.95); border: 2px solid #ffcc22; border-radius: 8px;
       padding: 20px; z-index: 3000; font-family: monospace; color: #ffcc22;
       width: 500px; max-height: 85vh; overflow-y: auto;
-      display: flex; flex-direction: column;
     `;
 
-    // Preview area using Phaser sprites (drawn on the game canvas behind the panel)
-    const { width, height } = this.scale;
-    const previewX = width / 2;
-    const previewY = height / 2;
+    const drawPreview = (accId: string | null) => {
+      const canvas = this.shopPanel?.querySelector('#preview-canvas') as HTMLCanvasElement;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d')!;
+      ctx.clearRect(0, 0, 80, 80);
 
-    // Player preview sprite
-    const previewPlayer = this.add.sprite(previewX - 180, previewY - 40, 'player').setDepth(50).setScale(3);
-    this.previewSprites.push(previewPlayer);
+      // Draw player (blue circle)
+      ctx.fillStyle = '#2266cc';
+      ctx.beginPath(); ctx.arc(40, 44, 22, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#4488ff';
+      ctx.beginPath(); ctx.arc(40, 44, 18, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#66aaff';
+      ctx.beginPath(); ctx.arc(36, 40, 8, 0, Math.PI * 2); ctx.fill();
 
-    let previewAcc: Phaser.GameObjects.Sprite | null = null;
-
-    const showPreview = (accId: string) => {
-      if (previewAcc) { previewAcc.destroy(); previewAcc = null; }
-      const accDef = ACCESSORIES.find(a => a.id === accId);
-      if (accDef) {
-        previewAcc = this.add.sprite(
-          previewPlayer.x + accDef.offsetX * 3,
-          previewPlayer.y + accDef.offsetY * 3,
-          accDef.texture
-        ).setDepth(50 + accDef.depth).setScale(3);
-        this.previewSprites.push(previewAcc);
+      // Draw accessory if selected
+      if (accId) {
+        const accDef = ACCESSORIES.find(a => a.id === accId);
+        if (accDef) {
+          // Get texture from Phaser and draw it
+          const tex = this.textures.get(accDef.texture);
+          if (tex) {
+            const src = tex.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+            const ax = 40 + accDef.offsetX * 1.5 - src.width;
+            const ay = 44 + accDef.offsetY * 1.5 - src.height;
+            ctx.drawImage(src, ax, ay, src.width * 2, src.height * 2);
+          }
+        }
       }
     };
-
-    // Show currently equipped
-    const currentEquip = shop.getEquipped();
-    if (currentEquip) showPreview(currentEquip);
 
     const renderShop = () => {
       if (!this.shopPanel) return;
       const equipped = shop.getEquipped();
       this.shopPanel.innerHTML = `
         <h3 style="margin:0 0 4px 0; color:#ffcc22; font-size:20px;">SHOP</h3>
-        <p style="color:#ffdd44; margin:0 0 12px 0;">Coins: ${shop.getCoins()}</p>
-        <p style="color:#556655; margin:0 0 12px 0; font-size:11px;">Hover to preview</p>
-        <div id="shop-items" style="flex:1;">
+        <div style="display:flex; gap:16px; margin-bottom:12px;">
+          <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center;">
+            <canvas id="preview-canvas" width="80" height="80" style="border:1px solid #333; border-radius:6px; background:#111;"></canvas>
+            <span style="color:#556655; font-size:10px; margin-top:4px;">Hover to preview</span>
+          </div>
+          <div>
+            <p style="color:#ffdd44; margin:0 0 6px 0;">Coins: ${shop.getCoins()}</p>
+            <p style="color:#888; margin:0; font-size:11px;">${equipped ? 'Wearing: ' + ACCESSORIES.find(a => a.id === equipped)?.name : 'No accessory equipped'}</p>
+          </div>
+        </div>
+        <div id="shop-items">
         ${ACCESSORIES.map(acc => {
           const owned = shop.owns(acc.id);
           const isEquipped = equipped === acc.id;
@@ -324,19 +331,25 @@ export class MenuScene extends Phaser.Scene {
             if (!shop.buy(id)) { alert('Not enough coins!'); }
             renderShop();
           }
-          if (action === 'equip') { shop.equip(id); showPreview(id); renderShop(); }
-          if (action === 'unequip') { shop.unequip(); if (previewAcc) { previewAcc.destroy(); previewAcc = null; } renderShop(); }
-          if (action === 'refund') { shop.refund(id); if (previewAcc) { previewAcc.destroy(); previewAcc = null; } renderShop(); }
+          if (action === 'equip') { shop.equip(id); renderShop(); }
+          if (action === 'unequip') { shop.unequip(); renderShop(); }
+          if (action === 'refund') { shop.refund(id); renderShop(); }
         });
       });
 
-      // Hover preview
+      // Hover preview on canvas
       this.shopPanel.querySelectorAll('.shop-item').forEach(item => {
         item.addEventListener('mouseenter', () => {
           const id = (item as HTMLElement).dataset.preview || '';
-          showPreview(id);
+          drawPreview(id);
+        });
+        item.addEventListener('mouseleave', () => {
+          drawPreview(shop.getEquipped());
         });
       });
+
+      // Draw initial preview
+      drawPreview(shop.getEquipped());
 
       this.shopPanel.querySelector('#shop-close')?.addEventListener('click', () => {
         this.closeShop();
@@ -353,9 +366,6 @@ export class MenuScene extends Phaser.Scene {
       this.shopPanel.remove();
       this.shopPanel = null;
     }
-    // Cleanup preview sprites
-    this.previewSprites.forEach(s => { if (s) s.destroy(); });
-    this.previewSprites = [];
   }
 
   private createMenuLeaderboard(centerX: number, startY: number) {

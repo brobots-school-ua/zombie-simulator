@@ -25,17 +25,22 @@ const EQUIPPED_KEY = 'zombie-sim-equipped';
 export class ShopManager {
   getCoins(): number {
     const v = localStorage.getItem(COINS_KEY);
-    return v ? parseInt(v, 10) : 0;
+    const n = v ? parseInt(v, 10) : 0;
+    return isNaN(n) ? 0 : n;
+  }
+
+  setCoins(value: number) {
+    localStorage.setItem(COINS_KEY, Math.max(0, Math.floor(value)).toString());
   }
 
   addCoins(amount: number) {
-    localStorage.setItem(COINS_KEY, (this.getCoins() + amount).toString());
+    this.setCoins(this.getCoins() + amount);
   }
 
   spendCoins(amount: number): boolean {
     const coins = this.getCoins();
     if (coins < amount) return false;
-    localStorage.setItem(COINS_KEY, (coins - amount).toString());
+    this.setCoins(coins - amount);
     return true;
   }
 
