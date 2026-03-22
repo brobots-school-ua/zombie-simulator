@@ -152,22 +152,22 @@ export class UIScene extends Phaser.Scene {
   private createUtilityBar() {
     const { width, height } = this.scale;
     const slotH = 36;
-    const utilY = height - slotH - 8 - 38; // 38px above weapon bar
+    const utilY = height - slotH - 8 - 56; // above weapon bar
 
     const utilStyle: Phaser.Types.GameObjects.Text.TextStyle = {
-      fontSize: '13px',
+      fontSize: '22px',
       fontFamily: 'monospace',
       color: '#ffffff',
     };
 
     // Bandage icon + text (left of center)
     const centerX = width / 2;
-    this.bandageIcon = this.add.sprite(centerX - 40, utilY + 4, 'bandage-pickup').setDepth(101).setScale(1.2);
-    this.bandageText = this.add.text(centerX - 24, utilY - 2, '', utilStyle).setDepth(101);
+    this.bandageIcon = this.add.sprite(centerX - 70, utilY, 'bandage-pickup').setDepth(101).setScale(2.4);
+    this.bandageText = this.add.text(centerX - 42, utilY - 12, '', utilStyle).setDepth(101);
 
     // Medkit icon + text (right of center)
-    this.medkitIcon = this.add.sprite(centerX + 20, utilY + 4, 'medkit-pickup').setDepth(101).setScale(1.2);
-    this.medkitText = this.add.text(centerX + 36, utilY - 2, '', utilStyle).setDepth(101);
+    this.medkitIcon = this.add.sprite(centerX + 30, utilY, 'medkit-pickup').setDepth(101).setScale(2.4);
+    this.medkitText = this.add.text(centerX + 58, utilY - 12, '', utilStyle).setDepth(101);
   }
 
   private updateUtilityBar() {
@@ -175,22 +175,22 @@ export class UIScene extends Phaser.Scene {
     const p = this.gameScene.player;
     const { width, height } = this.scale;
     const slotH = 36;
-    const utilY = height - slotH - 8 - 38;
+    const utilY = height - slotH - 8 - 56;
     const centerX = width / 2;
 
     // Background
     this.utilityBarGfx.clear();
     this.utilityBarGfx.fillStyle(0x000000, 0.5);
-    this.utilityBarGfx.fillRoundedRect(centerX - 60, utilY - 10, 120, 28, 4);
+    this.utilityBarGfx.fillRoundedRect(centerX - 100, utilY - 22, 200, 44, 6);
 
     // Update positions + text
-    this.bandageIcon.setPosition(centerX - 38, utilY + 4);
-    this.bandageText.setPosition(centerX - 22, utilY - 4);
+    this.bandageIcon.setPosition(centerX - 70, utilY);
+    this.bandageText.setPosition(centerX - 42, utilY - 12);
     this.bandageText.setText(`${p.bandages} [Q]`);
     this.bandageText.setColor(p.bandages > 0 ? '#44ff44' : '#666666');
 
-    this.medkitIcon.setPosition(centerX + 14, utilY + 4);
-    this.medkitText.setPosition(centerX + 30, utilY - 4);
+    this.medkitIcon.setPosition(centerX + 30, utilY);
+    this.medkitText.setPosition(centerX + 58, utilY - 12);
     this.medkitText.setText(`${p.medkits} [E]`);
     this.medkitText.setColor(p.medkits > 0 ? '#ff4444' : '#666666');
   }
