@@ -191,13 +191,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   reload() {
     this.isReloading = true;
     const w = this.activeWeapon;
+    // Immediately take bullets from reserve
+    const needed = w.def.magazineSize - w.magazineAmmo;
+    const toLoad = Math.min(needed, w.reserveAmmo);
+    w.reserveAmmo -= toLoad;
+    // After reload time — bullets appear in magazine
     this.scene.time.delayedCall(w.def.reloadTime, () => {
-      // Make sure we're still on the same weapon
       if (!this.isReloading) return;
-      const needed = w.def.magazineSize - w.magazineAmmo;
-      const toLoad = Math.min(needed, w.reserveAmmo);
       w.magazineAmmo += toLoad;
-      w.reserveAmmo -= toLoad;
       this.isReloading = false;
     });
   }

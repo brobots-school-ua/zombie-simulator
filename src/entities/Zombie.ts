@@ -81,9 +81,10 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   private wanderTimer: number = 0;
   private aggroed: boolean = false;
   private stuckTimer: number = 0;
-  private slideDir: number = 1;
   private lastX: number = 0;
   private lastY: number = 0;
+  private avoidAngle: number = 0;
+  private avoidTimer: number = 0;
   private hpBar: Phaser.GameObjects.Graphics;
   private arms: Phaser.GameObjects.Sprite;
   private auraDamageTimer: number = 0;
@@ -157,19 +158,45 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     if (this.aggroed) {
       moveAngle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
 
-      // Wall avoidance
+      // Wall avoidance — smart pathfinding
       const moved = Math.abs(this.x - this.lastX) + Math.abs(this.y - this.lastY);
-      if (moved < 0.5 && dist > 40) {
+      this.lastX = this.x;
+      this.lastY = this.y;
+
+      if (this.avoidTimer > 0) {
+        this.avoidTimer -= delta;
+        moveAngle = this.avoidAngle;
+      } else if (moved < 0.5 && dist > 40) {
         this.stuckTimer += delta;
-        if (this.stuckTimer > 200) {
-          moveAngle += (Math.PI / 2) * this.slideDir;
-          if (this.stuckTimer > 800) { this.slideDir *= -1; this.stuckTimer = 200; }
+        if (this.stuckTimer > 150) {
+          const toPlayer = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
+          let bestAngle = toPlayer;
+          let bestScore = -Infinity;
+
+          for (let i = 0; i < 8; i++) {
+            const testAngle = (i * Math.PI) / 4;
+            const tx = this.x + Math.cos(testAngle) * 50;
+            const ty = this.y + Math.sin(testAngle) * 50;
+
+            if (this.isDirectionBlocked(tx, ty)) continue;
+
+            let angleDiff = Math.abs(testAngle - toPlayer);
+            if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+            const score = Math.PI - angleDiff;
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestAngle = testAngle;
+            }
+          }
+
+          this.avoidAngle = bestAngle;
+          this.avoidTimer = 500;
+          moveAngle = bestAngle;
         }
       } else {
         this.stuckTimer = 0;
       }
-      this.lastX = this.x;
-      this.lastY = this.y;
 
       this.setVelocity(Math.cos(moveAngle) * this.speed, Math.sin(moveAngle) * this.speed);
     } else {
@@ -231,6 +258,19 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     if (this.attackCooldown <= 0) {
       this.attackCooldown = 1000;
       return true;
+    }
+    return false;
+  }
+
+  private isDirectionBlocked(tx: number, ty: number): boolean {
+    if (!this.wallsGroup) return false;
+    const testRect = new Phaser.Geom.Rectangle(tx - 14, ty - 14, 28, 28);
+    for (const wall of this.wallsGroup.getChildren() as Phaser.Physics.Arcade.Sprite[]) {
+      const wallRect = new Phaser.Geom.Rectangle(
+        wall.x - wall.displayWidth / 2, wall.y - wall.displayHeight / 2,
+        wall.displayWidth, wall.displayHeight
+      );
+      if (Phaser.Geom.Intersects.RectangleToRectangle(testRect, wallRect)) return true;
     }
     return false;
   }
