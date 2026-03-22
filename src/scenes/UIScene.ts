@@ -162,12 +162,12 @@ export class UIScene extends Phaser.Scene {
 
     // Bandage icon + text (left of center)
     const centerX = width / 2;
-    this.bandageIcon = this.add.sprite(centerX - 70, utilY, 'bandage-pickup').setDepth(101).setScale(2.4);
-    this.bandageText = this.add.text(centerX - 42, utilY - 12, '', utilStyle).setDepth(101);
+    this.bandageIcon = this.add.sprite(centerX - 80, utilY, 'bandage-pickup').setDepth(101).setScale(2.4);
+    this.bandageText = this.add.text(centerX - 52, utilY - 12, '', utilStyle).setDepth(101);
 
     // Medkit icon + text (right of center)
-    this.medkitIcon = this.add.sprite(centerX + 30, utilY, 'medkit-pickup').setDepth(101).setScale(2.4);
-    this.medkitText = this.add.text(centerX + 58, utilY - 12, '', utilStyle).setDepth(101);
+    this.medkitIcon = this.add.sprite(centerX + 50, utilY, 'medkit-pickup').setDepth(101).setScale(2.4);
+    this.medkitText = this.add.text(centerX + 78, utilY - 12, '', utilStyle).setDepth(101);
   }
 
   private updateUtilityBar() {
@@ -181,16 +181,16 @@ export class UIScene extends Phaser.Scene {
     // Background
     this.utilityBarGfx.clear();
     this.utilityBarGfx.fillStyle(0x000000, 0.5);
-    this.utilityBarGfx.fillRoundedRect(centerX - 100, utilY - 22, 200, 44, 6);
+    this.utilityBarGfx.fillRoundedRect(centerX - 115, utilY - 22, 230, 44, 6);
 
     // Update positions + text
-    this.bandageIcon.setPosition(centerX - 70, utilY);
-    this.bandageText.setPosition(centerX - 42, utilY - 12);
+    this.bandageIcon.setPosition(centerX - 80, utilY);
+    this.bandageText.setPosition(centerX - 52, utilY - 12);
     this.bandageText.setText(`${p.bandages} [Q]`);
     this.bandageText.setColor(p.bandages > 0 ? '#44ff44' : '#666666');
 
-    this.medkitIcon.setPosition(centerX + 30, utilY);
-    this.medkitText.setPosition(centerX + 58, utilY - 12);
+    this.medkitIcon.setPosition(centerX + 50, utilY);
+    this.medkitText.setPosition(centerX + 78, utilY - 12);
     this.medkitText.setText(`${p.medkits} [E]`);
     this.medkitText.setColor(p.medkits > 0 ? '#ff4444' : '#666666');
   }

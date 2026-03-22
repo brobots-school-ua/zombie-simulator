@@ -739,14 +739,18 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('ammo-pack', 24, 24);
     g.clear();
 
-    // Bandage pickup (white roll with green cross)
-    g.fillStyle(0xeeeeee);
-    g.fillRoundedRect(4, 6, 16, 12, 3);
+    // Bandage pickup (rolled bandage with green cross)
+    g.fillStyle(0xfafafa);
+    g.fillRoundedRect(4, 6, 16, 12, 2);
+    g.fillStyle(0xe0e0e0);
+    g.fillRect(4, 14, 16, 4);
+    g.fillStyle(0xcccccc);
+    g.fillRect(8, 6, 1, 12);
+    g.fillRect(12, 6, 1, 12);
+    g.fillRect(16, 6, 1, 12);
     g.fillStyle(0x44cc44);
-    g.fillRect(9, 4, 6, 3);
-    g.fillRect(9, 17, 6, 3);
-    g.fillRect(6, 8, 12, 2);
-    g.fillRect(11, 6, 2, 12);
+    g.fillRect(11, 9, 2, 6);
+    g.fillRect(9, 11, 6, 2);
     g.generateTexture('bandage-pickup', 24, 24);
     g.clear();
 
