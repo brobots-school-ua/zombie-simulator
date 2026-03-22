@@ -25,6 +25,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   weapons: WeaponState[] = [];
   activeWeaponIndex: number = 0;
 
+  // Utilities
+  bandages: number = 1;
+  maxBandages: number = 5;
+  medkits: number = 0;
+  maxMedkits: number = 3;
+
   // Expose current weapon ammo for UI compatibility
   get magazineAmmo() { return this.weapons[this.activeWeaponIndex].magazineAmmo; }
   get reserveAmmo() { return this.weapons[this.activeWeaponIndex].reserveAmmo; }
@@ -38,6 +44,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     S: Phaser.Input.Keyboard.Key;
     D: Phaser.Input.Keyboard.Key;
     R: Phaser.Input.Keyboard.Key;
+    Q: Phaser.Input.Keyboard.Key;
+    E: Phaser.Input.Keyboard.Key;
   };
   private weaponKeys: Phaser.Input.Keyboard.Key[] = [];
 
@@ -121,6 +129,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       S: scene.input.keyboard!.addKey('S'),
       D: scene.input.keyboard!.addKey('D'),
       R: scene.input.keyboard!.addKey('R'),
+      Q: scene.input.keyboard!.addKey('Q'),
+      E: scene.input.keyboard!.addKey('E'),
     };
 
     // Weapon switch keys (1-5)
@@ -160,6 +170,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.reload();
       }
     }
+
+    // Use utilities
+    if (Phaser.Input.Keyboard.JustDown(this.keys.Q)) this.useBandage();
+    if (Phaser.Input.Keyboard.JustDown(this.keys.E)) this.useMedkit();
   }
 
   switchWeapon(index: number) {
@@ -201,6 +215,28 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       w.magazineAmmo += toLoad;
       this.isReloading = false;
     });
+  }
+
+  // Utility methods
+  addBandage() { this.bandages = Math.min(this.bandages + 1, this.maxBandages); }
+  addMedkit() { this.medkits = Math.min(this.medkits + 1, this.maxMedkits); }
+
+  useBandage() {
+    if (this.bandages > 0 && this.hp < this.maxHp) {
+      this.bandages--;
+      this.heal(25);
+      this.setTint(0x44ff44);
+      this.scene.time.delayedCall(200, () => this.clearTint());
+    }
+  }
+
+  useMedkit() {
+    if (this.medkits > 0 && this.hp < this.maxHp) {
+      this.medkits--;
+      this.heal(75);
+      this.setTint(0x44ff44);
+      this.scene.time.delayedCall(200, () => this.clearTint());
+    }
   }
 
   // Ammo pickup gives 1/5 of magazine to ALL weapons, launcher always gets fixed amount

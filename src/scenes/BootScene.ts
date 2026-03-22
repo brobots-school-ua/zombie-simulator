@@ -739,6 +739,28 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('ammo-pack', 24, 24);
     g.clear();
 
+    // Bandage pickup (white roll with green cross)
+    g.fillStyle(0xeeeeee);
+    g.fillRoundedRect(4, 6, 16, 12, 3);
+    g.fillStyle(0x44cc44);
+    g.fillRect(9, 4, 6, 3);
+    g.fillRect(9, 17, 6, 3);
+    g.fillRect(6, 8, 12, 2);
+    g.fillRect(11, 6, 2, 12);
+    g.generateTexture('bandage-pickup', 24, 24);
+    g.clear();
+
+    // Medkit pickup (white box with red cross)
+    g.fillStyle(0xffffff);
+    g.fillRoundedRect(2, 4, 20, 16, 2);
+    g.lineStyle(1, 0xcc0000);
+    g.strokeRoundedRect(2, 4, 20, 16, 2);
+    g.fillStyle(0xff2222);
+    g.fillRect(6, 9, 12, 6);
+    g.fillRect(9, 6, 6, 12);
+    g.generateTexture('medkit-pickup', 24, 24);
+    g.clear();
+
     // Grass tiles — rich natural variants
     this.generateGrassTile(g, 'ground1', 0x3a7a3a, 0);
     this.generateGrassTile(g, 'ground2', 0x3d8040, 1);

@@ -106,7 +106,13 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.pickups, (_player, pickup) => {
       const p = pickup as Pickup;
       if (!p.active) return;
-      this.player.addAmmoAll();
+      if (p.pickupType === 'bandage') {
+        this.player.addBandage();
+      } else if (p.pickupType === 'medkit') {
+        this.player.addMedkit();
+      } else {
+        this.player.addAmmoAll();
+      }
       p.destroy();
     });
 
@@ -128,6 +134,28 @@ export class GameScene extends Phaser.Scene {
         if (this.gameOver) return;
         const pos = this.getSafeSpawnPosition();
         this.pickups.add(new Pickup(this, pos.x, pos.y, 'ammo'));
+      },
+    });
+
+    // Bandage spawner — every 20 seconds
+    this.time.addEvent({
+      delay: 20000,
+      loop: true,
+      callback: () => {
+        if (this.gameOver) return;
+        const pos = this.getSafeSpawnPosition();
+        this.pickups.add(new Pickup(this, pos.x, pos.y, 'bandage'));
+      },
+    });
+
+    // Medkit spawner — every 45 seconds
+    this.time.addEvent({
+      delay: 45000,
+      loop: true,
+      callback: () => {
+        if (this.gameOver) return;
+        const pos = this.getSafeSpawnPosition();
+        this.pickups.add(new Pickup(this, pos.x, pos.y, 'medkit'));
       },
     });
 

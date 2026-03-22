@@ -24,6 +24,11 @@ export class UIScene extends Phaser.Scene {
   private volumeOpen = false;
   private weaponBarGfx!: Phaser.GameObjects.Graphics;
   private weaponBarTexts: Phaser.GameObjects.Text[] = [];
+  private utilityBarGfx!: Phaser.GameObjects.Graphics;
+  private bandageIcon!: Phaser.GameObjects.Sprite;
+  private bandageText!: Phaser.GameObjects.Text;
+  private medkitIcon!: Phaser.GameObjects.Sprite;
+  private medkitText!: Phaser.GameObjects.Text;
   private escPending = false;
   private escText!: Phaser.GameObjects.Text;
   private adminConsole!: AdminConsole;
@@ -75,6 +80,10 @@ export class UIScene extends Phaser.Scene {
     // Weapon bar at bottom
     this.weaponBarGfx = this.add.graphics().setDepth(100);
     this.createWeaponBar();
+
+    // Utility icons above weapon bar
+    this.utilityBarGfx = this.add.graphics().setDepth(100);
+    this.createUtilityBar();
 
     // In-game leaderboard (top right, below wave)
     this.createLeaderboardDisplay();
@@ -138,6 +147,52 @@ export class UIScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(101);
       this.weaponBarTexts.push(txt);
     }
+  }
+
+  private createUtilityBar() {
+    const { width, height } = this.scale;
+    const slotH = 36;
+    const utilY = height - slotH - 8 - 38; // 38px above weapon bar
+
+    const utilStyle: Phaser.Types.GameObjects.Text.TextStyle = {
+      fontSize: '13px',
+      fontFamily: 'monospace',
+      color: '#ffffff',
+    };
+
+    // Bandage icon + text (left of center)
+    const centerX = width / 2;
+    this.bandageIcon = this.add.sprite(centerX - 40, utilY + 4, 'bandage-pickup').setDepth(101).setScale(1.2);
+    this.bandageText = this.add.text(centerX - 24, utilY - 2, '', utilStyle).setDepth(101);
+
+    // Medkit icon + text (right of center)
+    this.medkitIcon = this.add.sprite(centerX + 20, utilY + 4, 'medkit-pickup').setDepth(101).setScale(1.2);
+    this.medkitText = this.add.text(centerX + 36, utilY - 2, '', utilStyle).setDepth(101);
+  }
+
+  private updateUtilityBar() {
+    if (!this.gameScene?.player) return;
+    const p = this.gameScene.player;
+    const { width, height } = this.scale;
+    const slotH = 36;
+    const utilY = height - slotH - 8 - 38;
+    const centerX = width / 2;
+
+    // Background
+    this.utilityBarGfx.clear();
+    this.utilityBarGfx.fillStyle(0x000000, 0.5);
+    this.utilityBarGfx.fillRoundedRect(centerX - 60, utilY - 10, 120, 28, 4);
+
+    // Update positions + text
+    this.bandageIcon.setPosition(centerX - 38, utilY + 4);
+    this.bandageText.setPosition(centerX - 22, utilY - 4);
+    this.bandageText.setText(`${p.bandages} [Q]`);
+    this.bandageText.setColor(p.bandages > 0 ? '#44ff44' : '#666666');
+
+    this.medkitIcon.setPosition(centerX + 14, utilY + 4);
+    this.medkitText.setPosition(centerX + 30, utilY - 4);
+    this.medkitText.setText(`${p.medkits} [E]`);
+    this.medkitText.setColor(p.medkits > 0 ? '#ff4444' : '#666666');
   }
 
   private updateWeaponBar() {
@@ -361,6 +416,7 @@ export class UIScene extends Phaser.Scene {
 
     try {
       this.updateWeaponBar();
+      this.updateUtilityBar();
       this.updateLeaderboard();
       this.drawMinimap(width, height);
     } catch { /* scene shutting down */ }

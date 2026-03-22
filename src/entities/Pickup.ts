@@ -1,6 +1,13 @@
 import Phaser from 'phaser';
 
-export type PickupType = 'health' | 'ammo';
+export type PickupType = 'health' | 'ammo' | 'bandage' | 'medkit';
+
+const PICKUP_TEXTURES: Record<PickupType, string> = {
+  health: 'health-pack',
+  ammo: 'ammo-pack',
+  bandage: 'bandage-pickup',
+  medkit: 'medkit-pickup',
+};
 
 // Pickup item on the ground
 export class Pickup extends Phaser.Physics.Arcade.Sprite {
@@ -8,7 +15,7 @@ export class Pickup extends Phaser.Physics.Arcade.Sprite {
   value: number;
 
   constructor(scene: Phaser.Scene, x: number, y: number, type: PickupType) {
-    const texture = type === 'health' ? 'health-pack' : 'ammo-pack';
+    const texture = PICKUP_TEXTURES[type];
     super(scene, x, y, texture);
 
     this.pickupType = type;

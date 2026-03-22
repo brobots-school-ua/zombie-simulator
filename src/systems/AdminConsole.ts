@@ -139,6 +139,14 @@ export class AdminConsole {
 
       <hr style="border-color:#333; margin:12px 0;">
 
+      <label style="display:block; margin-bottom:8px; color:#888;">Utilities:</label>
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <button id="admin-give-bandages" style="${btnStyle('#1a3a2a', '#44cc44', '#44cc44')}; flex:1;">Give Bandages (max)</button>
+        <button id="admin-give-medkits" style="${btnStyle('#3a1a1a', '#ff4444', '#ff4444')}; flex:1;">Give Medkits (max)</button>
+      </div>
+
+      <hr style="border-color:#333; margin:12px 0;">
+
       <label style="display:block; margin-bottom:8px; color:#888;">Spawn Zombie:</label>
       <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
         <div id="admin-zombie-preview" style="width:50px; height:50px; border:2px solid ${sel.color}; border-radius:6px; background:#111; cursor:pointer; display:flex; align-items:center; justify-content:center;">
@@ -202,6 +210,20 @@ export class AdminConsole {
       if (isNaN(waveNum) || waveNum < 1) { msg.textContent = 'Invalid wave!'; msg.style.color = '#ff4444'; return; }
       gs.adminSetWave(waveNum);
       msg.textContent = `Jumped to wave ${waveNum}!`; msg.style.color = '#cc44ff';
+    });
+
+    // Utilities
+    this.panel.querySelector('#admin-give-bandages')!.addEventListener('click', () => {
+      const gs = this.scene.scene.get('GameScene') as any;
+      if (!gs?.player) { msg.textContent = 'Start a game first!'; msg.style.color = '#ff4444'; return; }
+      gs.player.bandages = gs.player.maxBandages;
+      msg.textContent = `Bandages maxed! (${gs.player.bandages})`; msg.style.color = '#44cc44';
+    });
+    this.panel.querySelector('#admin-give-medkits')!.addEventListener('click', () => {
+      const gs = this.scene.scene.get('GameScene') as any;
+      if (!gs?.player) { msg.textContent = 'Start a game first!'; msg.style.color = '#ff4444'; return; }
+      gs.player.medkits = gs.player.maxMedkits;
+      msg.textContent = `Medkits maxed! (${gs.player.medkits})`; msg.style.color = '#ff4444';
     });
 
     // Zombie type picker
