@@ -67,7 +67,7 @@ export class GameScene extends Phaser.Scene {
 
       // Kamikaze explodes on contact!
       if (z.explodeOnContact) {
-        this.doAoeDamage(z.x, z.y, 70, 35);
+        this.doAoeDamage(z.x, z.y, 70, 50);
         this.onZombieKilled(z);
         z.destroy();
         return;
@@ -185,11 +185,11 @@ export class GameScene extends Phaser.Scene {
     shop.addCoins(z.coinValue);
     this.player.sessionCoins += z.coinValue;
 
-    // Kamikaze explodes when killed by bullets (smaller explosion)
+    // Kamikaze explodes when killed by bullets
     if (z.explodeOnDeath && z.active) {
       const dist = Phaser.Math.Distance.Between(z.x, z.y, this.player.x, this.player.y);
       if (dist < 40) {
-        this.player.takeDamage(15);
+        this.player.takeDamage(35);
       }
       // Visual explosion
       const expl = this.add.circle(z.x, z.y, 40, 0xff3300, 0.5).setDepth(9);
@@ -221,7 +221,7 @@ export class GameScene extends Phaser.Scene {
         }
         const dist = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y);
         if (dist < puddleRadius) {
-          this.player.takeDamage(1); // ~2 HP/sec
+          this.player.takeDamage(5); // 10 HP/sec (every 500ms)
         }
         puddle.setAlpha(0.8 * (1 - elapsed / duration));
       },

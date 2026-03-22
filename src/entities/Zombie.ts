@@ -181,12 +181,12 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
 
     if (this.attackCooldown > 0) this.attackCooldown -= delta;
 
-    // Radioactive aura — damages player if close
+    // Radioactive aura — 5 HP/sec to player if close
     if (this.zombieType === 'radioactive' && dist < 60) {
       this.auraDamageTimer += delta;
-      if (this.auraDamageTimer >= 500) { // 2 HP per second (every 500ms = 1 HP)
+      if (this.auraDamageTimer >= 1000) {
         this.auraDamageTimer = 0;
-        player.takeDamage(1);
+        player.takeDamage(5);
       }
     }
 
