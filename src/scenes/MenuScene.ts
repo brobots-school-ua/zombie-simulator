@@ -3,12 +3,14 @@ import { audioManager } from '../systems/AudioManager';
 import { leaderboard } from '../systems/LeaderboardManager';
 import { AdminConsole } from '../systems/AdminConsole';
 import { ACCESSORIES, shop } from '../systems/ShopConfig';
+import { bestiary } from '../systems/BestiaryManager';
 
 // Atmospheric main menu scene
 export class MenuScene extends Phaser.Scene {
   private nicknameInput!: HTMLInputElement;
   private adminConsole!: AdminConsole;
   private shopPanel: HTMLDivElement | null = null;
+  private bestiaryPanel: HTMLDivElement | null = null;
   private coinsText!: Phaser.GameObjects.Text;
 
   constructor() {
@@ -123,6 +125,20 @@ export class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(11);
     this.createVolumeSlider(volX + btnSize / 2, btnY - btnSize / 2 + 12, btnSize - 16);
 
+    // BESTIARY button (square)
+    const bestBg = this.add.graphics().setDepth(10);
+    const bestX = 20 + (btnSize + 10) * 2;
+    bestBg.fillStyle(0x1a0a1a); bestBg.fillRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6);
+    bestBg.lineStyle(2, 0xcc44ff); bestBg.strokeRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6);
+    this.add.text(bestX + btnSize / 2, btnY - btnSize / 2, 'BEST\nIARY', {
+      ...btnStyle, fontSize: '13px', color: '#cc44ff', align: 'center',
+    }).setOrigin(0.5).setDepth(11);
+    const bestZone = this.add.zone(bestX + btnSize / 2, btnY - btnSize / 2, btnSize, btnSize)
+      .setInteractive({ useHandCursor: true }).setDepth(12);
+    bestZone.on('pointerover', () => { bestBg.clear(); bestBg.fillStyle(0x2a1a2a); bestBg.fillRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6); bestBg.lineStyle(2, 0xee66ff); bestBg.strokeRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6); });
+    bestZone.on('pointerout', () => { bestBg.clear(); bestBg.fillStyle(0x1a0a1a); bestBg.fillRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6); bestBg.lineStyle(2, 0xcc44ff); bestBg.strokeRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6); });
+    bestZone.on('pointerdown', () => this.openBestiary());
+
     // ============ RIGHT SIDE — Stats ============
     const RX = width - 30;
 
@@ -159,6 +175,7 @@ export class MenuScene extends Phaser.Scene {
     this.events.on('shutdown', () => {
       if (this.nicknameInput) this.nicknameInput.remove();
       this.closeShop();
+      this.closeBestiary();
       this.adminConsole.destroy();
     });
   }
@@ -334,5 +351,69 @@ export class MenuScene extends Phaser.Scene {
     hitZone.on('pointerdown', (p: Phaser.Input.Pointer) => { dragging = true; const v = xToVol(Phaser.Math.Clamp(p.x, sliderX, sliderX + sliderW)); audioManager.setVolume(v); draw(v); });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => { if (!dragging) return; const v = xToVol(Phaser.Math.Clamp(p.x, sliderX, sliderX + sliderW)); audioManager.setVolume(v); draw(v); });
     this.input.on('pointerup', () => { dragging = false; });
+  }
+
+  private openBestiary() {
+    if (this.bestiaryPanel) return;
+
+    const ZOMBIES = [
+      { type: 'walker', name: 'Walker', hp: 50, damage: 10, speed: 60, special: '' },
+      { type: 'runner', name: 'Runner', hp: 35, damage: 8, speed: 140, special: '' },
+      { type: 'tank', name: 'Tank', hp: 100, damage: 25, speed: 35, special: '' },
+      { type: 'radioactive', name: 'Radioactive', hp: 40, damage: 5, speed: 50, special: 'Aura: 10 dmg/sec (100px)\nDeath: toxic puddle (5 sec)' },
+      { type: 'kamikaze', name: 'Kamikaze', hp: 15, damage: 0, speed: 180, special: 'Contact: explosion 50 dmg (70px)\nDeath: explosion 35 dmg (40px)' },
+      { type: 'boss', name: 'Titan', hp: 500, damage: 30, speed: 45, special: 'Stomp: 15 AoE dmg / 3 sec (120px)\nAlways aggro, 2x size' },
+    ];
+
+    const speedLabel = (s: number) => s <= 50 ? 'Slow' : s <= 100 ? 'Normal' : s <= 150 ? 'Fast' : 'Very Fast';
+    const speedColor = (s: number) => s <= 50 ? '#44aaff' : s <= 100 ? '#ffffff' : s <= 150 ? '#ffaa44' : '#ff4444';
+
+    this.bestiaryPanel = document.createElement('div');
+    this.bestiaryPanel.style.cssText = `
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.95); border: 2px solid #cc44ff; border-radius: 8px;
+      padding: 24px; z-index: 3000; font-family: monospace; color: #cc44ff;
+      width: 560px; max-height: 85vh; overflow-y: auto;
+    `;
+
+    this.bestiaryPanel.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="margin:0; color:#cc44ff; font-size:20px;">BESTIARY</h3>
+        <button id="bestiary-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1; transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='#ff4444';this.style.color='#000'" onmouseout="this.style.background='none';this.style.color='#ff4444'">✕</button>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:12px;">
+        ${ZOMBIES.map(z => {
+          const unlocked = bestiary.isUnlocked(z.type);
+          if (!unlocked) {
+            return `<div style="width:160px; padding:12px; border:1px solid #333; border-radius:6px; background:#111; text-align:center;">
+              <div style="width:48px; height:48px; margin:0 auto 8px; background:#1a1a1a; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                <span style="font-size:24px; color:#333;">?</span>
+              </div>
+              <div style="color:#444; font-size:14px;">???</div>
+              <div style="color:#333; font-size:10px; margin-top:4px;">Kill to unlock</div>
+            </div>`;
+          }
+          return `<div style="width:160px; padding:12px; border:1px solid #cc44ff; border-radius:6px; background:#1a0a1a;">
+            <div style="text-align:center; margin-bottom:8px;">
+              <div style="color:#cc44ff; font-size:16px; font-weight:bold;">${z.name}</div>
+            </div>
+            <div style="font-size:11px; line-height:1.6;">
+              <div>HP: <span style="color:#ff4444;">${z.hp}</span></div>
+              <div>Damage: <span style="color:#ffaa44;">${z.damage}</span></div>
+              <div>Speed: <span style="color:${speedColor(z.speed)};">${speedLabel(z.speed)}</span></div>
+              ${z.special ? `<div style="margin-top:6px; padding-top:6px; border-top:1px solid #333; color:#88ff88; white-space:pre-line; font-size:10px;">${z.special}</div>` : '<div style="margin-top:6px; color:#555; font-size:10px;">No special abilities</div>'}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+
+    document.body.appendChild(this.bestiaryPanel);
+    this.bestiaryPanel.addEventListener('keydown', (e) => e.stopPropagation());
+    this.bestiaryPanel.querySelector('#bestiary-close')!.addEventListener('click', () => this.closeBestiary());
+  }
+
+  private closeBestiary() {
+    if (this.bestiaryPanel) { this.bestiaryPanel.remove(); this.bestiaryPanel = null; }
   }
 }

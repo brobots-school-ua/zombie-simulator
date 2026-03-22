@@ -9,6 +9,7 @@ const ZOMBIE_TYPES: { type: ZombieType; name: string; texture: string; color: st
   { type: 'tank', name: 'Tank', texture: 'zombie-tank', color: '#3a4a1f' },
   { type: 'radioactive', name: 'Radioactive', texture: 'zombie-radioactive', color: '#33ff33' },
   { type: 'kamikaze', name: 'Kamikaze', texture: 'zombie-kamikaze', color: '#ff3333' },
+  { type: 'boss', name: 'Boss', texture: 'zombie-boss', color: '#8800aa' },
 ];
 
 export class AdminConsole {
@@ -128,6 +129,16 @@ export class AdminConsole {
 
       <hr style="border-color:#333; margin:12px 0;">
 
+      <div style="display:flex; gap:10px; align-items:end; margin-bottom:8px;">
+        <div style="flex:1;">
+          <label style="display:block; margin-bottom:4px; color:#888;">Set Wave:</label>
+          <input id="admin-wave-num" type="number" value="5" min="1" max="100" style="${inputStyle.replace('#44ff44', '#cc44ff')}">
+        </div>
+        <button id="admin-set-wave" style="${btnStyle('#2a1a3a', '#cc44ff', '#cc44ff')}">Set</button>
+      </div>
+
+      <hr style="border-color:#333; margin:12px 0;">
+
       <label style="display:block; margin-bottom:8px; color:#888;">Spawn Zombie:</label>
       <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
         <div id="admin-zombie-preview" style="width:50px; height:50px; border:2px solid ${sel.color}; border-radius:6px; background:#111; cursor:pointer; display:flex; align-items:center; justify-content:center;">
@@ -181,6 +192,16 @@ export class AdminConsole {
         for (const w of gs.player.weapons) { w.magazineAmmo = w.def.magazineSize; w.reserveAmmo = w.def.maxReserve; }
         msg.textContent = 'All weapons maxed out!'; msg.style.color = '#4488ff';
       } else { msg.textContent = 'Start a game first!'; msg.style.color = '#ff4444'; }
+    });
+
+    // Set Wave
+    this.panel.querySelector('#admin-set-wave')!.addEventListener('click', () => {
+      const gs = this.scene.scene.get('GameScene') as any;
+      if (!gs?.player) { msg.textContent = 'Start a game first!'; msg.style.color = '#ff4444'; return; }
+      const waveNum = parseInt((this.panel!.querySelector('#admin-wave-num') as HTMLInputElement).value, 10);
+      if (isNaN(waveNum) || waveNum < 1) { msg.textContent = 'Invalid wave!'; msg.style.color = '#ff4444'; return; }
+      gs.adminSetWave(waveNum);
+      msg.textContent = `Jumped to wave ${waveNum}!`; msg.style.color = '#cc44ff';
     });
 
     // Zombie type picker

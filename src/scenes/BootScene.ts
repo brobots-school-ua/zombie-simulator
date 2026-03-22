@@ -650,6 +650,53 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('zombie-kamikaze-arms', 10, 20);
     g.clear();
 
+    // === ZOMBIE BOSS (Titan) — large, dark purple ===
+    g.fillStyle(0x2a0a2a);
+    g.fillCircle(20, 20, 19);
+    g.fillStyle(0x441444);
+    g.fillCircle(20, 20, 17);
+    // Armor cracks
+    g.fillStyle(0x551855);
+    g.fillCircle(20, 20, 12);
+    g.lineStyle(2, 0x220822);
+    g.strokeCircle(20, 20, 12);
+    // Scars
+    g.lineStyle(2, 0x110411);
+    g.lineBetween(8, 10, 18, 16);
+    g.lineBetween(22, 26, 32, 34);
+    // Blood
+    g.fillStyle(0x880000);
+    g.fillCircle(12, 28, 4);
+    g.fillCircle(28, 14, 3);
+    // Glowing red eyes
+    g.fillStyle(0xff0000);
+    g.fillRect(12, 10, 6, 5);
+    g.fillRect(22, 10, 6, 5);
+    g.fillStyle(0xff4444);
+    g.fillRect(14, 11, 3, 3);
+    g.fillRect(24, 11, 3, 3);
+    // Crown-like spikes
+    g.fillStyle(0x8800aa);
+    g.fillTriangle(10, 4, 13, 0, 16, 4);
+    g.fillTriangle(17, 3, 20, -1, 23, 3);
+    g.fillTriangle(24, 4, 27, 0, 30, 4);
+    g.generateTexture('zombie-boss', 40, 40);
+    g.clear();
+
+    // Boss arms (thick, dark)
+    g.fillStyle(0x441444);
+    g.fillRect(0, 3, 12, 7);
+    g.fillRect(0, 20, 12, 7);
+    g.fillStyle(0x2a0a2a);
+    g.fillRect(10, 2, 5, 9);
+    g.fillRect(10, 19, 5, 9);
+    // Purple glow on fists
+    g.fillStyle(0x8800aa, 0.5);
+    g.fillCircle(12, 6, 3);
+    g.fillCircle(12, 23, 3);
+    g.generateTexture('zombie-boss-arms', 16, 30);
+    g.clear();
+
     // === BULLET (tracer style — elongated capsule with glow) ===
     // Outer glow
     g.fillStyle(0xffff00, 0.3);

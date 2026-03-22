@@ -6,6 +6,7 @@ import { Pickup } from '../entities/Pickup';
 import { audioManager } from '../systems/AudioManager';
 import { leaderboard } from '../systems/LeaderboardManager';
 import { shop } from '../systems/ShopConfig';
+import { bestiary } from '../systems/BestiaryManager';
 
 // Main game scene — where all gameplay happens
 export class GameScene extends Phaser.Scene {
@@ -188,6 +189,7 @@ export class GameScene extends Phaser.Scene {
     this.player.kills++;
     this.player.score += z.scoreValue;
     this.zombiesRemaining--;
+    bestiary.unlock(z.zombieType);
     shop.addCoins(z.coinValue);
     this.player.sessionCoins += z.coinValue;
 
@@ -276,7 +278,8 @@ export class GameScene extends Phaser.Scene {
 
   private spawnWave() {
     const count = 5 + this.wave * 3;
-    this.zombiesRemaining = count;
+    const hasBoss = this.wave % 5 === 0; // boss every 5 waves
+    this.zombiesRemaining = count + (hasBoss ? 1 : 0);
     audioManager.updateIntensity(this.wave);
     for (let i = 0; i < count; i++) {
       this.time.delayedCall(i * 300, () => {
@@ -287,6 +290,30 @@ export class GameScene extends Phaser.Scene {
         this.zombies.add(zombie);
       });
     }
+    // Spawn boss
+    if (hasBoss) {
+      this.time.delayedCall(count * 300 + 500, () => {
+        if (this.gameOver) return;
+        const pos = this.getSafeSpawnPosition();
+        const zombie = new Zombie(this, pos.x, pos.y, 'boss');
+        zombie.wallsGroup = this.walls;
+        this.zombies.add(zombie);
+      });
+    }
+  }
+
+  // Admin: skip to specific wave
+  adminSetWave(targetWave: number) {
+    // Kill all zombies without giving score/coins
+    const allZombies = this.zombies.getChildren().slice();
+    for (const obj of allZombies) {
+      const z = obj as Zombie;
+      if (z.active) z.destroy();
+    }
+    this.zombiesRemaining = 0;
+    this.waveDelay = false;
+    this.wave = targetWave;
+    this.spawnWave();
   }
 
   // Admin spawn: multiple zombies around player

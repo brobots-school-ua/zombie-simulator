@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { Player } from './Player';
 
 // Zombie types configuration
-export type ZombieType = 'walker' | 'runner' | 'tank' | 'radioactive' | 'kamikaze';
+export type ZombieType = 'walker' | 'runner' | 'tank' | 'radioactive' | 'kamikaze' | 'boss';
 
 const ZOMBIE_CONFIG: Record<ZombieType, {
   texture: string;
@@ -64,6 +64,16 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     coins: 2,
     detectionRange: 9999, // sees across entire map
   },
+  boss: {
+    texture: 'zombie-boss',
+    armsTexture: 'zombie-boss-arms',
+    hp: 500,
+    speed: 45,
+    damage: 30,
+    score: 200,
+    coins: 10,
+    detectionRange: 9999,
+  },
 };
 
 // Zombie entity with AI
@@ -90,6 +100,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   private arms: Phaser.GameObjects.Sprite;
   private auraDamageTimer: number = 0;
   private blinkTimer: number = 0;
+  private stompTimer: number = 0;
   private auraGfx: Phaser.GameObjects.Graphics | null = null;
 
   // Flag for kamikaze — exploded on contact (GameScene checks this)
@@ -120,14 +131,23 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     if (type === 'radioactive') {
       this.leavePuddle = true;
     }
+    if (type === 'boss') {
+      this.aggroed = true; // always aggro
+    }
 
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(5);
 
+    if (type === 'boss') {
+      this.setScale(2);
+      (this.body as Phaser.Physics.Arcade.Body).setSize(32, 32).setOffset(0, 0);
+    }
+
     this.arms = scene.add.sprite(x, y, config.armsTexture);
     this.arms.setOrigin(0, 0.5);
     this.arms.setDepth(4);
+    if (type === 'boss') this.arms.setScale(2);
 
     this.hpBar = scene.add.graphics();
     this.hpBar.setDepth(6);
@@ -254,6 +274,24 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
       if (this.blinkTimer > 300) {
         this.blinkTimer = 0;
         this.setTint(this.tintTopLeft === 0xff0000 ? 0xffffff : 0xff0000);
+      }
+    }
+
+    // Boss stomp — AoE 15 dmg every 3 sec in 120px radius
+    if (this.zombieType === 'boss') {
+      this.stompTimer += delta;
+      if (this.stompTimer >= 3000) {
+        this.stompTimer = 0;
+        if (dist < 120) {
+          player.takeDamage(15);
+        }
+        // Visual shockwave
+        const ring = this.scene.add.circle(this.x, this.y, 10, 0x8800aa, 0.3).setDepth(3);
+        this.scene.tweens.add({
+          targets: ring, radius: 120, alpha: 0, duration: 400,
+          onUpdate: () => { ring.setRadius(ring.radius); },
+          onComplete: () => ring.destroy(),
+        });
       }
     }
 
