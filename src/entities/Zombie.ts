@@ -190,9 +190,9 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     // Radioactive aura — visual + 10 HP/sec to player if close
     if (this.zombieType === 'radioactive' && this.auraGfx) {
       this.auraGfx.clear();
-      this.auraGfx.fillStyle(0x33ff33, 0.08);
+      this.auraGfx.fillStyle(0x33ff33, 0.03);
       this.auraGfx.fillCircle(this.x, this.y, 100);
-      this.auraGfx.lineStyle(1, 0x33ff33, 0.25);
+      this.auraGfx.lineStyle(1, 0x33ff33, 0.1);
       this.auraGfx.strokeCircle(this.x, this.y, 100);
 
       if (dist < 100) {

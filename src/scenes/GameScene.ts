@@ -139,14 +139,17 @@ export class GameScene extends Phaser.Scene {
     this.events.once('player-died', () => {
       if (this.gameOver) return;
       this.gameOver = true;
+      this.player.setActive(false);
+      this.player.setVelocity(0, 0);
       const data = { score: this.player.score, kills: this.player.kills, wave: this.wave };
       leaderboard.saveResult(this.player.score, this.wave);
       audioManager.stopGameMusic(1.5);
-      // Delay transition to avoid crash inside physics callback
-      this.time.delayedCall(100, () => {
+      // Use setTimeout to guarantee execution outside physics step
+      setTimeout(() => {
         this.scene.stop('UIScene');
         this.scene.start('GameOverScene', data);
-      });
+        this.scene.stop('GameScene');
+      }, 150);
     });
 
     audioManager.resume();
