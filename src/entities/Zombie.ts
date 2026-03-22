@@ -159,46 +159,57 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     if (this.aggroed) {
       moveAngle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
 
-      // Wall avoidance — try angles relative to player direction
+      // Wall avoidance
       const moved = Math.abs(this.x - this.lastX) + Math.abs(this.y - this.lastY);
       this.lastX = this.x;
       this.lastY = this.y;
 
       if (this.avoidTimer > 0) {
-        this.avoidTimer -= delta;
-        moveAngle = this.avoidAngle;
+        // Currently avoiding a wall — check if path to player is clear now
+        const toPlayer = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
+        const checkX = this.x + Math.cos(toPlayer) * 60;
+        const checkY = this.y + Math.sin(toPlayer) * 60;
+        if (!this.isDirectionBlocked(checkX, checkY)) {
+          // Wall ended — go straight to player
+          this.avoidTimer = 0;
+          this.stuckTimer = 0;
+        } else {
+          // Still wall ahead — keep sliding along it
+          moveAngle = this.avoidAngle;
+        }
       } else if (moved < 0.5 && dist > 40) {
         this.stuckTimer += delta;
         if (this.stuckTimer > 150) {
-          // Try offsets from player direction: ±45, ±90, ±135, 180
+          // Find which side the wall is and slide perpendicular to it
           const toPlayer = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
-          const offsets = [
-            Math.PI / 4 * this.slideDir,
-            Math.PI / 2 * this.slideDir,
-            Math.PI * 3 / 4 * this.slideDir,
-            Math.PI * this.slideDir,
-          ];
+          // Try perpendicular directions (±90° from player direction)
+          const leftAngle = toPlayer + Math.PI / 2;
+          const rightAngle = toPlayer - Math.PI / 2;
 
-          let found = false;
-          for (const offset of offsets) {
-            const testAngle = toPlayer + offset;
-            const tx = this.x + Math.cos(testAngle) * 60;
-            const ty = this.y + Math.sin(testAngle) * 60;
+          const leftX = this.x + Math.cos(leftAngle) * 60;
+          const leftY = this.y + Math.sin(leftAngle) * 60;
+          const rightX = this.x + Math.cos(rightAngle) * 60;
+          const rightY = this.y + Math.sin(rightAngle) * 60;
 
-            if (!this.isDirectionBlocked(tx, ty)) {
-              this.avoidAngle = testAngle;
-              this.avoidTimer = 600;
-              moveAngle = testAngle;
-              found = true;
-              break;
-            }
-          }
+          const leftFree = !this.isDirectionBlocked(leftX, leftY);
+          const rightFree = !this.isDirectionBlocked(rightX, rightY);
 
-          // If all directions blocked on this side, flip and try next time
-          if (!found) {
+          if (leftFree && rightFree) {
+            // Both sides free — use preferred slide direction
+            this.avoidAngle = this.slideDir > 0 ? leftAngle : rightAngle;
+          } else if (leftFree) {
+            this.avoidAngle = leftAngle;
+          } else if (rightFree) {
+            this.avoidAngle = rightAngle;
+          } else {
+            // Both sides blocked — try diagonal or flip
+            this.avoidAngle = toPlayer + Math.PI * 0.75 * this.slideDir;
             this.slideDir *= -1;
-            this.stuckTimer = 0;
           }
+
+          this.avoidTimer = 1;  // stays active until wall ends
+          moveAngle = this.avoidAngle;
+          this.stuckTimer = 0;
         }
       } else {
         this.stuckTimer = 0;
