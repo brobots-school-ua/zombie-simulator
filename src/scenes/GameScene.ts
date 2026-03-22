@@ -266,7 +266,7 @@ export class GameScene extends Phaser.Scene {
       if (!z.active) continue;
       const dist = Phaser.Math.Distance.Between(x, y, z.x, z.y);
       if (dist <= radius) {
-        const killed = z.takeDamage(Math.round(damage * (1 - (dist / radius) * 0.5)));
+        const killed = z.takeDamage(damage);
         if (killed) this.onZombieKilled(z);
       }
     }

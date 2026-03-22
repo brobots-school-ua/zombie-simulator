@@ -116,7 +116,7 @@ export const WEAPONS: WeaponDef[] = [
     name: 'Launcher',
     texture: 'weapon-grenade',
     bulletTexture: 'bullet-rocket',
-    damage: 40,
+    damage: 50,
     fireRate: 1200,
     magazineSize: 1,
     startReserve: 10,

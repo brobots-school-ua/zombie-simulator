@@ -1,11 +1,15 @@
-# Fix Plan — Round 23: Aggro range
+# Fix Plan — Round 24: Базука фіксований дамаг
 
-## Зміна: Збільшити радіус деагро з 1.5x до 2x
-**Файл:** `src/entities/Zombie.ts` рядок 154
-**Було:** `dist > this.detectionRange * 1.5`
-**Стане:** `dist > this.detectionRange * 2`
+## Зміна: Базука — 50 дамагу по всьому радіусу без зменшення
+**Файл 1:** `src/systems/WeaponConfig.ts` — damage 40→50
+**Файл 2:** `src/scenes/GameScene.ts` → `doAoeDamage()` — прибрати формулу зменшення дамагу від відстані
 
-Результат:
-- Walker: агро 300px, деагро 600px
-- Runner: агро 400px, деагро 800px
-- Tank: агро 250px, деагро 500px
+**Було (GameScene doAoeDamage):**
+```
+damage * (1 - (dist / radius) * 0.5)  // на краю = 50% дамагу
+```
+
+**Стане:**
+```
+damage  // повний дамаг по всьому радіусу
+```
