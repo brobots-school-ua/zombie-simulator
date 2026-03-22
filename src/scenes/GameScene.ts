@@ -283,6 +283,53 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // Admin spawn: marker + timer + zombie
+  adminSpawnZombie(type: ZombieType, x: number, y: number) {
+    // Red marker circle
+    const marker = this.add.circle(x, y, 16, 0xff0000, 0.4).setDepth(3);
+    const markerBorder = this.add.circle(x, y, 16).setDepth(3);
+    markerBorder.setStrokeStyle(2, 0xff0000, 0.8);
+
+    // Zombie preview image
+    const config: Record<string, string> = {
+      walker: 'zombie-walker', runner: 'zombie-runner', tank: 'zombie-tank',
+      radioactive: 'zombie-radioactive', kamikaze: 'zombie-kamikaze',
+    };
+    const preview = this.add.sprite(x, y - 20, config[type] || 'zombie-walker').setDepth(4).setAlpha(0.5);
+
+    // Timer text
+    const timerText = this.add.text(x, y + 20, '5', {
+      fontSize: '20px', fontFamily: 'monospace', color: '#ff4444', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(4);
+
+    // Countdown
+    let countdown = 5;
+    const timerEvent = this.time.addEvent({
+      delay: 1000,
+      repeat: 4,
+      callback: () => {
+        countdown--;
+        timerText.setText(countdown.toString());
+        // Pulse marker
+        this.tweens.add({ targets: marker, alpha: 0.1, duration: 200, yoyo: true });
+      },
+    });
+
+    // Spawn after 5 seconds
+    this.time.delayedCall(5000, () => {
+      marker.destroy();
+      markerBorder.destroy();
+      preview.destroy();
+      timerText.destroy();
+
+      if (this.gameOver) return;
+      const zombie = new Zombie(this, x, y, type);
+      zombie.wallsGroup = this.walls;
+      this.zombies.add(zombie);
+      this.zombiesRemaining++;
+    });
+  }
+
   private getSafePlayerSpawn(): { x: number; y: number } {
     const cx = this.mapSize / 2, cy = this.mapSize / 2;
     for (let r = 0; r < 300; r += 20) {
