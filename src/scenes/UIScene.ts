@@ -181,7 +181,7 @@ export class UIScene extends Phaser.Scene {
     // Background
     this.utilityBarGfx.clear();
     this.utilityBarGfx.fillStyle(0x000000, 0.5);
-    this.utilityBarGfx.fillRoundedRect(centerX - 115, utilY - 22, 230, 44, 6);
+    this.utilityBarGfx.fillRoundedRect(centerX - 120, utilY - 22, 280, 44, 6);
 
     // Update positions + text
     this.bandageIcon.setPosition(centerX - 80, utilY);
