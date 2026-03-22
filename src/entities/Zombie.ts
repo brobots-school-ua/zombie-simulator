@@ -88,6 +88,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   private arms: Phaser.GameObjects.Sprite;
   private auraDamageTimer: number = 0;
   private blinkTimer: number = 0;
+  private auraGfx: Phaser.GameObjects.Graphics | null = null;
 
   // Flag for kamikaze — exploded on contact (GameScene checks this)
   explodeOnContact = false;
@@ -128,6 +129,11 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
 
     this.hpBar = scene.add.graphics();
     this.hpBar.setDepth(6);
+
+    if (type === 'radioactive') {
+      this.auraGfx = scene.add.graphics();
+      this.auraGfx.setDepth(3);
+    }
   }
 
   wallsGroup: Phaser.Physics.Arcade.StaticGroup | null = null;
@@ -181,12 +187,20 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
 
     if (this.attackCooldown > 0) this.attackCooldown -= delta;
 
-    // Radioactive aura — 5 HP/sec to player if close
-    if (this.zombieType === 'radioactive' && dist < 60) {
-      this.auraDamageTimer += delta;
-      if (this.auraDamageTimer >= 1000) {
-        this.auraDamageTimer = 0;
-        player.takeDamage(5);
+    // Radioactive aura — visual + 10 HP/sec to player if close
+    if (this.zombieType === 'radioactive' && this.auraGfx) {
+      this.auraGfx.clear();
+      this.auraGfx.fillStyle(0x33ff33, 0.08);
+      this.auraGfx.fillCircle(this.x, this.y, 100);
+      this.auraGfx.lineStyle(1, 0x33ff33, 0.25);
+      this.auraGfx.strokeCircle(this.x, this.y, 100);
+
+      if (dist < 100) {
+        this.auraDamageTimer += delta;
+        if (this.auraDamageTimer >= 500) {
+          this.auraDamageTimer = 0;
+          player.takeDamage(5);
+        }
       }
     }
 
@@ -253,6 +267,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   destroy(fromScene?: boolean) {
     if (this.hpBar) this.hpBar.destroy();
     if (this.arms) this.arms.destroy();
+    if (this.auraGfx) this.auraGfx.destroy();
     super.destroy(fromScene);
   }
 }

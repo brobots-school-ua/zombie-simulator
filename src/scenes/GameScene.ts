@@ -139,11 +139,14 @@ export class GameScene extends Phaser.Scene {
     this.events.once('player-died', () => {
       if (this.gameOver) return;
       this.gameOver = true;
+      const data = { score: this.player.score, kills: this.player.kills, wave: this.wave };
       leaderboard.saveResult(this.player.score, this.wave);
       audioManager.stopGameMusic(1.5);
-      const data = { score: this.player.score, kills: this.player.kills, wave: this.wave };
-      this.scene.stop('UIScene');
-      this.scene.start('GameOverScene', data);
+      // Delay transition to avoid crash inside physics callback
+      this.time.delayedCall(100, () => {
+        this.scene.stop('UIScene');
+        this.scene.start('GameOverScene', data);
+      });
     });
 
     audioManager.resume();
@@ -186,7 +189,7 @@ export class GameScene extends Phaser.Scene {
     this.player.sessionCoins += z.coinValue;
 
     // Kamikaze explodes when killed by bullets
-    if (z.explodeOnDeath && z.active) {
+    if (z.explodeOnDeath) {
       const dist = Phaser.Math.Distance.Between(z.x, z.y, this.player.x, this.player.y);
       if (dist < 40) {
         this.player.takeDamage(35);
