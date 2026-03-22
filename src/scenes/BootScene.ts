@@ -577,6 +577,79 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('zombie-tank-arms', 14, 28);
     g.clear();
 
+    // === ZOMBIE RADIOACTIVE — glowing green, toxic ===
+    g.fillStyle(0x33ff33, 0.15);
+    g.fillCircle(18, 18, 18);
+    g.fillStyle(0x22cc22, 0.2);
+    g.fillCircle(18, 18, 15);
+    g.fillStyle(0x2a6a1a);
+    g.fillCircle(18, 18, 12);
+    g.fillStyle(0x33882a);
+    g.fillCircle(18, 18, 10);
+    g.fillStyle(0x44ff44, 0.6);
+    g.fillCircle(12, 22, 3);
+    g.fillCircle(24, 14, 2.5);
+    g.fillCircle(20, 24, 2);
+    g.fillStyle(0xccff00, 0.5);
+    g.fillCircle(18, 16, 3);
+    g.fillStyle(0x88ff88);
+    g.fillCircle(14, 14, 3);
+    g.fillCircle(22, 14, 3);
+    g.fillStyle(0x44ff44);
+    g.fillCircle(14, 14, 1.5);
+    g.fillCircle(22, 14, 1.5);
+    g.generateTexture('zombie-radioactive', 36, 36);
+    g.clear();
+
+    // Radioactive arms
+    g.fillStyle(0x33882a);
+    g.fillRect(0, 4, 8, 4);
+    g.fillRect(0, 16, 8, 4);
+    g.fillStyle(0x44ff44, 0.4);
+    g.fillCircle(7, 6, 2);
+    g.fillCircle(7, 18, 2);
+    g.generateTexture('zombie-radioactive-arms', 10, 24);
+    g.clear();
+
+    // Toxic puddle
+    g.fillStyle(0x33ff33, 0.3);
+    g.fillCircle(20, 20, 20);
+    g.fillStyle(0x22cc22, 0.2);
+    g.fillCircle(20, 20, 14);
+    g.fillStyle(0x44ff44, 0.15);
+    g.fillCircle(15, 15, 8);
+    g.generateTexture('toxic-puddle', 40, 40);
+    g.clear();
+
+    // === ZOMBIE KAMIKAZE — red, explosive ===
+    g.fillStyle(0x882222);
+    g.fillCircle(14, 14, 12);
+    g.fillStyle(0xaa3333);
+    g.fillCircle(14, 14, 10);
+    g.fillStyle(0x554444);
+    g.fillRect(8, 10, 12, 8);
+    g.fillStyle(0xcc4444, 0.5);
+    g.fillRect(9, 11, 10, 6);
+    g.fillStyle(0xff0000);
+    g.fillCircle(14, 13, 2);
+    g.fillStyle(0xffff00);
+    g.fillCircle(14, 13, 1);
+    g.fillStyle(0xff6600);
+    g.fillCircle(10, 10, 2.5);
+    g.fillCircle(18, 10, 2.5);
+    g.fillStyle(0xff0000);
+    g.fillCircle(10, 10, 1);
+    g.fillCircle(18, 10, 1);
+    g.generateTexture('zombie-kamikaze', 28, 28);
+    g.clear();
+
+    // Kamikaze arms
+    g.fillStyle(0xaa3333);
+    g.fillRect(0, 3, 8, 3);
+    g.fillRect(0, 14, 8, 3);
+    g.generateTexture('zombie-kamikaze-arms', 10, 20);
+    g.clear();
+
     // === BULLET (tracer style — elongated capsule with glow) ===
     // Outer glow
     g.fillStyle(0xffff00, 0.3);

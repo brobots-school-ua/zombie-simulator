@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { Player } from './Player';
 
 // Zombie types configuration
-export type ZombieType = 'walker' | 'runner' | 'tank';
+export type ZombieType = 'walker' | 'runner' | 'tank' | 'radioactive' | 'kamikaze';
 
 const ZOMBIE_CONFIG: Record<ZombieType, {
   texture: string;
@@ -17,7 +17,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
   walker: {
     texture: 'zombie-walker',
     armsTexture: 'zombie-walker-arms',
-    hp: 30,
+    hp: 50,
     speed: 60,
     damage: 10,
     score: 10,
@@ -27,7 +27,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
   runner: {
     texture: 'zombie-runner',
     armsTexture: 'zombie-runner-arms',
-    hp: 20,
+    hp: 35,
     speed: 140,
     damage: 8,
     score: 20,
@@ -44,9 +44,29 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     coins: 3,
     detectionRange: 250,
   },
+  radioactive: {
+    texture: 'zombie-radioactive',
+    armsTexture: 'zombie-radioactive-arms',
+    hp: 40,
+    speed: 50,
+    damage: 5,
+    score: 30,
+    coins: 2,
+    detectionRange: 300,
+  },
+  kamikaze: {
+    texture: 'zombie-kamikaze',
+    armsTexture: 'zombie-kamikaze-arms',
+    hp: 15,
+    speed: 180,
+    damage: 0, // explosion handles damage
+    score: 25,
+    coins: 2,
+    detectionRange: 9999, // sees across entire map
+  },
 };
 
-// Zombie entity with simple AI
+// Zombie entity with AI
 export class Zombie extends Phaser.Physics.Arcade.Sprite {
   hp: number;
   maxHp: number;
@@ -61,11 +81,20 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   private wanderTimer: number = 0;
   private aggroed: boolean = false;
   private stuckTimer: number = 0;
-  private slideDir: number = 1; // 1 or -1, wall slide direction
+  private slideDir: number = 1;
   private lastX: number = 0;
   private lastY: number = 0;
   private hpBar: Phaser.GameObjects.Graphics;
   private arms: Phaser.GameObjects.Sprite;
+  private auraDamageTimer: number = 0;
+  private blinkTimer: number = 0;
+
+  // Flag for kamikaze — exploded on contact (GameScene checks this)
+  explodeOnContact = false;
+  // Flag for radioactive — leave puddle on death (GameScene checks this)
+  leavePuddle = false;
+  // Kamikaze explodes when killed by bullets too
+  explodeOnDeath = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number, type: ZombieType = 'walker') {
     const config = ZOMBIE_CONFIG[type];
@@ -80,34 +109,41 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     this.coinValue = config.coins;
     this.detectionRange = config.detectionRange;
 
+    if (type === 'kamikaze') {
+      this.explodeOnContact = true;
+      this.explodeOnDeath = true;
+      this.aggroed = true; // always aggro
+    }
+    if (type === 'radioactive') {
+      this.leavePuddle = true;
+    }
+
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(5);
 
-    // Arms sprite — rotates toward movement direction, no hitbox
     this.arms = scene.add.sprite(x, y, config.armsTexture);
     this.arms.setOrigin(0, 0.5);
-    this.arms.setDepth(4); // behind body
+    this.arms.setDepth(4);
 
-    // HP bar above zombie
     this.hpBar = scene.add.graphics();
     this.hpBar.setDepth(6);
   }
 
-  // Reference to walls group, set by GameScene
   wallsGroup: Phaser.Physics.Arcade.StaticGroup | null = null;
 
   update(player: Player, time: number, delta: number) {
     if (!this.active) return;
 
     const dist = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
-    const canSeePlayer = dist < this.detectionRange && this.hasLineOfSight(player);
 
-    // Once aggro, stay aggro until player leaves detection range
-    if (canSeePlayer) {
+    // Kamikaze is always aggro
+    if (this.zombieType === 'kamikaze') {
       this.aggroed = true;
-    } else if (dist > this.detectionRange) {
-      this.aggroed = false;
+    } else {
+      const canSeePlayer = dist < this.detectionRange && this.hasLineOfSight(player);
+      if (canSeePlayer) this.aggroed = true;
+      else if (dist > this.detectionRange) this.aggroed = false;
     }
 
     let moveAngle: number;
@@ -115,18 +151,13 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     if (this.aggroed) {
       moveAngle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
 
-      // Detect if stuck (barely moved since last frame)
+      // Wall avoidance
       const moved = Math.abs(this.x - this.lastX) + Math.abs(this.y - this.lastY);
       if (moved < 0.5 && dist > 40) {
         this.stuckTimer += delta;
         if (this.stuckTimer > 200) {
-          // Slide perpendicular to direction to get around wall
           moveAngle += (Math.PI / 2) * this.slideDir;
-          // Flip slide direction periodically
-          if (this.stuckTimer > 800) {
-            this.slideDir *= -1;
-            this.stuckTimer = 200;
-          }
+          if (this.stuckTimer > 800) { this.slideDir *= -1; this.stuckTimer = 200; }
         }
       } else {
         this.stuckTimer = 0;
@@ -134,46 +165,49 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
       this.lastX = this.x;
       this.lastY = this.y;
 
-      this.setVelocity(
-        Math.cos(moveAngle) * this.speed,
-        Math.sin(moveAngle) * this.speed
-      );
+      this.setVelocity(Math.cos(moveAngle) * this.speed, Math.sin(moveAngle) * this.speed);
     } else {
-      // Wander randomly
       this.wanderTimer -= delta;
       if (this.wanderTimer <= 0) {
         this.wanderAngle = Math.random() * Math.PI * 2;
         this.wanderTimer = 2000 + Math.random() * 3000;
       }
       moveAngle = this.wanderAngle;
-      const wanderSpeed = this.speed * 0.3;
-      this.setVelocity(
-        Math.cos(moveAngle) * wanderSpeed,
-        Math.sin(moveAngle) * wanderSpeed
-      );
+      this.setVelocity(Math.cos(moveAngle) * this.speed * 0.3, Math.sin(moveAngle) * this.speed * 0.3);
     }
 
-    // Body does NOT rotate — stays upright like a ball with eyes
-    // Only arms rotate toward movement direction
     this.arms.setPosition(this.x, this.y);
     this.arms.setRotation(moveAngle);
 
-    // Cooldown for attacks
-    if (this.attackCooldown > 0) {
-      this.attackCooldown -= delta;
+    if (this.attackCooldown > 0) this.attackCooldown -= delta;
+
+    // Radioactive aura — damages player if close
+    if (this.zombieType === 'radioactive' && dist < 60) {
+      this.auraDamageTimer += delta;
+      if (this.auraDamageTimer >= 500) { // 2 HP per second (every 500ms = 1 HP)
+        this.auraDamageTimer = 0;
+        player.takeDamage(1);
+      }
     }
 
-    // Draw HP bar
+    // Kamikaze blink effect
+    if (this.zombieType === 'kamikaze') {
+      this.blinkTimer += delta;
+      if (this.blinkTimer > 300) {
+        this.blinkTimer = 0;
+        this.setTint(this.tintTopLeft === 0xff0000 ? 0xffffff : 0xff0000);
+      }
+    }
+
+    // HP bar
     this.hpBar.clear();
     const barWidth = 30;
     const barHeight = 4;
     const barX = this.x - barWidth / 2;
     const barY = this.y - this.displayHeight / 2 - 8;
     const hpPercent = this.hp / this.maxHp;
-    // Background
     this.hpBar.fillStyle(0x000000, 0.6);
     this.hpBar.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
-    // HP fill
     const color = hpPercent > 0.5 ? 0x44ff44 : hpPercent > 0.25 ? 0xffaa00 : 0xff3333;
     this.hpBar.fillStyle(color);
     this.hpBar.fillRect(barX, barY, barWidth * hpPercent, barHeight);
@@ -181,7 +215,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
 
   canAttack(): boolean {
     if (this.attackCooldown <= 0) {
-      this.attackCooldown = 1000; // 1 second cooldown
+      this.attackCooldown = 1000;
       return true;
     }
     return false;
@@ -189,20 +223,14 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
 
   private hasLineOfSight(player: Player): boolean {
     if (!this.wallsGroup) return true;
-
     const walls = this.wallsGroup.getChildren() as Phaser.Physics.Arcade.Sprite[];
     const line = new Phaser.Geom.Line(this.x, this.y, player.x, player.y);
-
     for (const wall of walls) {
       const wallRect = new Phaser.Geom.Rectangle(
-        wall.x - wall.displayWidth / 2,
-        wall.y - wall.displayHeight / 2,
-        wall.displayWidth,
-        wall.displayHeight
+        wall.x - wall.displayWidth / 2, wall.y - wall.displayHeight / 2,
+        wall.displayWidth, wall.displayHeight
       );
-      if (Phaser.Geom.Intersects.LineToRectangle(line, wallRect)) {
-        return false;
-      }
+      if (Phaser.Geom.Intersects.LineToRectangle(line, wallRect)) return false;
     }
     return true;
   }
@@ -215,17 +243,16 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
         if (this.active) this.clearTint();
       });
     }
-
     if (this.hp <= 0) {
       this.destroy();
-      return true; // zombie died
+      return true;
     }
     return false;
   }
 
   destroy(fromScene?: boolean) {
-    if (this.hpBar) { this.hpBar.destroy(); }
-    if (this.arms) { this.arms.destroy(); }
+    if (this.hpBar) this.hpBar.destroy();
+    if (this.arms) this.arms.destroy();
     super.destroy(fromScene);
   }
 }

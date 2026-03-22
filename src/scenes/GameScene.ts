@@ -59,11 +59,21 @@ export class GameScene extends Phaser.Scene {
 
     this.physics.add.collider(this.player, this.walls);
     this.physics.add.collider(this.zombies, this.walls);
-    // Zombies collide with player (push against, don't pass through)
+    // Zombies collide with player
     this.physics.add.collider(this.player, this.zombies, (_player, zombie) => {
       if (this.gameOver) return;
       const z = zombie as Zombie;
-      if (z.active && z.canAttack()) {
+      if (!z.active) return;
+
+      // Kamikaze explodes on contact!
+      if (z.explodeOnContact) {
+        this.doAoeDamage(z.x, z.y, 70, 35);
+        this.onZombieKilled(z);
+        z.destroy();
+        return;
+      }
+
+      if (z.canAttack()) {
         this.player.takeDamage(z.damage);
       }
     });
@@ -174,6 +184,48 @@ export class GameScene extends Phaser.Scene {
     this.zombiesRemaining--;
     shop.addCoins(z.coinValue);
     this.player.sessionCoins += z.coinValue;
+
+    // Kamikaze explodes when killed by bullets (smaller explosion)
+    if (z.explodeOnDeath && z.active) {
+      const dist = Phaser.Math.Distance.Between(z.x, z.y, this.player.x, this.player.y);
+      if (dist < 40) {
+        this.player.takeDamage(15);
+      }
+      // Visual explosion
+      const expl = this.add.circle(z.x, z.y, 40, 0xff3300, 0.5).setDepth(9);
+      this.tweens.add({ targets: expl, alpha: 0, scale: 1.5, duration: 300, onComplete: () => expl.destroy() });
+    }
+
+    // Radioactive leaves toxic puddle on death
+    if (z.leavePuddle) {
+      this.createToxicPuddle(z.x, z.y);
+    }
+  }
+
+  private createToxicPuddle(x: number, y: number) {
+    const puddle = this.add.image(x, y, 'toxic-puddle').setDepth(1).setAlpha(0.8);
+    const puddleRadius = 40;
+    const duration = 5000;
+    let elapsed = 0;
+
+    // Damage timer
+    const damageEvent = this.time.addEvent({
+      delay: 500,
+      loop: true,
+      callback: () => {
+        elapsed += 500;
+        if (elapsed >= duration || this.gameOver) {
+          damageEvent.destroy();
+          puddle.destroy();
+          return;
+        }
+        const dist = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y);
+        if (dist < puddleRadius) {
+          this.player.takeDamage(1); // ~2 HP/sec
+        }
+        puddle.setAlpha(0.8 * (1 - elapsed / duration));
+      },
+    });
   }
 
   private fireWeapon() {
@@ -274,9 +326,36 @@ export class GameScene extends Phaser.Scene {
 
   private getRandomZombieType(): ZombieType {
     const r = Math.random();
-    if (this.wave >= 8) { if (r < 0.35) return 'tank'; if (r < 0.70) return 'runner'; return 'walker'; }
-    if (this.wave >= 5) { if (r < 0.25) return 'tank'; if (r < 0.60) return 'runner'; return 'walker'; }
-    if (this.wave >= 3) { if (r < 0.10) return 'tank'; if (r < 0.40) return 'runner'; return 'walker'; }
+    if (this.wave >= 8) {
+      // 20% walker, 20% runner, 25% tank, 15% radioactive, 20% kamikaze
+      if (r < 0.20) return 'kamikaze';
+      if (r < 0.35) return 'radioactive';
+      if (r < 0.60) return 'tank';
+      if (r < 0.80) return 'runner';
+      return 'walker';
+    }
+    if (this.wave >= 5) {
+      // 25% walker, 25% runner, 20% tank, 15% radioactive, 15% kamikaze
+      if (r < 0.15) return 'kamikaze';
+      if (r < 0.30) return 'radioactive';
+      if (r < 0.50) return 'tank';
+      if (r < 0.75) return 'runner';
+      return 'walker';
+    }
+    if (this.wave >= 4) {
+      // 35% walker, 30% runner, 15% tank, 15% radioactive, 5% kamikaze
+      if (r < 0.05) return 'kamikaze';
+      if (r < 0.20) return 'radioactive';
+      if (r < 0.35) return 'tank';
+      if (r < 0.65) return 'runner';
+      return 'walker';
+    }
+    if (this.wave >= 3) {
+      // 60% walker, 30% runner, 10% tank
+      if (r < 0.10) return 'tank';
+      if (r < 0.40) return 'runner';
+      return 'walker';
+    }
     return 'walker';
   }
 
