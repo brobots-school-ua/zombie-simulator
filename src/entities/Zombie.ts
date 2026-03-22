@@ -141,7 +141,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
 
     if (type === 'boss') {
       this.setScale(2);
-      (this.body as Phaser.Physics.Arcade.Body).setSize(32, 32).setOffset(0, 0);
+      (this.body as Phaser.Physics.Arcade.Body).setSize(36, 36).setOffset(2, 2);
     }
 
     this.arms = scene.add.sprite(x, y, config.armsTexture);

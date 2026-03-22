@@ -1,93 +1,34 @@
-# Fix Plan — Round 25: Admin Wave Skip + Boss Wave 5
+# Fix Plan — Round 26: Boss hitbox + preview + zombie overlap push
 
-## Фіча 1: Адмін — вибір хвилі
-**Файли:** `AdminConsole.ts`, `GameScene.ts`
+## Bug 1: Boss preview — показує текстуру walker замість boss
+**Fix:** Додати `boss: 'zombie-boss'` в словник `textures` в `spawnWithMarker()`.
+**Файл:** `src/scenes/GameScene.ts`
 
-### AdminConsole.ts:
-- Додати секцію "Set Wave" між max ammo та spawn zombie
-- Input для номера хвилі + кнопка "Set Wave"
-- При натисканні викликає `gs.adminSetWave(waveNumber)`
+## Bug 2: Boss hitbox невірний
+**Fix:** Збільшити hitbox боса під scale 2x.
+**Файл:** `src/entities/Zombie.ts`
 
-### GameScene.ts — новий метод `adminSetWave(wave)`:
-1. Вбити всіх живих зомбі БЕЗ нарахування монет/очків (просто destroy)
-2. Поставити `this.wave = wave - 1` (бо spawnWave робить wave++ перед спавном... ні, wave++ в update, а spawnWave просто спавнить)
-3. Скасувати поточний waveDelay якщо є
-4. Поставити `this.wave = wave`, `this.zombiesRemaining = 0`, `this.waveDelay = false`
-5. Викликати `spawnWave()` для нової хвилі
+## Bug 3: Зомбі заходять один в одного
+**НЕ collider** — бо тоді вони не зможуть ходити поруч і будуть відштовхуватися постійно.
 
----
+**Підхід:** М'яке виштовхування в `GameScene.update()`:
+- Кожен кадр перевіряємо пари зомбі
+- Якщо відстань між центрами < мінімальна (наприклад 20px — це означає вони глибоко один в одному)
+- Плавно відштовхуємо обох в протилежні сторони (невелика сила)
+- Це дозволяє зомбі тертися один об одного (на дистанції 20-30px), але не стояти в одній точці
 
-## Фіча 2: Бос на хвилі 5
-**Файли:** `Zombie.ts`, `GameScene.ts`, `BootScene.ts`
+**Файл:** `src/scenes/GameScene.ts` → в `update()` додати цикл separation
 
-### Дизайн боса — "Titan":
-- **Вигляд:** Великий зомбі (2x розмір звичайного), темно-фіолетовий/бордовий, з червоними очима
-- **HP:** 500
-- **Швидкість:** 45 (повільний але невпинний)
-- **Damage:** 30 (удар)
-- **Detection range:** 9999 (бачить всю карту, як камікадзе)
-- **Score:** 200
-- **Coins:** 10
-- **Спеціальна здібність:** Кожні 3 секунди робить "stomp" — AoE дамаг 15 в радіусі 120px (земля трясеться)
-
-### Зміни по файлах:
-
-**Zombie.ts:**
-- Додати тип `'boss'` в ZombieType
-- Додати конфіг боса в ZOMBIE_CONFIG
-- В constructor: якщо boss → `setScale(2)`, оновити hitbox
-- В update: логіка stomp (таймер 3сек → AoE дамаг + візуальний ефект)
-
-**BootScene.ts:**
-- Згенерувати текстуру `zombie-boss` та `zombie-boss-arms` (великий, темний)
-
-**GameScene.ts:**
-- В `spawnWave()`: якщо wave === 5, додати 1 боса разом зі звичайними зомбі
-- Додати `'boss'` в zombie types для адмін-панелі
-
-**AdminConsole.ts:**
-- Додати boss в ZOMBIE_TYPES масив
-
----
-
-## Фіча 3: Бестіарій (Bestiary)
-**Файли:** новий `src/systems/BestiaryManager.ts`, `GameScene.ts`, `MenuScene.ts`
-
-### Ідея:
-Кнопка "BESTIARY" в головному меню (поряд з SHOP). Відкриває екран з картками зомбі яких гравець вже вбивав. Невбиті — заблоковані (силует + "???").
-
-### BestiaryManager.ts (localStorage):
-- Зберігає убитих типів зомбі: `zombie-sim-bestiary` → `["walker", "runner", ...]`
-- `unlock(type)` — додати тип
-- `isUnlocked(type)` → boolean
-
-### GameScene.ts:
-- В `onZombieKilled()` додати: `bestiary.unlock(z.zombieType)`
-
-### MenuScene.ts:
-- Кнопка "BESTIARY" (80x80, як SHOP/VOL) внизу зліва
-- При натисканні — overlay з картками
-
-### Картка зомбі (unlocked):
 ```
-[спрайт]  Walker
-HP: 50  |  Damage: 10  |  Speed: Slow
-Special: —
+for кожну пару зомбі:
+  dist = відстань між центрами
+  if dist < 20:
+    angle = кут від одного до іншого
+    push = (20 - dist) * 2  // чим глибше — тим сильніше
+    zombie1 рухається від zombie2
+    zombie2 рухається від zombie1
 ```
 
-### Картка зомбі (locked):
-```
-[темний силует]  ???
-```
-
-### Speed відображення:
-- ≤50 → "Slow"
-- 51-100 → "Normal"
-- 101-150 → "Fast"
-- >150 → "Very Fast"
-
-### Спец характеристики:
-- **Walker / Runner / Tank:** — (нічого)
-- **Radioactive:** "Aura: 10 dmg/sec (100px)" + "Death: toxic puddle 5 sec"
-- **Kamikaze:** "Contact: explosion 50 dmg (70px)" + "Death: explosion 35 dmg (40px)"
-- **Boss (Titan):** "Stomp: 15 AoE dmg every 3 sec (120px)"
+## Файли для зміни:
+- `src/scenes/GameScene.ts` — фікси 1, 3
+- `src/entities/Zombie.ts` — фікс 2

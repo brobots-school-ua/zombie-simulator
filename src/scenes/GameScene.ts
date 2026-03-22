@@ -175,6 +175,26 @@ export class GameScene extends Phaser.Scene {
       this.fireWeapon();
     }
 
+    // Soft separation — push zombies apart only when deeply overlapping
+    const allZombies = this.zombies.getChildren() as Zombie[];
+    for (let i = 0; i < allZombies.length; i++) {
+      const a = allZombies[i];
+      if (!a.active) continue;
+      for (let j = i + 1; j < allZombies.length; j++) {
+        const b = allZombies[j];
+        if (!b.active) continue;
+        const dist = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
+        if (dist < 20 && dist > 0) {
+          const angle = Phaser.Math.Angle.Between(a.x, a.y, b.x, b.y);
+          const push = (20 - dist) * 2;
+          a.x -= Math.cos(angle) * push * 0.5;
+          a.y -= Math.sin(angle) * push * 0.5;
+          b.x += Math.cos(angle) * push * 0.5;
+          b.y += Math.sin(angle) * push * 0.5;
+        }
+      }
+    }
+
     // Wave check
     if (this.zombiesRemaining <= 0 && !this.waveDelay) {
       this.waveDelay = true;
@@ -360,7 +380,7 @@ export class GameScene extends Phaser.Scene {
 
     const textures: Record<string, string> = {
       walker: 'zombie-walker', runner: 'zombie-runner', tank: 'zombie-tank',
-      radioactive: 'zombie-radioactive', kamikaze: 'zombie-kamikaze',
+      radioactive: 'zombie-radioactive', kamikaze: 'zombie-kamikaze', boss: 'zombie-boss',
     };
     const preview = this.add.sprite(x, y - 20, textures[type] || 'zombie-walker').setDepth(4).setAlpha(0.5);
 
