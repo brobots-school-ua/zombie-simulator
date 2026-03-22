@@ -283,39 +283,69 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  // Admin spawn: marker + timer + zombie
-  adminSpawnZombie(type: ZombieType, x: number, y: number) {
-    // Red marker circle
+  // Admin spawn: multiple zombies around player
+  adminSpawnZombies(type: ZombieType, count: number) {
+    const px = this.player.x;
+    const py = this.player.y;
+
+    // Calculate positions: first at player, rest in a circle around
+    const positions: { x: number; y: number }[] = [];
+    positions.push({ x: px, y: py });
+    for (let i = 1; i < count; i++) {
+      const angle = ((i - 1) / (count - 1)) * Math.PI * 2;
+      positions.push({
+        x: px + Math.cos(angle) * 80,
+        y: py + Math.sin(angle) * 80,
+      });
+    }
+
+    // Find safe spot for each and spawn with marker
+    for (const pos of positions) {
+      const safe = this.findSafePosition(pos.x, pos.y);
+      this.spawnWithMarker(type, safe.x, safe.y);
+    }
+  }
+
+  private findSafePosition(x: number, y: number): { x: number; y: number } {
+    if (!this.isPositionBlocked(x, y)) return { x, y };
+    for (let r = 64; r <= 320; r += 32) {
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+        const tx = x + Math.cos(a) * r;
+        const ty = y + Math.sin(a) * r;
+        if (tx > 80 && tx < this.mapSize - 80 && ty > 80 && ty < this.mapSize - 80 && !this.isPositionBlocked(tx, ty)) {
+          return { x: tx, y: ty };
+        }
+      }
+    }
+    return { x, y };
+  }
+
+  private spawnWithMarker(type: ZombieType, x: number, y: number) {
     const marker = this.add.circle(x, y, 16, 0xff0000, 0.4).setDepth(3);
     const markerBorder = this.add.circle(x, y, 16).setDepth(3);
     markerBorder.setStrokeStyle(2, 0xff0000, 0.8);
 
-    // Zombie preview image
-    const config: Record<string, string> = {
+    const textures: Record<string, string> = {
       walker: 'zombie-walker', runner: 'zombie-runner', tank: 'zombie-tank',
       radioactive: 'zombie-radioactive', kamikaze: 'zombie-kamikaze',
     };
-    const preview = this.add.sprite(x, y - 20, config[type] || 'zombie-walker').setDepth(4).setAlpha(0.5);
+    const preview = this.add.sprite(x, y - 20, textures[type] || 'zombie-walker').setDepth(4).setAlpha(0.5);
 
-    // Timer text
     const timerText = this.add.text(x, y + 20, '5', {
       fontSize: '20px', fontFamily: 'monospace', color: '#ff4444', fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(4);
 
-    // Countdown
     let countdown = 5;
-    const timerEvent = this.time.addEvent({
+    this.time.addEvent({
       delay: 1000,
       repeat: 4,
       callback: () => {
         countdown--;
         timerText.setText(countdown.toString());
-        // Pulse marker
         this.tweens.add({ targets: marker, alpha: 0.1, duration: 200, yoyo: true });
       },
     });
 
-    // Spawn after 5 seconds
     this.time.delayedCall(5000, () => {
       marker.destroy();
       markerBorder.destroy();

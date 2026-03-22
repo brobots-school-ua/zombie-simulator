@@ -90,7 +90,7 @@ export class AdminConsole {
     this.panel.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
         <h3 style="margin:0; color:#ffaa00; font-size:18px;">ADMIN PANEL</h3>
-        <button id="admin-close" style="background:none; border:1px solid #666; color:#aaa; font-family:monospace; font-size:18px; cursor:pointer; padding:2px 8px; border-radius:3px;">✕</button>
+        <button id="admin-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1; transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='#ff4444';this.style.color='#000'" onmouseout="this.style.background='none';this.style.color='#ff4444'">✕</button>
       </div>
 
       <div style="margin-bottom:12px;">
@@ -191,17 +191,9 @@ export class AdminConsole {
       const gs = this.scene.scene.get('GameScene') as any;
       if (!gs?.player) { msg.textContent = 'Start a game first!'; msg.style.color = '#ff4444'; return; }
       const count = parseInt((this.panel!.querySelector('#admin-spawn-count') as HTMLInputElement).value, 10) || 1;
-      const px = gs.player.x;
-      const py = gs.player.y;
-
-      for (let i = 0; i < Math.min(count, 20); i++) {
-        const offsetX = i === 0 ? 0 : Phaser.Math.Between(-100, 100);
-        const offsetY = i === 0 ? 0 : Phaser.Math.Between(-100, 100);
-        const sx = Phaser.Math.Clamp(px + offsetX, 80, 1920);
-        const sy = Phaser.Math.Clamp(py + offsetY, 80, 1920);
-        gs.adminSpawnZombie(this.selectedZombieType, sx, sy);
-      }
-      msg.textContent = `Spawning ${count}x ${this.selectedZombieType} in 5 sec...`;
+      const clamped = Math.min(count, 20);
+      gs.adminSpawnZombies(this.selectedZombieType, clamped);
+      msg.textContent = `Spawning ${clamped}x ${this.selectedZombieType} in 5 sec...`;
       msg.style.color = '#ff8844';
     });
   }
@@ -249,13 +241,21 @@ export class AdminConsole {
       el.addEventListener('click', () => {
         this.selectedZombieType = (el as HTMLElement).dataset.type as ZombieType;
         this.closeZombiePicker();
-        // Refresh admin panel to show new selection
-        this.closeAdminPanel();
-        this.openAdminPanel();
+        this.updateZombiePreview();
       });
     });
 
     this.pickerOverlay.querySelector('#zpick-cancel')!.addEventListener('click', () => this.closeZombiePicker());
+  }
+
+  private updateZombiePreview() {
+    if (!this.panel) return;
+    const sel = ZOMBIE_TYPES.find(z => z.type === this.selectedZombieType)!;
+    const previewDiv = this.panel.querySelector('#admin-zombie-preview') as HTMLDivElement;
+    if (previewDiv) {
+      previewDiv.style.borderColor = sel.color;
+      previewDiv.innerHTML = `<span style="font-size:10px; color:${sel.color}; text-align:center;">${sel.name}</span>`;
+    }
   }
 
   private closeZombiePicker() {
