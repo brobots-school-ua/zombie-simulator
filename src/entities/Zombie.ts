@@ -151,7 +151,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     } else {
       const canSeePlayer = dist < this.detectionRange && this.hasLineOfSight(player);
       if (canSeePlayer) this.aggroed = true;
-      else if (dist > this.detectionRange) this.aggroed = false;
+      else if (dist > this.detectionRange * 1.5) this.aggroed = false;
     }
 
     let moveAngle: number;
