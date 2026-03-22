@@ -360,9 +360,9 @@ export class MenuScene extends Phaser.Scene {
       { type: 'walker', name: 'Walker', hp: 50, damage: 10, speed: 60, special: '' },
       { type: 'runner', name: 'Runner', hp: 35, damage: 8, speed: 140, special: '' },
       { type: 'tank', name: 'Tank', hp: 100, damage: 25, speed: 35, special: '' },
-      { type: 'radioactive', name: 'Radioactive', hp: 40, damage: 5, speed: 50, special: 'Aura: 10 dmg/sec (100px)\nDeath: toxic puddle (5 sec)' },
-      { type: 'kamikaze', name: 'Kamikaze', hp: 15, damage: 0, speed: 180, special: 'Contact: explosion 50 dmg (70px)\nDeath: explosion 35 dmg (40px)' },
-      { type: 'boss', name: 'Titan', hp: 500, damage: 30, speed: 45, special: 'Stomp: 15 AoE dmg / 3 sec (120px)\nAlways aggro, 2x size' },
+      { type: 'radioactive', name: 'Radioactive', hp: 40, damage: 5, speed: 50, special: 'Aura: 10 dmg/sec, medium range\nDeath: toxic puddle for 5 sec' },
+      { type: 'kamikaze', name: 'Kamikaze', hp: 15, damage: 0, speed: 180, special: 'Contact: big explosion, 50 dmg\nDeath: small explosion, 35 dmg' },
+      { type: 'boss', name: 'Titan', hp: 500, damage: 30, speed: 45, special: 'Stomp: 15 dmg, large range\nAlways aggro, huge size' },
     ];
 
     const speedLabel = (s: number) => s <= 50 ? 'Slow' : s <= 100 ? 'Normal' : s <= 150 ? 'Fast' : 'Very Fast';

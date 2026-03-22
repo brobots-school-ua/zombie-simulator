@@ -101,6 +101,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   private auraDamageTimer: number = 0;
   private blinkTimer: number = 0;
   private stompTimer: number = 0;
+  private stompCharging: boolean = false;
   private auraGfx: Phaser.GameObjects.Graphics | null = null;
 
   // Flag for kamikaze — exploded on contact (GameScene checks this)
@@ -277,21 +278,41 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
       }
     }
 
-    // Boss stomp — AoE 15 dmg every 3 sec in 120px radius
+    // Boss stomp — only when player in range, 1 sec charge animation
     if (this.zombieType === 'boss') {
-      this.stompTimer += delta;
-      if (this.stompTimer >= 3000) {
-        this.stompTimer = 0;
-        if (dist < 120) {
-          player.takeDamage(15);
+      if (!this.stompCharging) {
+        this.stompTimer += delta;
+        if (this.stompTimer >= 3000 && dist < 120) {
+          // Start charging — stop and animate
+          this.stompCharging = true;
+          this.stompTimer = 0;
+          this.setVelocity(0, 0);
+          this.setTint(0x8800aa);
+          this.scene.tweens.add({
+            targets: this, scaleY: 1.5, duration: 500, yoyo: true, ease: 'Quad.easeIn',
+            onComplete: () => {
+              if (!this.active) return;
+              this.stompCharging = false;
+              this.clearTint();
+              this.setScale(2);
+              // Stomp hit
+              const stompDist = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
+              if (stompDist < 120) {
+                player.takeDamage(15);
+              }
+              // Visual shockwave
+              const ring = this.scene.add.circle(this.x, this.y, 10, 0x8800aa, 0.3).setDepth(3);
+              this.scene.tweens.add({
+                targets: ring, radius: 120, alpha: 0, duration: 400,
+                onUpdate: () => { ring.setRadius(ring.radius); },
+                onComplete: () => ring.destroy(),
+              });
+            },
+          });
         }
-        // Visual shockwave
-        const ring = this.scene.add.circle(this.x, this.y, 10, 0x8800aa, 0.3).setDepth(3);
-        this.scene.tweens.add({
-          targets: ring, radius: 120, alpha: 0, duration: 400,
-          onUpdate: () => { ring.setRadius(ring.radius); },
-          onComplete: () => ring.destroy(),
-        });
+      } else {
+        // While charging — stay still
+        this.setVelocity(0, 0);
       }
     }
 

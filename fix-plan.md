@@ -1,34 +1,39 @@
-# Fix Plan — Round 26: Boss hitbox + preview + zombie overlap push
+# Fix Plan — Round 27: Bestiary text + Boss stomp rework
 
-## Bug 1: Boss preview — показує текстуру walker замість boss
-**Fix:** Додати `boss: 'zombie-boss'` в словник `textures` в `spawnWithMarker()`.
-**Файл:** `src/scenes/GameScene.ts`
+## Зміна 1: Бестіарій — прибрати пікселі, писати словами
+**Файл:** `src/scenes/MenuScene.ts` → `openBestiary()`
 
-## Bug 2: Boss hitbox невірний
-**Fix:** Збільшити hitbox боса під scale 2x.
-**Файл:** `src/entities/Zombie.ts`
+Замінити:
+- "Aura: 10 dmg/sec (100px)" → "Aura: 10 dmg/sec, medium range"
+- "Death: toxic puddle (5 sec)" → "Death: toxic puddle for 5 sec"
+- "Contact: explosion 50 dmg (70px)" → "Contact: big explosion, 50 dmg"
+- "Death: explosion 35 dmg (40px)" → "Death: small explosion, 35 dmg"
+- "Stomp: 15 AoE dmg / 3 sec (120px)" → "Stomp: 15 dmg, large range"
+- "Always aggro, 2x size" → "Always aggro, huge size"
 
-## Bug 3: Зомбі заходять один в одного
-**НЕ collider** — бо тоді вони не зможуть ходити поруч і будуть відштовхуватися постійно.
+## Зміна 2: Boss stomp — тільки коли гравець в радіусі + анімація підготовки
+**Файл:** `src/entities/Zombie.ts` → boss блок в `update()`
 
-**Підхід:** М'яке виштовхування в `GameScene.update()`:
-- Кожен кадр перевіряємо пари зомбі
-- Якщо відстань між центрами < мінімальна (наприклад 20px — це означає вони глибоко один в одному)
-- Плавно відштовхуємо обох в протилежні сторони (невелика сила)
-- Це дозволяє зомбі тертися один об одного (на дистанції 20-30px), але не стояти в одній точці
+Зараз: бос штампує кожні 3 сек незалежно від дистанції.
 
-**Файл:** `src/scenes/GameScene.ts` → в `update()` додати цикл separation
+Нова логіка:
+1. Таймер стомпу тікає завжди (кожні 3 сек)
+2. Коли таймер готовий І гравець в радіусі 120px:
+   - Бос зупиняється (velocity = 0)
+   - Починається анімація підготовки 1 сек: бос піднімає "ногу" — спрайт стискається по Y (scaleY 2→1.5) і тінтується фіолетовим
+   - Через 1 сек — stomp! Удар, шкода, шоквейв
+   - Бос повертається до нормального стану (scaleY 2) і продовжує рухатися
 
-```
-for кожну пару зомбі:
-  dist = відстань між центрами
-  if dist < 20:
-    angle = кут від одного до іншого
-    push = (20 - dist) * 2  // чим глибше — тим сильніше
-    zombie1 рухається від zombie2
-    zombie2 рухається від zombie1
-```
+## Зміна 3: Weapon balance
+**Файл:** `src/systems/WeaponConfig.ts`
 
-## Файли для зміни:
-- `src/scenes/GameScene.ts` — фікси 1, 3
-- `src/entities/Zombie.ts` — фікс 2
+- **Minigun:** damage 6→12, fireRate 50→33ms (30 пострілів/сек, було 20)
+  - DPS: 120 → 360
+- **Rocket Launcher:** name "Launcher"→"Rocket Launcher", damage 50→100, aoeRadius 80→96 (1.2x)
+
+Всі назви вже з великої букви (Rifle, Shotgun, Sniper, Minigun).
+
+**Файли для зміни:**
+- `src/scenes/MenuScene.ts`
+- `src/entities/Zombie.ts`
+- `src/systems/WeaponConfig.ts`
