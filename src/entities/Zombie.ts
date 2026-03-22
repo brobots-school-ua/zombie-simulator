@@ -81,6 +81,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   private wanderTimer: number = 0;
   private aggroed: boolean = false;
   private stuckTimer: number = 0;
+  private slideDir: number = Math.random() < 0.5 ? 1 : -1;
   private lastX: number = 0;
   private lastY: number = 0;
   private avoidAngle: number = 0;
@@ -158,7 +159,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     if (this.aggroed) {
       moveAngle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
 
-      // Wall avoidance — smart pathfinding
+      // Wall avoidance — try angles relative to player direction
       const moved = Math.abs(this.x - this.lastX) + Math.abs(this.y - this.lastY);
       this.lastX = this.x;
       this.lastY = this.y;
@@ -169,30 +170,35 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
       } else if (moved < 0.5 && dist > 40) {
         this.stuckTimer += delta;
         if (this.stuckTimer > 150) {
+          // Try offsets from player direction: ±45, ±90, ±135, 180
           const toPlayer = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
-          let bestAngle = toPlayer;
-          let bestScore = -Infinity;
+          const offsets = [
+            Math.PI / 4 * this.slideDir,
+            Math.PI / 2 * this.slideDir,
+            Math.PI * 3 / 4 * this.slideDir,
+            Math.PI * this.slideDir,
+          ];
 
-          for (let i = 0; i < 8; i++) {
-            const testAngle = (i * Math.PI) / 4;
-            const tx = this.x + Math.cos(testAngle) * 50;
-            const ty = this.y + Math.sin(testAngle) * 50;
+          let found = false;
+          for (const offset of offsets) {
+            const testAngle = toPlayer + offset;
+            const tx = this.x + Math.cos(testAngle) * 60;
+            const ty = this.y + Math.sin(testAngle) * 60;
 
-            if (this.isDirectionBlocked(tx, ty)) continue;
-
-            let angleDiff = Math.abs(testAngle - toPlayer);
-            if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
-            const score = Math.PI - angleDiff;
-
-            if (score > bestScore) {
-              bestScore = score;
-              bestAngle = testAngle;
+            if (!this.isDirectionBlocked(tx, ty)) {
+              this.avoidAngle = testAngle;
+              this.avoidTimer = 600;
+              moveAngle = testAngle;
+              found = true;
+              break;
             }
           }
 
-          this.avoidAngle = bestAngle;
-          this.avoidTimer = 500;
-          moveAngle = bestAngle;
+          // If all directions blocked on this side, flip and try next time
+          if (!found) {
+            this.slideDir *= -1;
+            this.stuckTimer = 0;
+          }
         }
       } else {
         this.stuckTimer = 0;
