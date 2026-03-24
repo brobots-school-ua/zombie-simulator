@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { Player } from '../entities/Player';
 import { Zombie, ZombieType } from '../entities/Zombie';
 import { Bullet } from '../entities/Bullet';
-import { Pickup } from '../entities/Pickup';
+import { Pickup, PickupType } from '../entities/Pickup';
 import { audioManager } from '../systems/AudioManager';
 import { leaderboard } from '../systems/LeaderboardManager';
 import { shop } from '../systems/ShopConfig';
@@ -110,6 +110,12 @@ export class GameScene extends Phaser.Scene {
         this.player.addBandage();
       } else if (p.pickupType === 'medkit') {
         this.player.addMedkit();
+      } else if (p.pickupType === 'wood') {
+        this.player.wood++;
+      } else if (p.pickupType === 'metal') {
+        this.player.metal++;
+      } else if (p.pickupType === 'screws') {
+        this.player.screws++;
       } else {
         this.player.addAmmoAll();
       }
@@ -240,6 +246,22 @@ export class GameScene extends Phaser.Scene {
     bestiary.unlock(z.zombieType);
     shop.addCoins(z.coinValue);
     this.player.sessionCoins += z.coinValue;
+
+    // Roll material drops independently
+    const materialTypes: { type: PickupType; chance: number }[] = [
+      { type: 'wood', chance: z.drops.wood },
+      { type: 'metal', chance: z.drops.metal },
+      { type: 'screws', chance: z.drops.screws },
+    ];
+    let dropOffset = 0;
+    for (const mat of materialTypes) {
+      if (Math.random() * 100 < mat.chance) {
+        // Spread drops slightly so they don't stack on top of each other
+        const ox = (dropOffset - 1) * 16;
+        this.pickups.add(new Pickup(this, z.x + ox, z.y + 10, mat.type));
+        dropOffset++;
+      }
+    }
 
     // Kamikaze explodes when killed by bullets
     if (z.explodeOnDeath) {

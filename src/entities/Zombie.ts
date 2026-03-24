@@ -4,6 +4,13 @@ import { Player } from './Player';
 // Zombie types configuration
 export type ZombieType = 'walker' | 'runner' | 'tank' | 'radioactive' | 'kamikaze' | 'boss';
 
+// Drop chances per material (percent, rolled independently)
+export interface MaterialDropChance {
+  wood: number;
+  metal: number;
+  screws: number;
+}
+
 const ZOMBIE_CONFIG: Record<ZombieType, {
   texture: string;
   armsTexture: string;
@@ -13,6 +20,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
   score: number;
   coins: number;
   detectionRange: number;
+  drops: MaterialDropChance;
 }> = {
   walker: {
     texture: 'zombie-walker',
@@ -23,6 +31,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     score: 10,
     coins: 1,
     detectionRange: 300,
+    drops: { wood: 20, metal: 15, screws: 5 },
   },
   runner: {
     texture: 'zombie-runner',
@@ -33,6 +42,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     score: 20,
     coins: 2,
     detectionRange: 400,
+    drops: { wood: 20, metal: 20, screws: 7 },
   },
   tank: {
     texture: 'zombie-tank',
@@ -43,6 +53,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     score: 50,
     coins: 3,
     detectionRange: 250,
+    drops: { wood: 17, metal: 17, screws: 10 },
   },
   radioactive: {
     texture: 'zombie-radioactive',
@@ -53,6 +64,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     score: 30,
     coins: 2,
     detectionRange: 300,
+    drops: { wood: 22, metal: 22, screws: 12 },
   },
   kamikaze: {
     texture: 'zombie-kamikaze',
@@ -63,6 +75,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     score: 25,
     coins: 2,
     detectionRange: 9999, // sees across entire map
+    drops: { wood: 25, metal: 25, screws: 15 },
   },
   boss: {
     texture: 'zombie-boss',
@@ -73,6 +86,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     score: 200,
     coins: 10,
     detectionRange: 9999,
+    drops: { wood: 100, metal: 100, screws: 100 },
   },
 };
 
@@ -86,6 +100,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   scoreValue: number;
   coinValue: number;
   detectionRange: number;
+  drops: MaterialDropChance;
   private attackCooldown: number = 0;
   private wanderAngle: number = Math.random() * Math.PI * 2;
   private wanderTimer: number = 0;
@@ -123,6 +138,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     this.scoreValue = config.score;
     this.coinValue = config.coins;
     this.detectionRange = config.detectionRange;
+    this.drops = config.drops;
 
     if (type === 'kamikaze') {
       this.explodeOnContact = true;

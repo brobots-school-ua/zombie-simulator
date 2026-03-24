@@ -31,6 +31,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   medkits: number = 0;
   maxMedkits: number = 3;
 
+  // Crafting materials
+  wood: number = 0;
+  metal: number = 0;
+  screws: number = 0;
+
   // Expose current weapon ammo for UI compatibility
   get magazineAmmo() { return this.weapons[this.activeWeaponIndex].magazineAmmo; }
   get reserveAmmo() { return this.weapons[this.activeWeaponIndex].reserveAmmo; }

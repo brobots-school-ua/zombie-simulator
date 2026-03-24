@@ -33,6 +33,13 @@ export class UIScene extends Phaser.Scene {
   private escText!: Phaser.GameObjects.Text;
   private adminConsole!: AdminConsole;
   private exiting = false;
+  private materialsGfx!: Phaser.GameObjects.Graphics;
+  private woodIcon!: Phaser.GameObjects.Sprite;
+  private woodText!: Phaser.GameObjects.Text;
+  private metalIcon!: Phaser.GameObjects.Sprite;
+  private metalText!: Phaser.GameObjects.Text;
+  private screwsIcon!: Phaser.GameObjects.Sprite;
+  private screwsText!: Phaser.GameObjects.Text;
 
   private minimapSize = 160;
   private minimapMargin = 15;
@@ -84,6 +91,10 @@ export class UIScene extends Phaser.Scene {
     // Utility icons above weapon bar
     this.utilityBarGfx = this.add.graphics().setDepth(100);
     this.createUtilityBar();
+
+    // Materials bar (left side, below score)
+    this.materialsGfx = this.add.graphics().setDepth(100);
+    this.createMaterialsBar();
 
     // In-game leaderboard (top right, below wave)
     this.createLeaderboardDisplay();
@@ -193,6 +204,39 @@ export class UIScene extends Phaser.Scene {
     this.medkitText.setPosition(centerX + 58, utilY - 12);
     this.medkitText.setText(`${p.medkits} [E]`);
     this.medkitText.setColor(p.medkits > 0 ? '#ff4444' : '#666666');
+  }
+
+  private createMaterialsBar() {
+    const matStyle: Phaser.Types.GameObjects.Text.TextStyle = {
+      fontSize: '14px',
+      fontFamily: 'monospace',
+      color: '#dddddd',
+    };
+
+    const startX = 24;
+    const startY = 115;
+
+    this.woodIcon = this.add.sprite(startX, startY, 'material-wood').setDepth(101).setScale(1.2);
+    this.woodText = this.add.text(startX + 16, startY - 7, '0', matStyle).setDepth(101);
+
+    this.metalIcon = this.add.sprite(startX + 70, startY, 'material-metal').setDepth(101).setScale(1.2);
+    this.metalText = this.add.text(startX + 86, startY - 7, '0', matStyle).setDepth(101);
+
+    this.screwsIcon = this.add.sprite(startX + 140, startY, 'material-screws').setDepth(101).setScale(1.2);
+    this.screwsText = this.add.text(startX + 156, startY - 7, '0', matStyle).setDepth(101);
+  }
+
+  private updateMaterialsBar() {
+    if (!this.gameScene?.player) return;
+    const p = this.gameScene.player;
+
+    this.materialsGfx.clear();
+    this.materialsGfx.fillStyle(0x000000, 0.4);
+    this.materialsGfx.fillRoundedRect(14, 105, 190, 22, 4);
+
+    this.woodText.setText(`${p.wood}`);
+    this.metalText.setText(`${p.metal}`);
+    this.screwsText.setText(`${p.screws}`);
   }
 
   private updateWeaponBar() {
@@ -417,6 +461,7 @@ export class UIScene extends Phaser.Scene {
     try {
       this.updateWeaponBar();
       this.updateUtilityBar();
+      this.updateMaterialsBar();
       this.updateLeaderboard();
       this.drawMinimap(width, height);
     } catch { /* scene shutting down */ }

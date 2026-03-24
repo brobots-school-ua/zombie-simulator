@@ -765,6 +765,64 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('medkit-pickup', 24, 24);
     g.clear();
 
+    // === CRAFTING MATERIALS ===
+
+    // Wood (brown log with rings)
+    g.fillStyle(0x8B5E3C);
+    g.fillRoundedRect(3, 6, 18, 12, 3);
+    g.fillStyle(0xA0714F);
+    g.fillRoundedRect(4, 7, 16, 10, 2);
+    // Wood grain lines
+    g.lineStyle(1, 0x6B4226, 0.5);
+    g.lineBetween(6, 8, 6, 16);
+    g.lineBetween(10, 8, 10, 16);
+    g.lineBetween(14, 8, 14, 16);
+    g.lineBetween(18, 8, 18, 16);
+    // End ring
+    g.lineStyle(1, 0x5a3820, 0.7);
+    g.strokeCircle(8, 12, 3);
+    g.generateTexture('material-wood', 24, 24);
+    g.clear();
+
+    // Metal (grey scrap piece with shine)
+    g.fillStyle(0x7a7a7a);
+    g.fillRect(4, 5, 16, 14);
+    g.fillStyle(0x8a8a8a);
+    g.fillRect(5, 6, 14, 12);
+    // Rivets
+    g.fillStyle(0x555555);
+    g.fillCircle(7, 8, 2);
+    g.fillCircle(17, 8, 2);
+    g.fillCircle(7, 16, 2);
+    g.fillCircle(17, 16, 2);
+    // Shine highlight
+    g.fillStyle(0xaaaaaa);
+    g.fillRect(8, 7, 8, 2);
+    g.lineStyle(1, 0xbbbbbb, 0.4);
+    g.lineBetween(6, 10, 18, 10);
+    g.generateTexture('material-metal', 24, 24);
+    g.clear();
+
+    // Screws (small bolt/screw)
+    g.fillStyle(0x999999);
+    g.fillRect(10, 3, 4, 4); // screw head
+    g.fillStyle(0xaaaaaa);
+    g.fillRect(11, 3, 2, 3);
+    g.fillStyle(0x777777);
+    g.fillRect(11, 7, 2, 12); // shaft
+    // Thread lines
+    g.lineStyle(1, 0x555555, 0.6);
+    g.lineBetween(11, 9, 13, 9);
+    g.lineBetween(11, 11, 13, 11);
+    g.lineBetween(11, 13, 13, 13);
+    g.lineBetween(11, 15, 13, 15);
+    g.lineBetween(11, 17, 13, 17);
+    // Tip
+    g.fillStyle(0x666666);
+    g.fillTriangle(11, 19, 13, 19, 12, 22);
+    g.generateTexture('material-screws', 24, 24);
+    g.clear();
+
     // Grass tiles — rich natural variants
     this.generateGrassTile(g, 'ground1', 0x3a7a3a, 0);
     this.generateGrassTile(g, 'ground2', 0x3d8040, 1);

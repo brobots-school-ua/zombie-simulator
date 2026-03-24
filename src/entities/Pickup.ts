@@ -1,12 +1,15 @@
 import Phaser from 'phaser';
 
-export type PickupType = 'health' | 'ammo' | 'bandage' | 'medkit';
+export type PickupType = 'health' | 'ammo' | 'bandage' | 'medkit' | 'wood' | 'metal' | 'screws';
 
 const PICKUP_TEXTURES: Record<PickupType, string> = {
   health: 'health-pack',
   ammo: 'ammo-pack',
   bandage: 'bandage-pickup',
   medkit: 'medkit-pickup',
+  wood: 'material-wood',
+  metal: 'material-metal',
+  screws: 'material-screws',
 };
 
 // Pickup item on the ground
