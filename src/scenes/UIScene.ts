@@ -40,6 +40,7 @@ export class UIScene extends Phaser.Scene {
   private metalText!: Phaser.GameObjects.Text;
   private screwsIcon!: Phaser.GameObjects.Sprite;
   private screwsText!: Phaser.GameObjects.Text;
+  private backpackPanel: HTMLDivElement | null = null;
 
   private minimapSize = 160;
   private minimapMargin = 15;
@@ -113,11 +114,12 @@ export class UIScene extends Phaser.Scene {
       if (this.exiting) return;
       if (this.escPending) {
         this.exiting = true;
-        // Save score before exit
+        // Save score + materials before exit
         const gs = this.gameScene;
         if (gs?.player) {
           leaderboard.saveResult(gs.player.score, gs.wave);
         }
+        this.saveMaterials();
         audioManager.stopGameMusic(0);
         audioManager.stopMenuMusic(0);
         // Reload page — guaranteed clean state
@@ -131,6 +133,21 @@ export class UIScene extends Phaser.Scene {
         });
       }
     });
+
+    // TAB — open/close backpack
+    const tabKey = this.input.keyboard!.addKey('TAB');
+    tabKey.on('down', (event: KeyboardEvent) => {
+      event.preventDefault();
+      if (this.backpackPanel) this.closeBackpack();
+      else this.openBackpack();
+    });
+
+    // Backpack hint text (bottom left, above controls area)
+    this.add.text(20, this.scale.height - 20, 'TAB — backpack', {
+      fontSize: '12px',
+      fontFamily: 'monospace',
+      color: '#555555',
+    }).setOrigin(0, 1).setDepth(100);
 
     // Admin console (~ key)
     this.adminConsole = new AdminConsole(this);
@@ -532,7 +549,79 @@ export class UIScene extends Phaser.Scene {
     mm.strokeRect(mmX, mmY, size, size);
   }
 
+  private saveMaterials() {
+    if (!this.gameScene?.player) return;
+    const p = this.gameScene.player;
+    localStorage.setItem('zombie-sim-materials', JSON.stringify({
+      wood: p.wood, metal: p.metal, screws: p.screws,
+    }));
+  }
+
+  private openBackpack() {
+    if (this.backpackPanel) return;
+    const p = this.gameScene?.player;
+    if (!p) return;
+
+    this.backpackPanel = document.createElement('div');
+    this.backpackPanel.style.cssText = `
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.92); border: 2px solid #88aa44; border-radius: 8px;
+      padding: 20px; z-index: 3000; font-family: monospace; color: #88aa44;
+      width: 280px;
+    `;
+
+    const render = () => {
+      if (!this.backpackPanel || !this.gameScene?.player) return;
+      const pl = this.gameScene.player;
+      this.backpackPanel.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <h3 style="margin:0; color:#88aa44; font-size:20px;">BACKPACK</h3>
+          <button id="bp-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1; transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='#ff4444';this.style.color='#000'" onmouseout="this.style.background='none';this.style.color='#ff4444'">✕</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(139,90,43,0.15);">
+            <span style="color:#8b5a2b; font-size:18px;">■</span>
+            <span style="color:#ddd; flex:1;">Wood</span>
+            <span style="color:#88aa44; font-size:18px; font-weight:bold;">${pl.wood}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(150,150,150,0.1);">
+            <span style="color:#999; font-size:18px;">■</span>
+            <span style="color:#ddd; flex:1;">Metal</span>
+            <span style="color:#88aa44; font-size:18px; font-weight:bold;">${pl.metal}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(100,100,120,0.1);">
+            <span style="color:#777; font-size:18px;">⚙</span>
+            <span style="color:#ddd; flex:1;">Screws</span>
+            <span style="color:#88aa44; font-size:18px; font-weight:bold;">${pl.screws}</span>
+          </div>
+        </div>
+      `;
+      this.backpackPanel.querySelector('#bp-close')?.addEventListener('click', () => this.closeBackpack());
+    };
+
+    document.body.appendChild(this.backpackPanel);
+    this.backpackPanel.addEventListener('keydown', (e) => e.stopPropagation());
+    render();
+
+    // Live update every 500ms
+    const interval = setInterval(() => {
+      if (!this.backpackPanel) { clearInterval(interval); return; }
+      render();
+    }, 500);
+    (this.backpackPanel as any)._interval = interval;
+  }
+
+  private closeBackpack() {
+    if (this.backpackPanel) {
+      clearInterval((this.backpackPanel as any)._interval);
+      this.backpackPanel.remove();
+      this.backpackPanel = null;
+    }
+  }
+
   shutdown() {
+    this.saveMaterials();
+    this.closeBackpack();
     this.adminConsole.destroy();
   }
 }

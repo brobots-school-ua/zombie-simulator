@@ -11,6 +11,7 @@ export class MenuScene extends Phaser.Scene {
   private adminConsole!: AdminConsole;
   private shopPanel: HTMLDivElement | null = null;
   private bestiaryPanel: HTMLDivElement | null = null;
+  private backpackPanel: HTMLDivElement | null = null;
   private coinsText!: Phaser.GameObjects.Text;
 
   constructor() {
@@ -139,6 +140,20 @@ export class MenuScene extends Phaser.Scene {
     bestZone.on('pointerout', () => { bestBg.clear(); bestBg.fillStyle(0x1a0a1a); bestBg.fillRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6); bestBg.lineStyle(2, 0xcc44ff); bestBg.strokeRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6); });
     bestZone.on('pointerdown', () => this.openBestiary());
 
+    // BACKPACK button (square)
+    const bpBg = this.add.graphics().setDepth(10);
+    const bpX = 20 + (btnSize + 10) * 3;
+    bpBg.fillStyle(0x0a1a0a); bpBg.fillRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6);
+    bpBg.lineStyle(2, 0x88aa44); bpBg.strokeRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6);
+    this.add.text(bpX + btnSize / 2, btnY - btnSize / 2, 'BACK\nPACK', {
+      ...btnStyle, fontSize: '13px', color: '#88aa44', align: 'center',
+    }).setOrigin(0.5).setDepth(11);
+    const bpZone = this.add.zone(bpX + btnSize / 2, btnY - btnSize / 2, btnSize, btnSize)
+      .setInteractive({ useHandCursor: true }).setDepth(12);
+    bpZone.on('pointerover', () => { bpBg.clear(); bpBg.fillStyle(0x1a2a1a); bpBg.fillRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6); bpBg.lineStyle(2, 0xaacc66); bpBg.strokeRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6); });
+    bpZone.on('pointerout', () => { bpBg.clear(); bpBg.fillStyle(0x0a1a0a); bpBg.fillRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6); bpBg.lineStyle(2, 0x88aa44); bpBg.strokeRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6); });
+    bpZone.on('pointerdown', () => this.openBackpack());
+
     // ============ RIGHT SIDE — Stats ============
     const RX = width - 30;
 
@@ -176,6 +191,7 @@ export class MenuScene extends Phaser.Scene {
       if (this.nicknameInput) this.nicknameInput.remove();
       this.closeShop();
       this.closeBestiary();
+      this.closeBackpack();
       this.adminConsole.destroy();
     });
   }
@@ -415,5 +431,56 @@ export class MenuScene extends Phaser.Scene {
 
   private closeBestiary() {
     if (this.bestiaryPanel) { this.bestiaryPanel.remove(); this.bestiaryPanel = null; }
+  }
+
+  private openBackpack() {
+    if (this.backpackPanel) return;
+
+    // Read saved materials from localStorage
+    let materials = { wood: 0, metal: 0, screws: 0 };
+    try {
+      const saved = localStorage.getItem('zombie-sim-materials');
+      if (saved) materials = JSON.parse(saved);
+    } catch { /* use defaults */ }
+
+    this.backpackPanel = document.createElement('div');
+    this.backpackPanel.style.cssText = `
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.95); border: 2px solid #88aa44; border-radius: 8px;
+      padding: 20px; z-index: 3000; font-family: monospace; color: #88aa44;
+      width: 280px;
+    `;
+
+    this.backpackPanel.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h3 style="margin:0; color:#88aa44; font-size:20px;">BACKPACK</h3>
+        <button id="bp-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1; transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='#ff4444';this.style.color='#000'" onmouseout="this.style.background='none';this.style.color='#ff4444'">✕</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(139,90,43,0.15);">
+          <span style="color:#8b5a2b; font-size:18px;">■</span>
+          <span style="color:#ddd; flex:1;">Wood</span>
+          <span style="color:#88aa44; font-size:18px; font-weight:bold;">${materials.wood}</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(150,150,150,0.1);">
+          <span style="color:#999; font-size:18px;">■</span>
+          <span style="color:#ddd; flex:1;">Metal</span>
+          <span style="color:#88aa44; font-size:18px; font-weight:bold;">${materials.metal}</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(100,100,120,0.1);">
+          <span style="color:#777; font-size:18px;">⚙</span>
+          <span style="color:#ddd; flex:1;">Screws</span>
+          <span style="color:#88aa44; font-size:18px; font-weight:bold;">${materials.screws}</span>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(this.backpackPanel);
+    this.backpackPanel.addEventListener('keydown', (e) => e.stopPropagation());
+    this.backpackPanel.querySelector('#bp-close')!.addEventListener('click', () => this.closeBackpack());
+  }
+
+  private closeBackpack() {
+    if (this.backpackPanel) { this.backpackPanel.remove(); this.backpackPanel = null; }
   }
 }

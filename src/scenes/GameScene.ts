@@ -179,6 +179,10 @@ export class GameScene extends Phaser.Scene {
       this.physics.pause(); // stop all physics immediately
       const data = { score: this.player.score, kills: this.player.kills, wave: this.wave };
       leaderboard.saveResult(this.player.score, this.wave);
+      // Save materials to localStorage
+      localStorage.setItem('zombie-sim-materials', JSON.stringify({
+        wood: this.player.wood, metal: this.player.metal, screws: this.player.screws,
+      }));
       audioManager.stopGameMusic(1.5);
       // Wait for next frame then transition
       this.time.delayedCall(500, () => {
