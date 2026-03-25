@@ -125,6 +125,8 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   leavePuddle = false;
   // Kamikaze explodes when killed by bullets too
   explodeOnDeath = false;
+  // Frozen state
+  frozen = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number, type: ZombieType = 'walker') {
     const config = ZOMBIE_CONFIG[type];
@@ -177,8 +179,24 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
 
   wallsGroup: Phaser.Physics.Arcade.StaticGroup | null = null;
 
+  freeze(duration: number) {
+    this.frozen = true;
+    this.setTint(0x44ccff);
+    this.setVelocity(0, 0);
+    this.scene.time.delayedCall(duration, () => {
+      if (this.active) {
+        this.frozen = false;
+        this.clearTint();
+      }
+    });
+  }
+
   update(player: Player, time: number, delta: number) {
     if (!this.active) return;
+    if (this.frozen) {
+      this.setVelocity(0, 0);
+      return;
+    }
 
     const dist = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
 

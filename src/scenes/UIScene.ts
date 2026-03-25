@@ -6,6 +6,7 @@ import { audioManager } from '../systems/AudioManager';
 import { leaderboard } from '../systems/LeaderboardManager';
 import { AdminConsole } from '../systems/AdminConsole';
 import { shop } from '../systems/ShopConfig';
+import { getSelectedAbility, ABILITIES } from '../systems/AbilityConfig';
 
 // UI overlay scene — HUD with health, ammo, score, wave info, minimap
 export class UIScene extends Phaser.Scene {
@@ -41,6 +42,8 @@ export class UIScene extends Phaser.Scene {
   private screwsIcon!: Phaser.GameObjects.Sprite;
   private screwsText!: Phaser.GameObjects.Text;
   private backpackPanel: HTMLDivElement | null = null;
+  private abilityIcon!: Phaser.GameObjects.Text;
+  private abilityHint!: Phaser.GameObjects.Text;
 
   private minimapSize = 160;
   private minimapMargin = 15;
@@ -148,6 +151,23 @@ export class UIScene extends Phaser.Scene {
       fontFamily: 'monospace',
       color: '#555555',
     }).setOrigin(0, 1).setDepth(100);
+
+    // Ability icon + hint (bottom right, above minimap area)
+    const abilityDef = ABILITIES.find(a => a.id === getSelectedAbility()) || ABILITIES[0];
+    this.abilityIcon = this.add.text(this.scale.width - 60, this.scale.height - 170, abilityDef.emoji, {
+      fontSize: '32px',
+    }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
+
+    // Background for ability icon
+    const abilityBg = this.add.graphics().setDepth(99).setScrollFactor(0);
+    abilityBg.fillStyle(0x000000, 0.5);
+    abilityBg.fillRoundedRect(this.scale.width - 85, this.scale.height - 195, 50, 50, 6);
+    abilityBg.lineStyle(2, Phaser.Display.Color.HexStringToColor(abilityDef.color).color);
+    abilityBg.strokeRoundedRect(this.scale.width - 85, this.scale.height - 195, 50, 50, 6);
+
+    this.abilityHint = this.add.text(this.scale.width - 60, this.scale.height - 140, '[F] ' + abilityDef.name, {
+      fontSize: '10px', fontFamily: 'monospace', color: abilityDef.color,
+    }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
 
     // Admin console (~ key)
     this.adminConsole = new AdminConsole(this);

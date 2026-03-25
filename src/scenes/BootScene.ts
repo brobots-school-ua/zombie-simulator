@@ -949,6 +949,77 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(0x224422, 0.1);
     g.fillCircle(32, 32, 24);
     g.generateTexture('fog-particle', 64, 64);
+    g.clear();
+
+    // === ABILITY: BIG BOMB ===
+    // Round bomb body
+    g.fillStyle(0x222222);
+    g.fillCircle(16, 18, 14);
+    g.fillStyle(0x333333);
+    g.fillCircle(16, 16, 13);
+    // Highlight
+    g.fillStyle(0x555555);
+    g.fillCircle(12, 12, 5);
+    g.fillStyle(0x666666);
+    g.fillCircle(10, 10, 2);
+    // Fuse
+    g.lineStyle(2, 0x8b4513);
+    g.lineBetween(16, 4, 20, 0);
+    // Spark
+    g.fillStyle(0xff6600);
+    g.fillCircle(20, 0, 3);
+    g.fillStyle(0xffaa00);
+    g.fillCircle(20, 0, 2);
+    g.generateTexture('ability-bomb', 32, 32);
+    g.clear();
+
+    // === ABILITY: MINI NUKE (rocket) ===
+    // Rocket body
+    g.fillStyle(0x556655);
+    g.fillRect(4, 10, 20, 8);
+    g.fillStyle(0x667766);
+    g.fillRect(5, 11, 18, 6);
+    // Nosecone
+    g.fillStyle(0xcc2222);
+    g.fillTriangle(24, 10, 24, 18, 30, 14);
+    // Fins
+    g.fillStyle(0x445544);
+    g.fillTriangle(4, 10, 0, 6, 8, 10);
+    g.fillTriangle(4, 18, 0, 22, 8, 18);
+    // Stripe
+    g.fillStyle(0xffcc00);
+    g.fillRect(14, 10, 3, 8);
+    // Radiation symbol
+    g.fillStyle(0xffcc00);
+    g.fillCircle(16, 14, 2);
+    g.generateTexture('ability-nuke', 32, 28);
+    g.clear();
+
+    // === ABILITY: CRYO CAPSULE ===
+    // Ice crystal shape
+    g.fillStyle(0x44ccff);
+    g.fillCircle(16, 16, 12);
+    g.fillStyle(0x88ddff);
+    g.fillCircle(16, 16, 9);
+    // Snowflake cross
+    g.lineStyle(2, 0xffffff, 0.8);
+    g.lineBetween(16, 4, 16, 28);
+    g.lineBetween(4, 16, 28, 16);
+    g.lineBetween(8, 8, 24, 24);
+    g.lineBetween(24, 8, 8, 24);
+    // Center
+    g.fillStyle(0xffffff);
+    g.fillCircle(16, 16, 3);
+    g.generateTexture('ability-cryo', 32, 32);
+    g.clear();
+
+    // === NUKE RADIATION PATCH ===
+    g.fillStyle(0x33ff33, 0.4);
+    g.fillCircle(16, 16, 14);
+    g.fillStyle(0x44ff44, 0.2);
+    g.fillCircle(16, 16, 10);
+    g.generateTexture('nuke-radiation', 32, 32);
+    g.clear();
 
     g.destroy();
 

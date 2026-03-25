@@ -4,6 +4,7 @@ import { leaderboard } from '../systems/LeaderboardManager';
 import { AdminConsole } from '../systems/AdminConsole';
 import { ACCESSORIES, shop } from '../systems/ShopConfig';
 import { bestiary } from '../systems/BestiaryManager';
+import { ABILITIES, getSelectedAbility, setSelectedAbility } from '../systems/AbilityConfig';
 
 // Atmospheric main menu scene
 export class MenuScene extends Phaser.Scene {
@@ -12,6 +13,7 @@ export class MenuScene extends Phaser.Scene {
   private shopPanel: HTMLDivElement | null = null;
   private bestiaryPanel: HTMLDivElement | null = null;
   private backpackPanel: HTMLDivElement | null = null;
+  private abilitiesPanel: HTMLDivElement | null = null;
   private coinsText!: Phaser.GameObjects.Text;
 
   constructor() {
@@ -153,6 +155,20 @@ export class MenuScene extends Phaser.Scene {
     bpZone.on('pointerover', () => { bpBg.clear(); bpBg.fillStyle(0x1a2a1a); bpBg.fillRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6); bpBg.lineStyle(2, 0xaacc66); bpBg.strokeRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6); });
     bpZone.on('pointerout', () => { bpBg.clear(); bpBg.fillStyle(0x0a1a0a); bpBg.fillRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6); bpBg.lineStyle(2, 0x88aa44); bpBg.strokeRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6); });
     bpZone.on('pointerdown', () => this.openBackpack());
+
+    // ABILITIES button (square)
+    const abBg = this.add.graphics().setDepth(10);
+    const abX = 20 + (btnSize + 10) * 4;
+    abBg.fillStyle(0x1a1a0a); abBg.fillRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6);
+    abBg.lineStyle(2, 0xff6644); abBg.strokeRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6);
+    this.add.text(abX + btnSize / 2, btnY - btnSize / 2, 'ABI\nLITY', {
+      ...btnStyle, fontSize: '13px', color: '#ff6644', align: 'center',
+    }).setOrigin(0.5).setDepth(11);
+    const abZone = this.add.zone(abX + btnSize / 2, btnY - btnSize / 2, btnSize, btnSize)
+      .setInteractive({ useHandCursor: true }).setDepth(12);
+    abZone.on('pointerover', () => { abBg.clear(); abBg.fillStyle(0x2a1a0a); abBg.fillRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6); abBg.lineStyle(2, 0xff8866); abBg.strokeRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6); });
+    abZone.on('pointerout', () => { abBg.clear(); abBg.fillStyle(0x1a1a0a); abBg.fillRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6); abBg.lineStyle(2, 0xff6644); abBg.strokeRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6); });
+    abZone.on('pointerdown', () => this.openAbilities());
 
     // ============ RIGHT SIDE — Stats ============
     const RX = width - 30;
@@ -482,5 +498,78 @@ export class MenuScene extends Phaser.Scene {
 
   private closeBackpack() {
     if (this.backpackPanel) { this.backpackPanel.remove(); this.backpackPanel = null; }
+  }
+
+  private openAbilities() {
+    if (this.abilitiesPanel) return;
+    const selected = getSelectedAbility();
+
+    this.abilitiesPanel = document.createElement('div');
+    this.abilitiesPanel.style.cssText = `
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.95); border: 2px solid #ff6644; border-radius: 8px;
+      padding: 24px; z-index: 3000; font-family: monospace; color: #ff6644;
+      width: 380px;
+    `;
+
+    const renderPanel = () => {
+      if (!this.abilitiesPanel) return;
+      const currentSelected = getSelectedAbility();
+      this.abilitiesPanel.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3 style="margin:0; color:#ff6644; font-size:20px;">ABILITIES</h3>
+          <button id="ab-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1; transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='#ff4444';this.style.color='#000'" onmouseout="this.style.background='none';this.style.color='#ff4444'">✕</button>
+        </div>
+        <p style="color:#888; font-size:12px; margin:0 0 16px 0;">Choose one ability to use in game (press F)</p>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          ${ABILITIES.map(a => {
+            const isSelected = a.id === currentSelected;
+            return `
+              <div class="ab-card" data-id="${a.id}" style="
+                display:flex; align-items:center; gap:12px; padding:12px;
+                border:2px solid ${isSelected ? a.color : '#333'}; border-radius:6px;
+                background:${isSelected ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.3)'};
+                cursor:pointer; transition: border-color 0.2s, background 0.2s;
+              ">
+                <span style="font-size:32px; min-width:40px; text-align:center;">${a.emoji}</span>
+                <div style="flex:1;">
+                  <div style="color:${a.color}; font-size:16px; font-weight:bold; margin-bottom:4px;">
+                    ${a.name} ${isSelected ? '✓' : ''}
+                  </div>
+                  <div style="color:#999; font-size:11px; line-height:1.3;">${a.description}</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      // Event listeners
+      this.abilitiesPanel!.querySelector('#ab-close')!.addEventListener('click', () => this.closeAbilities());
+      this.abilitiesPanel!.querySelectorAll('.ab-card').forEach(el => {
+        el.addEventListener('click', () => {
+          const id = (el as HTMLElement).dataset.id!;
+          setSelectedAbility(id);
+          renderPanel();
+        });
+        el.addEventListener('mouseover', () => {
+          if ((el as HTMLElement).dataset.id !== getSelectedAbility()) {
+            (el as HTMLElement).style.borderColor = '#666';
+          }
+        });
+        el.addEventListener('mouseout', () => {
+          const id = (el as HTMLElement).dataset.id!;
+          (el as HTMLElement).style.borderColor = id === getSelectedAbility() ? ABILITIES.find(a => a.id === id)!.color : '#333';
+        });
+      });
+    };
+
+    document.body.appendChild(this.abilitiesPanel);
+    this.abilitiesPanel.addEventListener('keydown', (e) => e.stopPropagation());
+    renderPanel();
+  }
+
+  private closeAbilities() {
+    if (this.abilitiesPanel) { this.abilitiesPanel.remove(); this.abilitiesPanel = null; }
   }
 }

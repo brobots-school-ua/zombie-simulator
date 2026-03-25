@@ -7,6 +7,7 @@ import { audioManager } from '../systems/AudioManager';
 import { leaderboard } from '../systems/LeaderboardManager';
 import { shop } from '../systems/ShopConfig';
 import { bestiary } from '../systems/BestiaryManager';
+import { getSelectedAbility, ABILITIES } from '../systems/AbilityConfig';
 
 // Main game scene — where all gameplay happens
 export class GameScene extends Phaser.Scene {
@@ -22,6 +23,10 @@ export class GameScene extends Phaser.Scene {
   private shootCooldown: number = 0;
   private mapSize = 2000;
   private gameOver = false;
+  private abilityId: string = 'big-bomb';
+  private nukeMode = false;
+  private nukeMarkers: Phaser.GameObjects.GameObject[] = [];
+  private abilityActive = false;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -165,8 +170,21 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
+    // Ability
+    this.abilityId = getSelectedAbility();
+    this.nukeMode = false;
+    this.abilityActive = false;
+    const fKey = this.input.keyboard!.addKey('F');
+    fKey.on('down', () => {
+      if (!this.gameOver && !this.abilityActive) this.activateAbility();
+    });
+
     // Shooting
     this.input.on('pointerdown', () => {
+      if (this.nukeMode) {
+        this.launchNuke();
+        return;
+      }
       if (!this.gameOver) this.fireWeapon();
     });
 
@@ -543,6 +561,299 @@ export class GameScene extends Phaser.Scene {
       return 'walker';
     }
     return 'walker';
+  }
+
+  // ========== ABILITIES ==========
+
+  private activateAbility() {
+    if (this.abilityId === 'big-bomb') this.useBigBomb();
+    else if (this.abilityId === 'mini-nuke') this.enterNukeMode();
+    else if (this.abilityId === 'cryo-capsule') this.useCryoCapsule();
+  }
+
+  // --- BIG BOMB ---
+  private useBigBomb() {
+    this.abilityActive = true;
+    const bx = this.player.x;
+    const by = this.player.y;
+
+    // Bomb sprite
+    const bomb = this.add.image(bx, by, 'ability-bomb').setDepth(12).setScale(1.5);
+    const timerText = this.add.text(bx, by - 30, '3', {
+      fontSize: '28px', fontFamily: 'monospace', color: '#ff6600', fontStyle: 'bold',
+      shadow: { offsetX: 0, offsetY: 0, color: '#ff0000', blur: 10, fill: true },
+    }).setOrigin(0.5).setDepth(12);
+
+    // Pulsing animation
+    this.tweens.add({ targets: bomb, scaleX: 1.7, scaleY: 1.7, duration: 300, yoyo: true, repeat: -1 });
+
+    let countdown = 3;
+    this.time.addEvent({
+      delay: 1000, repeat: 2,
+      callback: () => {
+        countdown--;
+        timerText.setText(countdown > 0 ? countdown.toString() : '💥');
+      },
+    });
+
+    this.time.delayedCall(3000, () => {
+      bomb.destroy();
+      timerText.destroy();
+
+      // Explosion visual
+      this.cameras.main.shake(500, 0.02);
+      this.cameras.main.flash(300, 255, 100, 0);
+      const expl = this.add.circle(bx, by, 400, 0xff6600, 0.5).setDepth(9);
+      this.tweens.add({
+        targets: expl, alpha: 0, scale: 1.5, duration: 600,
+        onComplete: () => expl.destroy(),
+      });
+
+      // 300 damage in radius 400
+      const targets = this.zombies.getChildren().slice();
+      for (const obj of targets) {
+        const z = obj as Zombie;
+        if (!z.active) continue;
+        const dist = Phaser.Math.Distance.Between(bx, by, z.x, z.y);
+        if (dist <= 400) {
+          const killed = z.takeDamage(300);
+          if (killed) this.onZombieKilled(z);
+        }
+      }
+      this.abilityActive = false;
+    });
+  }
+
+  // --- MINI NUKE ---
+  private enterNukeMode() {
+    this.abilityActive = true;
+    this.nukeMode = true;
+
+    // Zoom out to show entire map
+    const cam = this.cameras.main;
+    cam.stopFollow();
+    const targetZoom = Math.min(cam.width / this.mapSize, cam.height / this.mapSize);
+
+    this.tweens.add({
+      targets: cam, zoom: targetZoom, scrollX: 0, scrollY: 0,
+      duration: 800, ease: 'Quad.easeOut',
+      onComplete: () => {
+        cam.setScroll(0, 0);
+      },
+    });
+
+    // Mark all zombies with neon markers
+    const typeColors: Record<string, number> = {
+      walker: 0x556b2f, runner: 0x7a8b3f, tank: 0x3a4a1f,
+      radioactive: 0x33ff33, kamikaze: 0xff3333, boss: 0x8800aa,
+    };
+
+    this.nukeMarkers = [];
+    this.zombies.getChildren().forEach((obj) => {
+      const z = obj as Zombie;
+      if (!z.active) return;
+      const color = typeColors[z.zombieType] || 0xffffff;
+      const marker = this.add.circle(z.x, z.y, 12, color, 0.6).setDepth(20);
+      const glow = this.add.circle(z.x, z.y, 18, color, 0.2).setDepth(19);
+      this.tweens.add({ targets: glow, alpha: 0.05, duration: 600, yoyo: true, repeat: -1 });
+      const label = this.add.text(z.x, z.y - 20, z.zombieType.toUpperCase(), {
+        fontSize: '10px', fontFamily: 'monospace', color: '#ffffff',
+        shadow: { offsetX: 0, offsetY: 0, color: '#000000', blur: 4, fill: true },
+      }).setOrigin(0.5).setDepth(20);
+      this.nukeMarkers.push(marker, glow, label);
+    });
+
+    // Hint
+    const hint = this.add.text(cam.width / 2, cam.height - 40, 'CLICK TO LAUNCH NUKE  |  ESC to cancel', {
+      fontSize: '18px', fontFamily: 'monospace', color: '#ff4444',
+      shadow: { offsetX: 0, offsetY: 0, color: '#ff0000', blur: 10, fill: true },
+    }).setOrigin(0.5).setDepth(21).setScrollFactor(0);
+    this.nukeMarkers.push(hint);
+
+    // ESC to cancel
+    const escKey = this.input.keyboard!.addKey('ESC');
+    const escHandler = () => {
+      if (this.nukeMode) {
+        this.exitNukeMode();
+      }
+    };
+    escKey.once('down', escHandler);
+  }
+
+  private launchNuke() {
+    if (!this.nukeMode) return;
+    const worldPoint = this.cameras.main.getWorldPoint(
+      this.input.activePointer.x, this.input.activePointer.y
+    );
+    const tx = Phaser.Math.Clamp(worldPoint.x, 50, this.mapSize - 50);
+    const ty = Phaser.Math.Clamp(worldPoint.y, 50, this.mapSize - 50);
+
+    // Clean markers
+    this.clearNukeMarkers();
+    this.nukeMode = false;
+
+    // Show target crosshair
+    const cross = this.add.graphics().setDepth(20);
+    cross.lineStyle(2, 0xff0000, 0.8);
+    cross.strokeCircle(tx, ty, 20);
+    cross.lineBetween(tx - 30, ty, tx + 30, ty);
+    cross.lineBetween(tx, ty - 30, tx, ty + 30);
+
+    // Rocket approaching (from top)
+    const rocket = this.add.image(tx, -100, 'ability-nuke').setDepth(20).setScale(2).setAngle(90);
+    const countdownText = this.add.text(tx, ty - 40, '5', {
+      fontSize: '32px', fontFamily: 'monospace', color: '#ff4444', fontStyle: 'bold',
+      shadow: { offsetX: 0, offsetY: 0, color: '#ff0000', blur: 10, fill: true },
+    }).setOrigin(0.5).setDepth(20);
+
+    let countdown = 5;
+    this.time.addEvent({
+      delay: 1000, repeat: 4,
+      callback: () => {
+        countdown--;
+        countdownText.setText(countdown > 0 ? countdown.toString() : '☢️');
+      },
+    });
+
+    // Rocket flies to target over 5 seconds
+    this.tweens.add({
+      targets: rocket, x: tx, y: ty, duration: 5000, ease: 'Quad.easeIn',
+    });
+
+    this.time.delayedCall(5000, () => {
+      rocket.destroy();
+      cross.destroy();
+      countdownText.destroy();
+
+      // NUKE EXPLOSION
+      const nukeRadius = 500;
+      this.cameras.main.shake(1000, 0.04);
+      this.cameras.main.flash(600, 255, 255, 200);
+
+      // Visual: expanding fireball
+      const fireball = this.add.circle(tx, ty, 50, 0xffcc00, 0.8).setDepth(15);
+      this.tweens.add({
+        targets: fireball, radius: nukeRadius, alpha: 0, duration: 1000,
+        onUpdate: () => { fireball.setRadius((fireball as any).radius || 50); },
+        onComplete: () => fireball.destroy(),
+      });
+      const ring = this.add.circle(tx, ty, 10, 0xff3300, 0.4).setDepth(15);
+      this.tweens.add({
+        targets: ring, radius: nukeRadius * 1.2, alpha: 0, duration: 800,
+        onUpdate: () => { ring.setRadius((ring as any).radius || 10); },
+        onComplete: () => ring.destroy(),
+      });
+
+      // 500 damage in radius
+      const targets = this.zombies.getChildren().slice();
+      for (const obj of targets) {
+        const z = obj as Zombie;
+        if (!z.active) continue;
+        const dist = Phaser.Math.Distance.Between(tx, ty, z.x, z.y);
+        if (dist <= nukeRadius) {
+          const killed = z.takeDamage(500);
+          if (killed) this.onZombieKilled(z);
+        }
+      }
+
+      // Radiation patches (5-8 random)
+      const patchCount = Phaser.Math.Between(5, 8);
+      for (let i = 0; i < patchCount; i++) {
+        const px = tx + Phaser.Math.Between(-nukeRadius * 0.7, nukeRadius * 0.7);
+        const py = ty + Phaser.Math.Between(-nukeRadius * 0.7, nukeRadius * 0.7);
+        const patch = this.add.image(px, py, 'nuke-radiation').setDepth(1).setAlpha(0.6).setScale(Phaser.Math.FloatBetween(2, 4));
+        const patchRadius = 50;
+        let elapsed = 0;
+        const dmgEvent = this.time.addEvent({
+          delay: 500, loop: true,
+          callback: () => {
+            elapsed += 500;
+            if (elapsed >= 8000 || this.gameOver) {
+              dmgEvent.destroy(); patch.destroy(); return;
+            }
+            // Damage zombies in patch
+            this.zombies.getChildren().forEach((obj) => {
+              const z = obj as Zombie;
+              if (!z.active) return;
+              if (Phaser.Math.Distance.Between(px, py, z.x, z.y) < patchRadius) {
+                const killed = z.takeDamage(10);
+                if (killed) this.onZombieKilled(z);
+              }
+            });
+            patch.setAlpha(0.6 * (1 - elapsed / 8000));
+          },
+        });
+      }
+
+      // Return camera to player
+      this.time.delayedCall(800, () => {
+        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+        this.tweens.add({
+          targets: this.cameras.main, zoom: 1.5, duration: 600, ease: 'Quad.easeOut',
+        });
+        this.abilityActive = false;
+      });
+    });
+  }
+
+  private exitNukeMode() {
+    this.nukeMode = false;
+    this.clearNukeMarkers();
+    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    this.tweens.add({
+      targets: this.cameras.main, zoom: 1.5, duration: 600, ease: 'Quad.easeOut',
+    });
+    this.abilityActive = false;
+  }
+
+  private clearNukeMarkers() {
+    for (const m of this.nukeMarkers) m.destroy();
+    this.nukeMarkers = [];
+  }
+
+  // --- CRYO CAPSULE ---
+  private useCryoCapsule() {
+    this.abilityActive = true;
+
+    // Blue flash
+    this.cameras.main.flash(400, 50, 150, 255);
+
+    // Freeze overlay
+    const cam = this.cameras.main;
+    const overlay = this.add.rectangle(this.mapSize / 2, this.mapSize / 2, this.mapSize, this.mapSize, 0x44ccff, 0.15).setDepth(8);
+
+    // Ice particles
+    for (let i = 0; i < 30; i++) {
+      const px = Phaser.Math.Between(0, this.mapSize);
+      const py = Phaser.Math.Between(0, this.mapSize);
+      const ice = this.add.image(px, py, 'ability-cryo').setDepth(9).setAlpha(0.4).setScale(Phaser.Math.FloatBetween(0.3, 0.8));
+      this.tweens.add({
+        targets: ice, alpha: 0, y: py - 30, duration: 2000,
+        onComplete: () => ice.destroy(),
+      });
+    }
+
+    // Freeze all zombies + 50 damage
+    const targets = this.zombies.getChildren().slice();
+    for (const obj of targets) {
+      const z = obj as Zombie;
+      if (!z.active) continue;
+      const killed = z.takeDamage(50);
+      if (killed) {
+        this.onZombieKilled(z);
+      } else {
+        z.freeze(5000);
+      }
+    }
+
+    // Remove overlay after freeze ends
+    this.time.delayedCall(5000, () => {
+      this.tweens.add({
+        targets: overlay, alpha: 0, duration: 500,
+        onComplete: () => overlay.destroy(),
+      });
+      this.abilityActive = false;
+    });
   }
 
   private generateObstacles() {
