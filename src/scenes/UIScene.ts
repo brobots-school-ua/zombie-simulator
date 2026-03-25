@@ -31,7 +31,7 @@ export class UIScene extends Phaser.Scene {
   private medkitText!: Phaser.GameObjects.Text;
   private escPending = false;
   private escText!: Phaser.GameObjects.Text;
-  private adminConsole!: AdminConsole;
+  adminConsole!: AdminConsole;
   private exiting = false;
   private materialsGfx!: Phaser.GameObjects.Graphics;
   private woodIcon!: Phaser.GameObjects.Sprite;

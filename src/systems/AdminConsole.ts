@@ -19,6 +19,7 @@ export class AdminConsole {
   private pickerOverlay: HTMLDivElement | null = null;
   private keyHandler: (e: KeyboardEvent) => void;
   private selectedZombieType: ZombieType = 'walker';
+  isOpen: boolean = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -73,6 +74,7 @@ export class AdminConsole {
 
   private openAdminPanel() {
     if (this.panel) return;
+    this.isOpen = true;
 
     const inputStyle = `width:100%; box-sizing:border-box; padding:6px 8px; background:#111; border:1px solid #44ff44; color:#44ff44; font-family:monospace; font-size:14px; outline:none;`;
     const btnStyle = (bg: string, border: string, color: string) =>
@@ -340,6 +342,7 @@ export class AdminConsole {
 
   private closeAdminPanel() {
     if (this.panel) { this.panel.remove(); this.panel = null; }
+    this.isOpen = false;
   }
 
   destroy() {
