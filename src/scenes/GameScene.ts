@@ -330,6 +330,7 @@ export class GameScene extends Phaser.Scene {
 
   private fireWeapon() {
     if (this.shootCooldown > 0) return;
+    if (this.abilityActive) return;
     const ui = this.scene.get('UIScene') as any;
     if (ui?.adminConsole?.isOpen) return;
     const target = this.player.shoot();
@@ -726,7 +727,7 @@ export class GameScene extends Phaser.Scene {
       countdownText.destroy();
 
       // NUKE EXPLOSION
-      const nukeRadius = 500;
+      const nukeRadius = 1000;
       this.cameras.main.shake(1000, 0.04);
       this.cameras.main.flash(600, 255, 255, 200);
 
@@ -756,13 +757,16 @@ export class GameScene extends Phaser.Scene {
         }
       }
 
-      // Radiation patches (5-8 random)
-      const patchCount = Phaser.Math.Between(5, 8);
+      // Radiation patches — cover most of explosion zone
+      const patchCount = Phaser.Math.Between(25, 35);
       for (let i = 0; i < patchCount; i++) {
-        const px = tx + Phaser.Math.Between(-nukeRadius * 0.7, nukeRadius * 0.7);
-        const py = ty + Phaser.Math.Between(-nukeRadius * 0.7, nukeRadius * 0.7);
-        const patch = this.add.image(px, py, 'nuke-radiation').setDepth(1).setAlpha(0.6).setScale(Phaser.Math.FloatBetween(2, 4));
-        const patchRadius = 50;
+        // Spread evenly across the blast zone
+        const angle = Math.random() * Math.PI * 2;
+        const dist2 = Math.random() * nukeRadius * 0.85;
+        const px = tx + Math.cos(angle) * dist2;
+        const py = ty + Math.sin(angle) * dist2;
+        const patch = this.add.image(px, py, 'nuke-radiation').setDepth(1).setAlpha(0.5).setScale(Phaser.Math.FloatBetween(4, 8));
+        const patchRadius = 80;
         let elapsed = 0;
         const dmgEvent = this.time.addEvent({
           delay: 500, loop: true,

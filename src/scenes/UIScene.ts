@@ -152,21 +152,25 @@ export class UIScene extends Phaser.Scene {
       color: '#555555',
     }).setOrigin(0, 1).setDepth(100);
 
-    // Ability icon + hint (bottom right, above minimap area)
+    // Ability icon + hint (above minimap)
     const abilityDef = ABILITIES.find(a => a.id === getSelectedAbility()) || ABILITIES[0];
-    this.abilityIcon = this.add.text(this.scale.width - 60, this.scale.height - 170, abilityDef.emoji, {
-      fontSize: '32px',
+    const abCX = this.scale.width - 15 - this.minimapSize / 2; // centered above minimap
+    const abY = this.scale.height - 15 - this.minimapSize - 70; // above minimap with gap
+
+    // Background for ability icon (100x100)
+    const abilityBg = this.add.graphics().setDepth(99).setScrollFactor(0);
+    abilityBg.fillStyle(0x000000, 0.6);
+    abilityBg.fillRoundedRect(abCX - 50, abY - 50, 100, 100, 8);
+    abilityBg.lineStyle(3, Phaser.Display.Color.HexStringToColor(abilityDef.color).color);
+    abilityBg.strokeRoundedRect(abCX - 50, abY - 50, 100, 100, 8);
+
+    this.abilityIcon = this.add.text(abCX, abY - 8, abilityDef.emoji, {
+      fontSize: '48px',
     }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
 
-    // Background for ability icon
-    const abilityBg = this.add.graphics().setDepth(99).setScrollFactor(0);
-    abilityBg.fillStyle(0x000000, 0.5);
-    abilityBg.fillRoundedRect(this.scale.width - 85, this.scale.height - 195, 50, 50, 6);
-    abilityBg.lineStyle(2, Phaser.Display.Color.HexStringToColor(abilityDef.color).color);
-    abilityBg.strokeRoundedRect(this.scale.width - 85, this.scale.height - 195, 50, 50, 6);
-
-    this.abilityHint = this.add.text(this.scale.width - 60, this.scale.height - 140, '[F] ' + abilityDef.name, {
-      fontSize: '10px', fontFamily: 'monospace', color: abilityDef.color,
+    this.abilityHint = this.add.text(abCX, abY + 32, '[F] ' + abilityDef.name, {
+      fontSize: '12px', fontFamily: 'monospace', color: abilityDef.color, align: 'center',
+      shadow: { offsetX: 0, offsetY: 0, color: '#000000', blur: 4, fill: true },
     }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
 
     // Admin console (~ key)
