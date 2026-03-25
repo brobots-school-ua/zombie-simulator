@@ -147,6 +147,25 @@ export class AdminConsole {
 
       <hr style="border-color:#333; margin:12px 0;">
 
+      <label style="display:block; margin-bottom:8px; color:#888;">Materials:</label>
+      <div style="display:flex; gap:10px; align-items:end; margin-bottom:8px;">
+        <div style="flex:1;">
+          <label style="display:block; margin-bottom:4px; color:#888;">Type:</label>
+          <select id="admin-mat-type" style="width:100%; box-sizing:border-box; padding:6px 8px; background:#111; border:1px solid #bb8844; color:#bb8844; font-family:monospace; font-size:14px; outline:none;">
+            <option value="wood">🪵 Wood</option>
+            <option value="metal">🔩 Metal</option>
+            <option value="screws">⚙️ Screws</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label style="display:block; margin-bottom:4px; color:#888;">Amount:</label>
+          <input id="admin-mat-amount" type="number" value="10" min="1" max="999" style="${inputStyle.replace('#44ff44', '#bb8844')}">
+        </div>
+        <button id="admin-give-mat" style="${btnStyle('#2a2a1a', '#bb8844', '#bb8844')}">Give</button>
+      </div>
+
+      <hr style="border-color:#333; margin:12px 0;">
+
       <label style="display:block; margin-bottom:8px; color:#888;">Spawn Zombie:</label>
       <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
         <div id="admin-zombie-preview" style="width:50px; height:50px; border:2px solid ${sel.color}; border-radius:6px; background:#111; cursor:pointer; display:flex; align-items:center; justify-content:center;">
@@ -224,6 +243,20 @@ export class AdminConsole {
       if (!gs?.player) { msg.textContent = 'Start a game first!'; msg.style.color = '#ff4444'; return; }
       gs.player.medkits = gs.player.maxMedkits;
       msg.textContent = `Medkits maxed! (${gs.player.medkits})`; msg.style.color = '#ff4444';
+    });
+
+    // Materials
+    this.panel.querySelector('#admin-give-mat')!.addEventListener('click', () => {
+      const gs = this.scene.scene.get('GameScene') as any;
+      if (!gs?.player) { msg.textContent = 'Start a game first!'; msg.style.color = '#ff4444'; return; }
+      const matType = (this.panel!.querySelector('#admin-mat-type') as HTMLSelectElement).value;
+      const amount = parseInt((this.panel!.querySelector('#admin-mat-amount') as HTMLInputElement).value, 10);
+      if (isNaN(amount) || amount <= 0) { msg.textContent = 'Invalid amount!'; msg.style.color = '#ff4444'; return; }
+      if (matType === 'wood') gs.player.wood += amount;
+      else if (matType === 'metal') gs.player.metal += amount;
+      else if (matType === 'screws') gs.player.screws += amount;
+      const names: Record<string, string> = { wood: 'Wood', metal: 'Metal', screws: 'Screws' };
+      msg.textContent = `+${amount} ${names[matType]}! (total: ${gs.player[matType]})`; msg.style.color = '#bb8844';
     });
 
     // Zombie type picker
