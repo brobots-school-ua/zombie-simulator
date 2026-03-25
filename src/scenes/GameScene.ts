@@ -167,11 +167,7 @@ export class GameScene extends Phaser.Scene {
 
     // Shooting
     this.input.on('pointerdown', () => {
-      if (!this.gameOver) {
-        const ui = this.scene.get('UIScene') as any;
-        if (ui?.adminConsole?.isOpen) return;
-        this.fireWeapon();
-      }
+      if (!this.gameOver) this.fireWeapon();
     });
 
     // Player death — ONCE only
@@ -316,6 +312,8 @@ export class GameScene extends Phaser.Scene {
 
   private fireWeapon() {
     if (this.shootCooldown > 0) return;
+    const ui = this.scene.get('UIScene') as any;
+    if (ui?.adminConsole?.isOpen) return;
     const target = this.player.shoot();
     if (!target) return;
 
