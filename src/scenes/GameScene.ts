@@ -937,32 +937,32 @@ export class GameScene extends Phaser.Scene {
     const size = damage >= 50 ? '18px' : damage >= 20 ? '14px' : '12px';
 
     // Push away any existing damage numbers that are close
-    const pushRadius = 20;
+    const pushRadius = 22;
     for (const old of this.activeDmgNumbers) {
       if (!old.active) continue;
       const dist = Phaser.Math.Distance.Between(x, y, old.x, old.y);
       if (dist < pushRadius) {
-        // Fling the old number to the side
         const angle = dist > 0
           ? Phaser.Math.Angle.Between(x, y, old.x, old.y)
           : Phaser.Math.FloatBetween(0, Math.PI * 2);
-        const pushDist = 25 + Phaser.Math.Between(0, 15);
+        const pushDist = 20 + Phaser.Math.Between(0, 10);
+        this.tweens.killTweensOf(old);
         this.tweens.add({
           targets: old,
           x: old.x + Math.cos(angle) * pushDist,
-          y: old.y + Math.sin(angle) * pushDist - 10,
+          y: old.y + Math.sin(angle) * pushDist - 8,
           alpha: 0,
-          scale: 0.5,
-          duration: 400,
-          ease: 'Power2',
+          scale: 0.7,
+          duration: 900,
+          ease: 'Power1',
           onComplete: () => old.destroy(),
         });
       }
     }
 
     // Scatter new number slightly from center
-    const offsetX = Phaser.Math.Between(-12, 12);
-    const offsetY = Phaser.Math.Between(-8, 8);
+    const offsetX = Phaser.Math.Between(-14, 14);
+    const offsetY = Phaser.Math.Between(-10, 10);
 
     const txt = this.add.text(x + offsetX, y + offsetY, `-${damage}`, {
       fontSize: size, fontFamily: 'monospace', color: color, fontStyle: 'bold',
@@ -973,10 +973,10 @@ export class GameScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: txt,
-      y: txt.y - 30,
+      y: txt.y - 25,
       alpha: 0,
-      duration: 800,
-      ease: 'Power2',
+      duration: 1400,
+      ease: 'Power1',
       onComplete: () => {
         const idx = this.activeDmgNumbers.indexOf(txt);
         if (idx >= 0) this.activeDmgNumbers.splice(idx, 1);
