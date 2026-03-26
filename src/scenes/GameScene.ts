@@ -745,11 +745,16 @@ export class GameScene extends Phaser.Scene {
     const tx = Phaser.Math.Clamp(worldPoint.x, 50, this.mapSize - 50);
     const ty = Phaser.Math.Clamp(worldPoint.y, 50, this.mapSize - 50);
 
-    // Clean markers
+    // Clean markers and return camera immediately
     this.clearNukeMarkers();
     this.nukeMode = false;
+    this.cameras.main.setBounds(0, 0, this.mapSize, this.mapSize);
+    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    this.tweens.add({
+      targets: this.cameras.main, zoom: 1.5, duration: 600, ease: 'Quad.easeOut',
+    });
 
-    // Show target crosshair
+    // Show target crosshair on the map
     const cross = this.add.graphics().setDepth(20);
     cross.lineStyle(2, 0xff0000, 0.8);
     cross.strokeCircle(tx, ty, 20);
@@ -758,29 +763,15 @@ export class GameScene extends Phaser.Scene {
 
     // Rocket approaching (from top)
     const rocket = this.add.image(tx, -100, 'ability-nuke').setDepth(20).setScale(2).setAngle(90);
-    const countdownText = this.add.text(tx, ty - 40, '5', {
-      fontSize: '32px', fontFamily: 'monospace', color: '#ff4444', fontStyle: 'bold',
-      shadow: { offsetX: 0, offsetY: 0, color: '#ff0000', blur: 10, fill: true },
-    }).setOrigin(0.5).setDepth(20);
 
-    let countdown = 5;
-    this.time.addEvent({
-      delay: 1000, repeat: 4,
-      callback: () => {
-        countdown--;
-        countdownText.setText(countdown > 0 ? countdown.toString() : '☢️');
-      },
-    });
-
-    // Rocket flies to target over 5 seconds
+    // Rocket flies to target over 3 seconds (faster since player is already back)
     this.tweens.add({
-      targets: rocket, x: tx, y: ty, duration: 5000, ease: 'Quad.easeIn',
+      targets: rocket, x: tx, y: ty, duration: 3000, ease: 'Quad.easeIn',
     });
 
-    this.time.delayedCall(5000, () => {
+    this.time.delayedCall(3000, () => {
       rocket.destroy();
       cross.destroy();
-      countdownText.destroy();
 
       // NUKE EXPLOSION
       const nukeRadius = 1000;
@@ -802,8 +793,8 @@ export class GameScene extends Phaser.Scene {
       });
 
       // 500 damage in radius
-      const targets = this.zombies.getChildren().slice();
-      for (const obj of targets) {
+      const allZombies = this.zombies.getChildren().slice();
+      for (const obj of allZombies) {
         const z = obj as Zombie;
         if (!z.active) continue;
         const dist = Phaser.Math.Distance.Between(tx, ty, z.x, z.y);
@@ -813,10 +804,9 @@ export class GameScene extends Phaser.Scene {
         }
       }
 
-      // Radiation patches — cover most of explosion zone
+      // Radiation patches
       const patchCount = Phaser.Math.Between(25, 35);
       for (let i = 0; i < patchCount; i++) {
-        // Spread evenly across the blast zone
         const angle = Math.random() * Math.PI * 2;
         const dist2 = Math.random() * nukeRadius * 0.85;
         const px = tx + Math.cos(angle) * dist2;
@@ -831,7 +821,6 @@ export class GameScene extends Phaser.Scene {
             if (elapsed >= 8000 || this.gameOver) {
               dmgEvent.destroy(); patch.destroy(); return;
             }
-            // Damage zombies in patch
             this.zombies.getChildren().forEach((obj) => {
               const z = obj as Zombie;
               if (!z.active) return;
@@ -845,15 +834,7 @@ export class GameScene extends Phaser.Scene {
         });
       }
 
-      // Return camera to player
-      this.time.delayedCall(800, () => {
-        this.cameras.main.setBounds(0, 0, this.mapSize, this.mapSize);
-        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-        this.tweens.add({
-          targets: this.cameras.main, zoom: 1.5, duration: 600, ease: 'Quad.easeOut',
-        });
-        this.abilityActive = false;
-      });
+      this.abilityActive = false;
     });
   }
 
