@@ -1336,21 +1336,65 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('ability-bomb', 32, 32);
     g.clear();
 
-    // === ABILITY: MINI NUKE ===
-    g.fillStyle(0x556655);
-    g.fillRect(4, 10, 20, 8);
-    g.fillStyle(0x667766);
-    g.fillRect(5, 11, 18, 6);
+    // === ABILITY: MINI NUKE (fat nuclear bomb, 64x64) ===
+    // Exhaust flame trail
+    g.fillStyle(0xff6600, 0.4);
+    g.fillCircle(10, 32, 8);
+    g.fillStyle(0xffaa00, 0.3);
+    g.fillCircle(6, 32, 6);
+    g.fillStyle(0xff4400, 0.3);
+    g.fillCircle(4, 28, 5);
+    g.fillCircle(4, 36, 5);
+    // Tail fins (4 fins)
+    g.fillStyle(0x3a4a3a);
+    g.fillTriangle(10, 20, 2, 14, 16, 24);
+    g.fillTriangle(10, 44, 2, 50, 16, 40);
+    g.fillTriangle(10, 26, 0, 26, 14, 32);
+    g.fillTriangle(10, 38, 0, 38, 14, 32);
+    // Main body (fat cylindrical bomb)
+    g.fillStyle(0x4a5a4a);
+    g.fillRect(14, 18, 30, 28);
+    g.fillStyle(0x5a6a5a);
+    g.fillRect(15, 20, 28, 24);
+    // Body shading (3D effect)
+    g.fillStyle(0x6a7a6a, 0.5);
+    g.fillRect(15, 20, 28, 8);
+    g.fillStyle(0x3a4a3a, 0.5);
+    g.fillRect(15, 38, 28, 6);
+    // Rivets along body
+    g.fillStyle(0x7a8a7a);
+    g.fillCircle(18, 24, 1.5);
+    g.fillCircle(18, 32, 1.5);
+    g.fillCircle(18, 40, 1.5);
+    g.fillCircle(40, 24, 1.5);
+    g.fillCircle(40, 32, 1.5);
+    g.fillCircle(40, 40, 1.5);
+    // Yellow hazard stripes
+    g.fillStyle(0xffcc00);
+    g.fillRect(22, 18, 4, 28);
+    g.fillRect(32, 18, 4, 28);
+    // Radiation symbol (center)
+    g.fillStyle(0xffcc00);
+    g.fillCircle(29, 32, 5);
+    g.fillStyle(0x4a5a4a);
+    g.fillCircle(29, 32, 2.5);
+    // Nosecone (rounded, red-tipped)
+    g.fillStyle(0x5a6a5a);
+    g.fillRect(44, 22, 8, 20);
+    g.fillStyle(0x6a7a6a);
+    g.fillRect(44, 22, 8, 6);
     g.fillStyle(0xcc2222);
-    g.fillTriangle(24, 10, 24, 18, 30, 14);
-    g.fillStyle(0x445544);
-    g.fillTriangle(4, 10, 0, 6, 8, 10);
-    g.fillTriangle(4, 18, 0, 22, 8, 18);
-    g.fillStyle(0xffcc00);
-    g.fillRect(14, 10, 3, 8);
-    g.fillStyle(0xffcc00);
-    g.fillCircle(16, 14, 2);
-    g.generateTexture('ability-nuke', 32, 28);
+    g.fillRect(52, 24, 6, 16);
+    g.fillStyle(0xff3333);
+    g.fillRect(52, 26, 6, 12);
+    // Red tip point
+    g.fillStyle(0xcc2222);
+    g.fillTriangle(58, 24, 58, 40, 64, 32);
+    // Stencil text "NUKE" hint (small dots)
+    g.fillStyle(0x222222, 0.5);
+    g.fillRect(26, 30, 6, 1);
+    g.fillRect(26, 33, 6, 1);
+    g.generateTexture('ability-nuke', 64, 64);
     g.clear();
 
     // === ABILITY: CRYO CAPSULE ===

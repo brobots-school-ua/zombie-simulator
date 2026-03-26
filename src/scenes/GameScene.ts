@@ -762,7 +762,7 @@ export class GameScene extends Phaser.Scene {
     cross.lineBetween(tx, ty - 30, tx, ty + 30);
 
     // Rocket approaching (from top)
-    const rocket = this.add.image(tx, -100, 'ability-nuke').setDepth(20).setScale(2).setAngle(90);
+    const rocket = this.add.image(tx, -200, 'ability-nuke').setDepth(20).setScale(3).setAngle(90);
 
     // Rocket flies to target over 3 seconds (faster since player is already back)
     this.tweens.add({
