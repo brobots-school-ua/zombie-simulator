@@ -683,17 +683,17 @@ export class GameScene extends Phaser.Scene {
     this.abilityActive = true;
     this.nukeMode = true;
 
-    // Zoom out to show entire map
+    // Zoom out to show entire map, centered
     const cam = this.cameras.main;
     cam.stopFollow();
     const targetZoom = Math.min(cam.width / this.mapSize, cam.height / this.mapSize);
+    // Center camera on the map: scroll to map center minus half viewport
+    const centerScrollX = (this.mapSize - cam.width / targetZoom) / 2;
+    const centerScrollY = (this.mapSize - cam.height / targetZoom) / 2;
 
     this.tweens.add({
-      targets: cam, zoom: targetZoom, scrollX: 0, scrollY: 0,
+      targets: cam, zoom: targetZoom, scrollX: centerScrollX, scrollY: centerScrollY,
       duration: 800, ease: 'Quad.easeOut',
-      onComplete: () => {
-        cam.setScroll(0, 0);
-      },
     });
 
     // Mark all zombies with neon markers
