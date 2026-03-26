@@ -10,12 +10,12 @@ export interface Accessory {
 }
 
 export const ACCESSORIES: Accessory[] = [
-  { id: 'beret', name: 'Beret', texture: 'acc-beret', price: 15, offsetX: 6, offsetY: -6, depth: 1 },
-  { id: 'bandana', name: 'Bandana', texture: 'acc-bandana', price: 8, offsetX: 0, offsetY: -6, depth: 1 },
-  { id: 'sunglasses', name: 'Sunglasses', texture: 'acc-sunglasses', price: 12, offsetX: 0, offsetY: -2, depth: 2 },
-  { id: 'scar', name: 'Battle Scar', texture: 'acc-scar', price: 5, offsetX: 2, offsetY: 0, depth: 1 },
-  { id: 'crown', name: 'Crown', texture: 'acc-crown', price: 50, offsetX: 0, offsetY: -16, depth: 3 },
-  { id: 'backpack', name: 'Backpack', texture: 'acc-backpack', price: 30, offsetX: 0, offsetY: 10, depth: -1 },
+  { id: 'gasmask', name: 'Gas Mask', texture: 'acc-gasmask', price: 15, offsetX: 0, offsetY: -4, depth: 2 },
+  { id: 'ammobelt', name: 'Ammo Belt', texture: 'acc-ammobelt', price: 10, offsetX: 0, offsetY: 2, depth: 1 },
+  { id: 'nightvision', name: 'Night Vision', texture: 'acc-nightvision', price: 20, offsetX: 0, offsetY: -6, depth: 2 },
+  { id: 'dogtags', name: 'Dog Tags', texture: 'acc-dogtags', price: 8, offsetX: 0, offsetY: 4, depth: 1 },
+  { id: 'crown', name: 'Crown', texture: 'acc-crown', price: 50, offsetX: 0, offsetY: -10, depth: 3 },
+  { id: 'vest', name: 'Tactical Vest', texture: 'acc-vest', price: 35, offsetX: 0, offsetY: 0, depth: -1 },
 ];
 
 const COINS_KEY = 'zombie-sim-coins';

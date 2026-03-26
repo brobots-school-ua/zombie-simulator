@@ -319,16 +319,22 @@ export class MenuScene extends Phaser.Scene {
       if (!canvas) return;
       const ctx = canvas.getContext('2d')!;
       ctx.clearRect(0, 0, 80, 80);
-      ctx.fillStyle = '#2266cc'; ctx.beginPath(); ctx.arc(40, 44, 22, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#4488ff'; ctx.beginPath(); ctx.arc(40, 44, 18, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#66aaff'; ctx.beginPath(); ctx.arc(36, 40, 8, 0, Math.PI * 2); ctx.fill();
+      // Draw player from texture
+      const playerTex = this.textures.get('player');
+      if (playerTex) {
+        const playerSrc = playerTex.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+        ctx.drawImage(playerSrc, 16, 20, 48, 48);
+      }
       if (accId) {
         const accDef = ACCESSORIES.find(a => a.id === accId);
         if (accDef) {
           const tex = this.textures.get(accDef.texture);
           if (tex) {
             const src = tex.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
-            ctx.drawImage(src, 40 + accDef.offsetX * 1.5 - src.width, 44 + accDef.offsetY * 1.5 - src.height, src.width * 2, src.height * 2);
+            const scale = 2;
+            const ax = 40 + accDef.offsetX * scale - (src.width * scale) / 2;
+            const ay = 44 + accDef.offsetY * scale - (src.height * scale) / 2;
+            ctx.drawImage(src, ax, ay, src.width * scale, src.height * scale);
           }
         }
       }
