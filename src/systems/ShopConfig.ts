@@ -10,7 +10,7 @@ export interface Accessory {
 }
 
 export const ACCESSORIES: Accessory[] = [
-  { id: 'crown', name: 'Crown', texture: 'acc-crown', price: 50, offsetX: 0, offsetY: -16, depth: 3 },
+  { id: 'crown', name: 'Crown', texture: 'acc-crown', price: 200, offsetX: 0, offsetY: -16, depth: 3 },
 ];
 
 // Archived accessories — kept for reference, can be restored later
