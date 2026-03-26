@@ -10,13 +10,15 @@ export interface Accessory {
 }
 
 export const ACCESSORIES: Accessory[] = [
-  { id: 'beret', name: 'Beret', texture: 'acc-beret', price: 15, offsetX: 6, offsetY: -6, depth: 1 },
-  { id: 'bandana', name: 'Bandana', texture: 'acc-bandana', price: 8, offsetX: 0, offsetY: -6, depth: 1 },
-  { id: 'sunglasses', name: 'Sunglasses', texture: 'acc-sunglasses', price: 12, offsetX: 0, offsetY: -2, depth: 2 },
-  { id: 'scar', name: 'Battle Scar', texture: 'acc-scar', price: 5, offsetX: 2, offsetY: 0, depth: 1 },
   { id: 'crown', name: 'Crown', texture: 'acc-crown', price: 50, offsetX: 0, offsetY: -16, depth: 3 },
-  { id: 'backpack', name: 'Backpack', texture: 'acc-backpack', price: 30, offsetX: 0, offsetY: 10, depth: -1 },
 ];
+
+// Archived accessories — kept for reference, can be restored later
+// { id: 'beret', name: 'Beret', texture: 'acc-beret', price: 15, offsetX: 6, offsetY: -6, depth: 1 },
+// { id: 'bandana', name: 'Bandana', texture: 'acc-bandana', price: 8, offsetX: 0, offsetY: -6, depth: 1 },
+// { id: 'sunglasses', name: 'Sunglasses', texture: 'acc-sunglasses', price: 12, offsetX: 0, offsetY: -2, depth: 2 },
+// { id: 'scar', name: 'Battle Scar', texture: 'acc-scar', price: 5, offsetX: 2, offsetY: 0, depth: 1 },
+// { id: 'backpack', name: 'Backpack', texture: 'acc-backpack', price: 30, offsetX: 0, offsetY: 10, depth: -1 },
 
 const COINS_KEY = 'zombie-sim-coins';
 const OWNED_KEY = 'zombie-sim-accessories';
