@@ -7,15 +7,16 @@ export interface Accessory {
   offsetX: number;  // position offset on player sprite
   offsetY: number;
   depth: number;    // render depth relative to player (positive = above)
+  scale: number;    // sprite scale (1 = original size)
 }
 
 export const ACCESSORIES: Accessory[] = [
-  { id: 'gasmask', name: 'Gas Mask', texture: 'acc-gasmask', price: 15, offsetX: 0, offsetY: -4, depth: 2 },
-  { id: 'ammobelt', name: 'Ammo Belt', texture: 'acc-ammobelt', price: 10, offsetX: 0, offsetY: 2, depth: 1 },
-  { id: 'nightvision', name: 'Night Vision', texture: 'acc-nightvision', price: 20, offsetX: 0, offsetY: -6, depth: 2 },
-  { id: 'dogtags', name: 'Dog Tags', texture: 'acc-dogtags', price: 8, offsetX: 0, offsetY: 4, depth: 1 },
-  { id: 'crown', name: 'Crown', texture: 'acc-crown', price: 50, offsetX: 0, offsetY: -10, depth: 3 },
-  { id: 'vest', name: 'Tactical Vest', texture: 'acc-vest', price: 35, offsetX: 0, offsetY: 0, depth: -1 },
+  { id: 'gasmask', name: 'Gas Mask', texture: 'acc-gasmask', price: 15, offsetX: 0, offsetY: -2, depth: 2, scale: 0.9 },
+  { id: 'ammobelt', name: 'Ammo Belt', texture: 'acc-ammobelt', price: 10, offsetX: 0, offsetY: 2, depth: 1, scale: 0.85 },
+  { id: 'nightvision', name: 'Night Vision', texture: 'acc-nightvision', price: 20, offsetX: 0, offsetY: -4, depth: 2, scale: 0.85 },
+  { id: 'dogtags', name: 'Dog Tags', texture: 'acc-dogtags', price: 8, offsetX: 0, offsetY: 4, depth: 1, scale: 0.8 },
+  { id: 'crown', name: 'Crown', texture: 'acc-crown', price: 50, offsetX: 0, offsetY: -6, depth: 3, scale: 1.0 },
+  { id: 'vest', name: 'Tactical Vest', texture: 'acc-vest', price: 35, offsetX: 0, offsetY: 0, depth: -1, scale: 1.1 },
 ];
 
 const COINS_KEY = 'zombie-sim-coins';

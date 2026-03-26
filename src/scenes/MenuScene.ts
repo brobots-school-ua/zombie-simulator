@@ -331,10 +331,12 @@ export class MenuScene extends Phaser.Scene {
           const tex = this.textures.get(accDef.texture);
           if (tex) {
             const src = tex.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
-            const scale = 2;
-            const ax = 40 + accDef.offsetX * scale - (src.width * scale) / 2;
-            const ay = 44 + accDef.offsetY * scale - (src.height * scale) / 2;
-            ctx.drawImage(src, ax, ay, src.width * scale, src.height * scale);
+            const previewScale = accDef.scale * 2.5;
+            const drawW = src.width * previewScale;
+            const drawH = src.height * previewScale;
+            const ax = 40 + accDef.offsetX * 1.5 - drawW / 2;
+            const ay = 44 + accDef.offsetY * 1.5 - drawH / 2;
+            ctx.drawImage(src, ax, ay, drawW, drawH);
           }
         }
       }
