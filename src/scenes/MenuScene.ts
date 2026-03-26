@@ -184,6 +184,7 @@ export class MenuScene extends Phaser.Scene {
     let starting = false;
     startBtn.on('pointerdown', () => {
       if (starting || !ready) return;
+      if (this.shopPanel || this.bestiaryPanel || this.backpackPanel || this.abilitiesPanel || this.equipmentPanel) return;
       starting = true; startBtn.disableInteractive();
       if (this.nicknameInput) { leaderboard.setNickname(this.nicknameInput.value); this.nicknameInput.remove(); }
       if (this.scene.isActive('GameScene')) this.scene.stop('GameScene');
