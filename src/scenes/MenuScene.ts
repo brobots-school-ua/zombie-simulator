@@ -197,7 +197,7 @@ export class MenuScene extends Phaser.Scene {
     const btnGap = 8;
     const btnY = height - 30;
     const totalBtnsW = btnW * 5 + btnGap * 4;
-    const btnStartX = (width - totalBtnsW) / 2;
+    const btnStartX = width - totalBtnsW - 20;
     const btnStyle = { fontSize: '11px', fontFamily: 'monospace', align: 'center' as const };
 
     // Button bar background
@@ -222,7 +222,7 @@ export class MenuScene extends Phaser.Scene {
       return { bg, zone };
     };
 
-    makeBtn(0, 'SHOP', 0xffcc22, 0x1a1a0a, 0x2a2a1a, 0xffee66, () => this.openShop());
+    makeBtn(0, 'ACCESS.', 0xffcc22, 0x1a1a0a, 0x2a2a1a, 0xffee66, () => this.openShop());
     makeBtn(1, 'VOLUME', 0x44ff44, 0x0a1a0a, 0x1a2a1a, 0x88ff88, () => {});
     makeBtn(2, 'BESTIARY', 0xcc44ff, 0x1a0a1a, 0x2a1a2a, 0xee66ff, () => this.openBestiary());
     makeBtn(3, 'BACKPACK', 0x88aa44, 0x0a1a0a, 0x1a2a1a, 0xaacc66, () => this.openBackpack());
@@ -319,24 +319,16 @@ export class MenuScene extends Phaser.Scene {
       if (!canvas) return;
       const ctx = canvas.getContext('2d')!;
       ctx.clearRect(0, 0, 80, 80);
-      // Draw player from texture
-      const playerTex = this.textures.get('player');
-      if (playerTex) {
-        const playerSrc = playerTex.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
-        ctx.drawImage(playerSrc, 16, 20, 48, 48);
-      }
+      ctx.fillStyle = '#2266cc'; ctx.beginPath(); ctx.arc(40, 44, 22, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#4488ff'; ctx.beginPath(); ctx.arc(40, 44, 18, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#66aaff'; ctx.beginPath(); ctx.arc(36, 40, 8, 0, Math.PI * 2); ctx.fill();
       if (accId) {
         const accDef = ACCESSORIES.find(a => a.id === accId);
         if (accDef) {
           const tex = this.textures.get(accDef.texture);
           if (tex) {
             const src = tex.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
-            const previewScale = accDef.scale * 2.5;
-            const drawW = src.width * previewScale;
-            const drawH = src.height * previewScale;
-            const ax = 40 + accDef.offsetX * 1.5 - drawW / 2;
-            const ay = 44 + accDef.offsetY * 1.5 - drawH / 2;
-            ctx.drawImage(src, ax, ay, drawW, drawH);
+            ctx.drawImage(src, 40 + accDef.offsetX * 1.5 - src.width, 44 + accDef.offsetY * 1.5 - src.height, src.width * 2, src.height * 2);
           }
         }
       }
@@ -346,7 +338,7 @@ export class MenuScene extends Phaser.Scene {
       if (!this.shopPanel) return;
       const equipped = shop.getEquipped();
       this.shopPanel.innerHTML = `
-        <h3 style="margin:0 0 4px 0; color:#ffcc22; font-size:20px;">SHOP</h3>
+        <h3 style="margin:0 0 4px 0; color:#ffcc22; font-size:20px;">ACCESSORIES</h3>
         <div style="display:flex; gap:16px; margin-bottom:12px;">
           <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center;">
             <canvas id="preview-canvas" width="80" height="80" style="border:1px solid #333; border-radius:6px; background:#111;"></canvas>
@@ -422,8 +414,8 @@ export class MenuScene extends Phaser.Scene {
       fontSize: '10px', fontFamily: 'monospace', color: '#44ff44',
     }).setOrigin(0.5).setDepth(11);
 
-    const volToX = (vol: number) => sliderX + ((vol - 0.25) / 1.75) * sliderW;
-    const xToVol = (x: number) => 0.25 + ((x - sliderX) / sliderW) * 1.75;
+    const volToX = (vol: number) => sliderX + (vol / 2.0) * sliderW;
+    const xToVol = (x: number) => ((x - sliderX) / sliderW) * 2.0;
     const draw = (vol: number) => {
       const kx = volToX(vol); sliderGfx.clear();
       sliderGfx.fillStyle(0x44ff44); sliderGfx.fillRoundedRect(sliderX, y - 2, kx - sliderX, 4, 2);

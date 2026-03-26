@@ -88,7 +88,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (accDef) {
         this.accessorySprite = scene.add.sprite(x, y, accDef.texture);
         this.accessorySprite.setDepth(10 + accDef.depth);
-        this.accessorySprite.setScale(accDef.scale);
       }
     }
 

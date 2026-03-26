@@ -407,8 +407,8 @@ export class UIScene extends Phaser.Scene {
       sliderBg.fillRoundedRect(sliderX, sliderY - 2, sliderW, 4, 2);
     };
 
-    const volToX = (vol: number) => sliderX + ((vol - 0.25) / 1.75) * sliderW;
-    const xToVol = (x: number) => 0.25 + ((x - sliderX) / sliderW) * 1.75;
+    const volToX = (vol: number) => sliderX + (vol / 2.0) * sliderW;
+    const xToVol = (x: number) => ((x - sliderX) / sliderW) * 2.0;
 
     const drawSlider = (vol: number) => {
       const knobX = volToX(vol);

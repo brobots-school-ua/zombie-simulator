@@ -255,137 +255,108 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('weapon-grenade', 32, 14);
     g.clear();
 
-    // === ACCESSORY TEXTURES (16x16, designed to look good at ~0.5-0.7 scale on 32x32 player) ===
-
-    // 1. Gas Mask — round mask on face area
-    g.fillStyle(0x444444);
-    g.fillCircle(8, 8, 7);
-    g.fillStyle(0x555555);
-    g.fillCircle(8, 8, 6);
-    // Eye lenses
-    g.fillStyle(0x1a3a3a);
-    g.fillCircle(5, 7, 3);
-    g.fillCircle(11, 7, 3);
-    g.fillStyle(0x44aaaa, 0.6);
-    g.fillCircle(5, 6, 1.5);
-    g.fillCircle(11, 6, 1.5);
-    // Filter canister (bottom center)
-    g.fillStyle(0x3a3a3a);
-    g.fillCircle(8, 13, 3);
-    g.fillStyle(0x333333);
-    g.fillCircle(8, 13, 2);
-    g.generateTexture('acc-gasmask', 16, 16);
-    g.clear();
-
-    // 2. Ammo Belt — horizontal strap with bullets across chest
-    g.fillStyle(0x5a4a2a);
-    g.fillRect(0, 5, 16, 6);
-    g.fillStyle(0x6b5a35);
-    g.fillRect(0, 6, 16, 4);
-    // Bullets (bright gold)
+    // === ACCESSORY TEXTURES ===
+    // Beret
+    g.fillStyle(0x2d4a1e);
+    g.fillCircle(8, 7, 7);
+    g.fillStyle(0x3a5a28);
+    g.fillCircle(8, 6, 6);
+    g.fillStyle(0x1e3a14);
+    g.fillRect(1, 8, 14, 2);
     g.fillStyle(0xddaa00);
-    g.fillRect(1, 5, 2, 6);
-    g.fillRect(4, 5, 2, 6);
-    g.fillRect(7, 5, 2, 6);
-    g.fillRect(10, 5, 2, 6);
-    g.fillRect(13, 5, 2, 6);
-    // Bullet tips
-    g.fillStyle(0xffcc33);
-    g.fillRect(1, 5, 2, 2);
-    g.fillRect(4, 5, 2, 2);
-    g.fillRect(7, 5, 2, 2);
-    g.fillRect(10, 5, 2, 2);
-    g.fillRect(13, 5, 2, 2);
-    g.generateTexture('acc-ammobelt', 16, 16);
+    g.fillCircle(8, 5, 2);
+    g.fillStyle(0xffcc22);
+    g.fillCircle(8, 5, 1);
+    g.generateTexture('acc-beret', 16, 10);
     g.clear();
 
-    // 3. Night Vision — two green glowing tubes on forehead
-    // Mount bar
-    g.fillStyle(0x333333);
-    g.fillRect(2, 6, 12, 4);
-    // Left tube
-    g.fillStyle(0x222222);
-    g.fillCircle(5, 5, 4);
-    g.fillStyle(0x22ff22, 0.6);
-    g.fillCircle(5, 4, 3);
-    g.fillStyle(0x66ff66, 0.8);
-    g.fillCircle(5, 4, 1.5);
-    // Right tube
-    g.fillStyle(0x222222);
-    g.fillCircle(11, 5, 4);
-    g.fillStyle(0x22ff22, 0.6);
-    g.fillCircle(11, 4, 3);
-    g.fillStyle(0x66ff66, 0.8);
-    g.fillCircle(11, 4, 1.5);
-    g.generateTexture('acc-nightvision', 16, 16);
+    // Bandana
+    g.fillStyle(0xee2222);
+    g.fillRect(0, 1, 24, 6);
+    g.fillStyle(0xcc1111);
+    g.fillRect(0, 1, 24, 2);
+    g.fillStyle(0xdd2222);
+    g.fillRect(22, 0, 6, 4);
+    g.fillRect(24, 4, 5, 4);
+    g.fillStyle(0xbb1818);
+    g.fillRect(26, 6, 3, 3);
+    g.fillStyle(0xff6644, 0.4);
+    g.fillRect(4, 2, 8, 1);
+    g.generateTexture('acc-bandana', 30, 10);
     g.clear();
 
-    // 4. Dog Tags — chain + two small plates on chest
-    g.lineStyle(1, 0x999999);
-    g.lineBetween(4, 0, 3, 5);
-    g.lineBetween(12, 0, 13, 5);
-    g.lineBetween(3, 5, 6, 8);
-    g.lineBetween(13, 5, 10, 8);
-    // Tags
-    g.fillStyle(0xaaaaaa);
-    g.fillRoundedRect(4, 8, 8, 5, 1);
-    g.fillStyle(0xbbbbbb);
-    g.fillRoundedRect(5, 9, 6, 3, 1);
-    g.fillStyle(0x999999);
-    g.fillRoundedRect(5, 10, 7, 5, 1);
-    g.fillStyle(0xaaaaaa);
-    g.fillRoundedRect(6, 11, 5, 3, 1);
-    // Text hint
-    g.lineStyle(1, 0x777777, 0.5);
-    g.lineBetween(6, 10, 10, 10);
-    g.generateTexture('acc-dogtags', 16, 16);
+    // Sunglasses
+    g.fillStyle(0x111111);
+    g.fillCircle(6, 5, 5);
+    g.fillCircle(18, 5, 5);
+    g.fillStyle(0x1a1a44);
+    g.fillCircle(6, 5, 4);
+    g.fillCircle(18, 5, 4);
+    g.fillStyle(0x4466aa, 0.3);
+    g.fillCircle(5, 4, 2);
+    g.fillCircle(17, 4, 2);
+    g.lineStyle(2, 0x222222);
+    g.lineBetween(11, 5, 13, 5);
+    g.lineBetween(0, 5, 1, 5);
+    g.lineBetween(23, 5, 24, 5);
+    g.generateTexture('acc-sunglasses', 24, 10);
     g.clear();
 
-    // 5. Crown — golden crown sitting on head
-    // Base band
-    g.fillStyle(0xddaa00);
-    g.fillRect(1, 8, 14, 6);
+    // Scar
+    g.lineStyle(3, 0xff3333, 0.9);
+    g.lineBetween(2, 2, 18, 18);
+    g.lineStyle(2, 0xff5555, 0.6);
+    g.lineBetween(4, 0, 20, 16);
+    g.lineStyle(1, 0xcc2222, 0.7);
+    g.lineBetween(0, 6, 14, 20);
+    g.fillStyle(0xaa0000, 0.5);
+    g.fillCircle(16, 16, 2);
+    g.fillCircle(6, 4, 1.5);
+    g.generateTexture('acc-scar', 20, 20);
+    g.clear();
+
+    // Crown
     g.fillStyle(0xffcc00);
-    g.fillRect(2, 9, 12, 4);
-    // 3 spikes
+    g.fillRect(2, 10, 20, 10);
+    g.fillStyle(0xffdd33);
+    g.fillRect(3, 11, 18, 8);
     g.fillStyle(0xffcc00);
-    g.fillTriangle(1, 8, 4, 1, 7, 8);
-    g.fillTriangle(5, 8, 8, 0, 11, 8);
-    g.fillTriangle(9, 8, 12, 1, 15, 8);
-    g.fillStyle(0xffdd44);
-    g.fillTriangle(3, 8, 4, 3, 5, 8);
-    g.fillTriangle(7, 8, 8, 2, 9, 8);
-    g.fillTriangle(11, 8, 12, 3, 13, 8);
-    // Gems
-    g.fillStyle(0xff2222);
-    g.fillCircle(4, 11, 1.5);
-    g.fillStyle(0x2255ff);
-    g.fillCircle(8, 11, 1.5);
-    g.fillStyle(0x22ff44);
-    g.fillCircle(12, 11, 1.5);
+    g.fillRect(2, 4, 4, 8);
+    g.fillRect(10, 0, 4, 12);
+    g.fillRect(18, 4, 4, 8);
+    g.fillStyle(0xffdd33);
+    g.fillRect(3, 5, 2, 6);
+    g.fillRect(11, 1, 2, 10);
+    g.fillRect(19, 5, 2, 6);
+    g.fillStyle(0xff1111);
+    g.fillCircle(6, 14, 2.5);
+    g.fillStyle(0x1144ff);
+    g.fillCircle(12, 14, 2.5);
+    g.fillStyle(0x11ff44);
+    g.fillCircle(18, 14, 2.5);
     g.lineStyle(1, 0xcc9900);
-    g.strokeRect(1, 8, 14, 6);
-    g.generateTexture('acc-crown', 16, 16);
+    g.strokeRect(2, 10, 20, 10);
+    g.generateTexture('acc-crown', 24, 20);
     g.clear();
 
-    // 6. Tactical Vest — just shoulder pads + plate outline, NOT full body
-    // Two shoulder pads visible from above
-    g.fillStyle(0x3a4a3a);
-    g.fillRoundedRect(0, 3, 6, 10, 2);
-    g.fillRoundedRect(10, 3, 6, 10, 2);
-    g.fillStyle(0x4a5a4a);
-    g.fillRoundedRect(1, 4, 4, 8, 1);
-    g.fillRoundedRect(11, 4, 4, 8, 1);
-    // Chest plate hint (center, subtle)
-    g.fillStyle(0x445544, 0.5);
-    g.fillRect(5, 5, 6, 6);
-    g.fillStyle(0x556655, 0.4);
-    g.fillRect(6, 6, 4, 4);
-    // Straps connecting pads
-    g.fillStyle(0x3a4a3a);
-    g.fillRect(5, 3, 6, 2);
-    g.fillRect(5, 11, 6, 2);
-    g.generateTexture('acc-vest', 16, 16);
+    // Backpack accessory
+    g.fillStyle(0x4a5a2a);
+    g.fillRect(2, 2, 12, 8);
+    g.fillStyle(0x5a6a35);
+    g.fillRect(3, 3, 10, 6);
+    g.fillStyle(0x3a4a20);
+    g.fillRect(2, 1, 12, 3);
+    g.fillStyle(0x4a5a2a);
+    g.fillRect(4, 0, 2, 2);
+    g.fillRect(10, 0, 2, 2);
+    g.fillStyle(0x888866);
+    g.fillRect(6, 4, 4, 2);
+    g.fillStyle(0x3a4a20);
+    g.fillRect(0, 3, 3, 5);
+    g.fillRect(13, 3, 3, 5);
+    g.fillStyle(0x2a3a18);
+    g.fillRect(2, 9, 12, 2);
+    g.generateTexture('acc-backpack', 16, 12);
     g.clear();
 
     // Coin icon

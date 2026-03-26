@@ -8,7 +8,7 @@ export class AudioManager {
   private gameActive = false;
   private beatInterval: number | null = null;
   private stingInterval: number | null = null;
-  private _volume: number = 1.0; // 0.25 to 2.0 (25% to 200%)
+  private _volume: number = 1.0; // 0 to 2.0 (0% to 200%)
 
   // Initialize AudioContext (must be called after user interaction)
   init() {
@@ -22,9 +22,9 @@ export class AudioManager {
     this.masterGain.connect(this.ctx.destination);
   }
 
-  // Set volume (0.25 to 2.0) and persist to localStorage
+  // Set volume (0 to 2.0) and persist to localStorage
   setVolume(value: number) {
-    this._volume = Math.max(0.25, Math.min(2.0, value));
+    this._volume = Math.max(0, Math.min(2.0, value));
     localStorage.setItem('zombie-sim-volume', this._volume.toString());
     if (this.ctx && this.masterGain) {
       this.masterGain.gain.linearRampToValueAtTime(
