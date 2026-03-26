@@ -5,6 +5,7 @@ import { AdminConsole } from '../systems/AdminConsole';
 import { ACCESSORIES, shop } from '../systems/ShopConfig';
 import { bestiary } from '../systems/BestiaryManager';
 import { ABILITIES, getSelectedAbility, setSelectedAbility } from '../systems/AbilityConfig';
+import { EQUIPMENT, equipment } from '../systems/EquipmentConfig';
 
 // Atmospheric main menu scene
 export class MenuScene extends Phaser.Scene {
@@ -14,6 +15,7 @@ export class MenuScene extends Phaser.Scene {
   private bestiaryPanel: HTMLDivElement | null = null;
   private backpackPanel: HTMLDivElement | null = null;
   private abilitiesPanel: HTMLDivElement | null = null;
+  private equipmentPanel: HTMLDivElement | null = null;
   private coinsText!: Phaser.GameObjects.Text;
 
   constructor() {
@@ -196,7 +198,7 @@ export class MenuScene extends Phaser.Scene {
     const btnH = 50;
     const btnGap = 8;
     const btnY = height - 30;
-    const totalBtnsW = btnW * 5 + btnGap * 4;
+    const totalBtnsW = btnW * 6 + btnGap * 5;
     const btnStartX = width - totalBtnsW - 20;
     const btnStyle = { fontSize: '11px', fontFamily: 'monospace', align: 'center' as const };
 
@@ -227,6 +229,7 @@ export class MenuScene extends Phaser.Scene {
     makeBtn(2, 'BESTIARY', 0xcc44ff, 0x1a0a1a, 0x2a1a2a, 0xee66ff, () => this.openBestiary());
     makeBtn(3, 'BACKPACK', 0x88aa44, 0x0a1a0a, 0x1a2a1a, 0xaacc66, () => this.openBackpack());
     makeBtn(4, 'ABILITIES', 0xff6644, 0x1a1a0a, 0x2a1a0a, 0xff8866, () => this.openAbilities());
+    makeBtn(5, 'EQUIP', 0x44bbff, 0x0a1a2a, 0x1a2a3a, 0x66ddff, () => this.openEquipment());
 
     // Volume slider inside the VOLUME button area
     const volBtnX = btnStartX + 1 * (btnW + btnGap);
@@ -272,6 +275,7 @@ export class MenuScene extends Phaser.Scene {
       this.closeShop();
       this.closeBestiary();
       this.closeBackpack();
+      this.closeEquipment();
       this.adminConsole.destroy();
     });
   }
@@ -618,5 +622,115 @@ export class MenuScene extends Phaser.Scene {
 
   private closeAbilities() {
     if (this.abilitiesPanel) { this.abilitiesPanel.remove(); this.abilitiesPanel = null; }
+  }
+
+  private openEquipment() {
+    if (this.equipmentPanel) return;
+
+    this.equipmentPanel = document.createElement('div');
+    this.equipmentPanel.style.cssText = `
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.95); border: 2px solid #44bbff; border-radius: 8px;
+      padding: 24px; z-index: 3000; font-family: monospace; color: #44bbff;
+      width: 440px; max-height: 85vh; overflow-y: auto;
+    `;
+
+    const renderPanel = () => {
+      if (!this.equipmentPanel) return;
+      const coins = shop.getCoins();
+      const equipped = equipment.getEquipped();
+      const baseHp = 100;
+      const baseSpeed = 150;
+      const hpBonus = equipment.getHpBonus();
+      const speedMult = equipment.getSpeedMultiplier();
+
+      const renderSlot = (slot: 'helmet' | 'belt', title: string, emoji: string) => {
+        const items = EQUIPMENT.filter(e => e.slot === slot);
+        const equippedId = equipped[slot];
+        return `
+          <div style="margin-bottom:16px;">
+            <div style="color:#44bbff; font-size:16px; font-weight:bold; margin-bottom:8px;">${emoji} ${title}</div>
+            ${items.map(item => {
+              const owned = equipment.owns(item.id);
+              const isEquipped = equippedId === item.id;
+              const canBuy = coins >= item.price;
+              let btn = '';
+              if (isEquipped) {
+                btn = `<button class="eq-btn" data-action="unequip" data-slot="${slot}" style="padding:4px 10px; background:#333; border:1px solid #44bbff; color:#44bbff; font-family:monospace; cursor:pointer; border-radius:3px; font-size:11px;">Equipped ✓</button>`;
+              } else if (owned) {
+                btn = `<button class="eq-btn" data-action="equip" data-id="${item.id}" style="padding:4px 10px; background:#1a2a3a; border:1px solid #44bbff; color:#44bbff; font-family:monospace; cursor:pointer; border-radius:3px; font-size:11px;">Equip</button>`;
+              } else {
+                btn = `<button class="eq-btn" data-action="buy" data-id="${item.id}" style="padding:4px 10px; background:${canBuy ? '#2a2a1a' : '#222'}; border:1px solid ${canBuy ? '#ffcc22' : '#555'}; color:${canBuy ? '#ffcc22' : '#555'}; font-family:monospace; cursor:pointer; border-radius:3px; font-size:11px;" ${canBuy ? '' : 'disabled'}>${item.price} coins</button>`;
+              }
+              return `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; margin:3px 0; border:1px solid ${isEquipped ? '#44bbff' : '#333'}; border-radius:4px; background:${isEquipped ? 'rgba(68,187,255,0.1)' : 'rgba(0,0,0,0.3)'};">
+                  <div>
+                    <span style="color:#ddd;">${item.name}</span>
+                    <span style="color:#888; font-size:11px; margin-left:6px;">${item.description}</span>
+                  </div>
+                  ${btn}
+                </div>`;
+            }).join('')}
+          </div>`;
+      };
+
+      this.equipmentPanel!.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="margin:0; color:#44bbff; font-size:20px;">EQUIPMENT</h3>
+          <button id="eq-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1; transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='#ff4444';this.style.color='#000'" onmouseout="this.style.background='none';this.style.color='#ff4444'">✕</button>
+        </div>
+
+        <div style="display:flex; gap:16px; margin-bottom:16px; padding:10px; border:1px solid #333; border-radius:6px; background:rgba(68,187,255,0.05);">
+          <div style="flex:1; text-align:center;">
+            <div style="color:#888; font-size:11px;">HP</div>
+            <div style="color:#ff4444; font-size:20px; font-weight:bold;">${baseHp + hpBonus}</div>
+            ${hpBonus > 0 ? `<div style="color:#44ff44; font-size:10px;">+${hpBonus}</div>` : ''}
+          </div>
+          <div style="flex:1; text-align:center;">
+            <div style="color:#888; font-size:11px;">Walk Speed</div>
+            <div style="color:#44bbff; font-size:20px; font-weight:bold;">${Math.round(baseSpeed * speedMult)}</div>
+            ${speedMult > 1 ? `<div style="color:#44ff44; font-size:10px;">×${speedMult}</div>` : ''}
+          </div>
+          <div style="flex:1; text-align:center;">
+            <div style="color:#888; font-size:11px;">Sprint Speed</div>
+            <div style="color:#ffaa44; font-size:20px; font-weight:bold;">${Math.round(baseSpeed * 2 * speedMult)}</div>
+            ${speedMult > 1 ? `<div style="color:#44ff44; font-size:10px;">×${speedMult}</div>` : ''}
+          </div>
+        </div>
+
+        <p style="color:#ffcc22; margin:0 0 12px 0; font-size:13px;">Coins: ${coins}</p>
+
+        ${renderSlot('helmet', 'Helmet', '🪖')}
+        ${renderSlot('belt', 'Belt', '🔗')}
+      `;
+
+      // Event listeners
+      this.equipmentPanel!.querySelector('#eq-close')!.addEventListener('click', () => this.closeEquipment());
+      this.equipmentPanel!.querySelectorAll('.eq-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const el = btn as HTMLElement;
+          const action = el.dataset.action;
+          const id = el.dataset.id || '';
+          const slot = el.dataset.slot as 'helmet' | 'belt';
+          if (action === 'buy') {
+            if (equipment.buy(id, shop.getCoins())) {
+              shop.addCoins(-EQUIPMENT.find(i => i.id === id)!.price);
+            }
+            renderPanel();
+          }
+          if (action === 'equip') { equipment.equip(id); renderPanel(); }
+          if (action === 'unequip') { equipment.unequip(slot); renderPanel(); }
+        });
+      });
+    };
+
+    document.body.appendChild(this.equipmentPanel);
+    this.equipmentPanel.addEventListener('keydown', (e) => e.stopPropagation());
+    renderPanel();
+  }
+
+  private closeEquipment() {
+    if (this.equipmentPanel) { this.equipmentPanel.remove(); this.equipmentPanel = null; }
   }
 }

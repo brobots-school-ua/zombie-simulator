@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { WEAPONS, WeaponDef } from '../systems/WeaponConfig';
 import { ACCESSORIES, shop } from '../systems/ShopConfig';
+import { equipment } from '../systems/EquipmentConfig';
 
 // Per-weapon ammo state
 export interface WeaponState {
@@ -64,6 +65,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Circular hitbox
     this.body!.setCircle(13, 3, 3);
+
+    // Apply equipment bonuses
+    const hpBonus = equipment.getHpBonus();
+    this.maxHp += hpBonus;
+    this.hp = this.maxHp;
     this.setCollideWorldBounds(true);
     this.setDepth(10);
 
@@ -158,9 +164,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.keys.A.isDown) vx = -1;
     if (this.keys.D.isDown) vx = 1;
 
-    // Sprint on Shift
+    // Sprint on Shift, belt speed multiplier applies to both walk and sprint
     this.isSprinting = this.keys.SHIFT.isDown && (vx !== 0 || vy !== 0);
-    const currentSpeed = this.isSprinting ? this.speed * this.sprintMultiplier : this.speed;
+    const beltMult = equipment.getSpeedMultiplier();
+    const currentSpeed = (this.isSprinting ? this.speed * this.sprintMultiplier : this.speed) * beltMult;
 
     const len = Math.sqrt(vx * vx + vy * vy);
     if (len > 0) {
