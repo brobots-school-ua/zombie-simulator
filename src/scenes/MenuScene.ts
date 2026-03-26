@@ -28,15 +28,8 @@ export class MenuScene extends Phaser.Scene {
     audioManager.init();
     audioManager.startMenuMusic();
 
-    // Dark ground texture grid for atmosphere
-    for (let x = 0; x < width; x += 64) {
-      for (let y = 0; y < height; y += 64) {
-        this.add.image(x + 32, y + 32, 'ground1').setAlpha(0.08).setTint(0x334433);
-      }
-    }
-
-    // Fog (more layers, slower, denser)
-    for (let i = 0; i < 18; i++) {
+    // Fog (atmospheric)
+    for (let i = 0; i < 10; i++) {
       const fog = this.add.image(
         Phaser.Math.Between(-100, width + 100), Phaser.Math.Between(-50, height + 50), 'fog-particle'
       ).setAlpha(Phaser.Math.FloatBetween(0.08, 0.25)).setScale(Phaser.Math.FloatBetween(2, 4.5)).setTint(0x1a3a1a);
@@ -44,15 +37,15 @@ export class MenuScene extends Phaser.Scene {
     }
 
     // Red mist (adds danger feel)
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
       const mist = this.add.image(
         Phaser.Math.Between(0, width), Phaser.Math.Between(height * 0.4, height), 'fog-particle'
       ).setAlpha(Phaser.Math.FloatBetween(0.03, 0.08)).setScale(Phaser.Math.FloatBetween(2, 4)).setTint(0xff2200);
       this.tweens.add({ targets: mist, x: mist.x + Phaser.Math.Between(-150, 150), alpha: Phaser.Math.FloatBetween(0.02, 0.06), duration: Phaser.Math.Between(6000, 12000), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
 
-    // Zombie silhouettes (more, with shadows, varying sizes)
-    for (let i = 0; i < 10; i++) {
+    // Zombie silhouettes (with shadows, varying sizes)
+    for (let i = 0; i < 6; i++) {
       const zy = Phaser.Math.Between(height * 0.25, height * 0.88);
       const zScale = Phaser.Math.FloatBetween(1.0, 3.0);
       const zAlpha = Phaser.Math.FloatBetween(0.08, 0.3);
@@ -73,42 +66,27 @@ export class MenuScene extends Phaser.Scene {
     }
 
     // Floating dust/ash particles
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 8; i++) {
       const dust = this.add.image(Phaser.Math.Between(0, width), Phaser.Math.Between(0, height), 'particle-dust')
         .setAlpha(Phaser.Math.FloatBetween(0.1, 0.3)).setScale(Phaser.Math.FloatBetween(0.5, 1.5)).setDepth(2);
       this.tweens.add({
-        targets: dust,
-        x: dust.x + Phaser.Math.Between(-80, 80),
-        y: dust.y - Phaser.Math.Between(50, 200),
-        alpha: 0,
-        duration: Phaser.Math.Between(4000, 8000),
-        onComplete: () => {
+        targets: dust, y: dust.y - Phaser.Math.Between(100, 300), alpha: 0,
+        duration: Phaser.Math.Between(5000, 10000), repeat: -1,
+        onRepeat: () => {
           dust.setPosition(Phaser.Math.Between(0, width), height + 20);
           dust.setAlpha(Phaser.Math.FloatBetween(0.1, 0.3));
-          this.tweens.add({ targets: dust, y: -20, alpha: 0, duration: Phaser.Math.Between(5000, 10000), repeat: -1 });
         },
       });
     }
 
-    // Vignette (improved, gradient-like)
+    // Vignette (simple gradient bars)
     const vig = this.add.graphics();
-    // Top/bottom bars (thicker, more gradient)
-    for (let i = 0; i < 4; i++) {
-      const a = 0.35 - i * 0.08;
-      vig.fillStyle(0x050000, a);
-      vig.fillRect(0, i * 25, width, 25);
-      vig.fillRect(0, height - (i + 1) * 25, width, 25);
-      vig.fillRect(0, 0, (4 - i) * 20, height);
-      vig.fillRect(width - (4 - i) * 20, 0, (4 - i) * 20, height);
-    }
+    vig.fillStyle(0x050000, 0.35);
+    vig.fillRect(0, 0, width, 50); vig.fillRect(0, height - 50, width, 50);
+    vig.fillRect(0, 0, 50, height); vig.fillRect(width - 50, 0, 50, height);
+    vig.fillStyle(0x050000, 0.2);
+    vig.fillRect(0, 50, width, 30); vig.fillRect(0, height - 80, width, 30);
     vig.setDepth(3);
-
-    // Scanline effect (subtle CRT lines)
-    const scanlines = this.add.graphics().setDepth(3).setAlpha(0.04);
-    for (let y = 0; y < height; y += 3) {
-      scanlines.fillStyle(0x000000);
-      scanlines.fillRect(0, y, width, 1);
-    }
 
     // ============ CENTER — Title + Nickname + START ============
 

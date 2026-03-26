@@ -26,16 +26,9 @@ export class GameOverScene extends Phaser.Scene {
     // Dark overlay with red tint
     this.add.rectangle(width / 2, height / 2, width, height, 0x0a0000, 0.85);
 
-    // Scanlines for atmosphere
-    const scanlines = this.add.graphics().setAlpha(0.05);
-    for (let y = 0; y < height; y += 3) {
-      scanlines.fillStyle(0x000000);
-      scanlines.fillRect(0, y, width, 1);
-    }
-
     // Blood drips from top
     const blood = this.add.graphics().setDepth(1);
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 8; i++) {
       const bx = Phaser.Math.Between(20, width - 20);
       const bh = Phaser.Math.Between(20, 120);
       blood.fillStyle(0x880000, Phaser.Math.FloatBetween(0.15, 0.35));

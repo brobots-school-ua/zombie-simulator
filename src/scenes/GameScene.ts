@@ -27,6 +27,8 @@ export class GameScene extends Phaser.Scene {
   private nukeMode = false;
   private nukeMarkers: Phaser.GameObjects.GameObject[] = [];
   private abilityActive = false;
+  private playerShadow!: Phaser.GameObjects.Image;
+  private zombieShadows: Map<Zombie, Phaser.GameObjects.Image> = new Map();
 
   constructor() {
     super({ key: 'GameScene' });
@@ -48,11 +50,11 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // Scatter decorations across the map
-    this.placeDecorations();
-
     this.walls = this.physics.add.staticGroup();
     this.generateObstacles();
+
+    // Scatter decorations AFTER walls are generated
+    this.placeDecorations();
 
     this.zombies = this.add.group({ runChildUpdate: false });
     this.bullets = this.add.group({ runChildUpdate: false });
@@ -62,22 +64,12 @@ export class GameScene extends Phaser.Scene {
     const playerPos = this.getSafePlayerSpawn();
     this.player = new Player(this, playerPos.x, playerPos.y);
 
-    // Shadow under player
-    const playerShadow = this.add.image(this.player.x, this.player.y, 'shadow').setDepth(0.5).setAlpha(0.3).setScale(0.8);
-    this.events.on('update', () => {
-      if (this.player?.active) {
-        playerShadow.setPosition(this.player.x, this.player.y + 4);
-      }
-    });
+    // Shadow under player (updated in main update loop)
+    this.playerShadow = this.add.image(this.player.x, this.player.y, 'shadow').setDepth(0.5).setAlpha(0.3).setScale(0.8);
 
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cameras.main.setBounds(0, 0, this.mapSize, this.mapSize);
     this.cameras.main.setZoom(1.5);
-
-    // Vignette effect (dark edges)
-    const vignette = this.add.image(0, 0, 'vignette').setScrollFactor(0).setDepth(998).setAlpha(0.6);
-    vignette.setDisplaySize(this.cameras.main.width * 2, this.cameras.main.height * 2);
-    vignette.setPosition(this.cameras.main.width / 2, this.cameras.main.height / 2);
 
     this.physics.add.collider(this.player, this.walls);
     this.physics.add.collider(this.zombies, this.walls);
@@ -116,7 +108,7 @@ export class GameScene extends Phaser.Scene {
       const killed = z.takeDamage(b.damage);
 
       // Blood particles on hit
-      this.spawnBloodParticles(z.x, z.y, 3);
+      this.spawnBloodParticles(z.x, z.y, 2);
 
       // Floating damage number
       this.showDamageNumber(z.x, z.y - 16, b.damage);
@@ -243,8 +235,24 @@ export class GameScene extends Phaser.Scene {
 
     this.player.update();
 
+    // Update player shadow
+    if (this.playerShadow) {
+      this.playerShadow.setPosition(this.player.x, this.player.y + 4);
+    }
+
     this.zombies.getChildren().forEach((z) => {
-      (z as Zombie).update(this.player, _time, delta);
+      const zombie = z as Zombie;
+      zombie.update(this.player, _time, delta);
+      // Update zombie shadow position
+      const shadow = this.zombieShadows.get(zombie);
+      if (shadow) {
+        if (zombie.active) {
+          shadow.setPosition(zombie.x, zombie.y + 4);
+        } else {
+          shadow.destroy();
+          this.zombieShadows.delete(zombie);
+        }
+      }
     });
 
     if (this.shootCooldown > 0) this.shootCooldown -= delta;
@@ -292,8 +300,12 @@ export class GameScene extends Phaser.Scene {
     shop.addCoins(z.coinValue);
     this.player.sessionCoins += z.coinValue;
 
+    // Clean up zombie shadow
+    const deadShadow = this.zombieShadows.get(z);
+    if (deadShadow) { deadShadow.destroy(); this.zombieShadows.delete(z); }
+
     // Blood splatter on ground
-    this.spawnBloodParticles(z.x, z.y, 6);
+    this.spawnBloodParticles(z.x, z.y, 4);
     const splat = this.add.image(z.x, z.y, 'blood-splat').setDepth(0.8).setAlpha(0.6).setScale(Phaser.Math.FloatBetween(0.6, 1.2));
     splat.setAngle(Phaser.Math.Between(0, 360));
     // Fade blood splat over time
@@ -932,24 +944,16 @@ export class GameScene extends Phaser.Scene {
   private addZombieShadow(zombie: Zombie) {
     const scale = zombie.zombieType === 'boss' || zombie.zombieType === 'tank' ? 1.0 : 0.7;
     const shadow = this.add.image(zombie.x, zombie.y, 'shadow').setDepth(0.5).setAlpha(0.25).setScale(scale);
-    const updateShadow = () => {
-      if (zombie.active) {
-        shadow.setPosition(zombie.x, zombie.y + 4);
-      } else {
-        shadow.destroy();
-        this.events.off('update', updateShadow);
-      }
-    };
-    this.events.on('update', updateShadow);
+    this.zombieShadows.set(zombie, shadow);
   }
 
   private placeDecorations() {
     const decoTypes = [
-      { key: 'deco-dead-tree', count: 15, scale: 1.0, depth: 1.5 },
-      { key: 'deco-bush', count: 25, scale: 0.8, depth: 0.9 },
-      { key: 'deco-rock', count: 20, scale: 0.7, depth: 0.9 },
-      { key: 'deco-barrel', count: 10, scale: 0.8, depth: 1.5 },
-      { key: 'deco-crate', count: 8, scale: 0.8, depth: 1.5 },
+      { key: 'deco-dead-tree', count: 8, scale: 1.0, depth: 1.5 },
+      { key: 'deco-bush', count: 12, scale: 0.8, depth: 0.9 },
+      { key: 'deco-rock', count: 10, scale: 0.7, depth: 0.9 },
+      { key: 'deco-barrel', count: 5, scale: 0.8, depth: 1.5 },
+      { key: 'deco-crate', count: 4, scale: 0.8, depth: 1.5 },
     ];
     const cx = this.mapSize / 2, cy = this.mapSize / 2;
     for (const deco of decoTypes) {

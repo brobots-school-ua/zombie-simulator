@@ -1269,18 +1269,6 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('particle-smoke', 16, 16);
     g.clear();
 
-    // === VIGNETTE OVERLAY ===
-    // This will be drawn on the camera as a post-process darkening around edges
-    const vigSize = 128;
-    const vigCenter = vigSize / 2;
-    for (let r = vigSize / 2; r > 0; r -= 2) {
-      const alpha = r < vigSize * 0.3 ? 0 : (1 - (r / (vigSize / 2))) * 0.5;
-      g.fillStyle(0x000000, alpha);
-      g.fillCircle(vigCenter, vigCenter, r);
-    }
-    g.generateTexture('vignette', vigSize, vigSize);
-    g.clear();
-
     // Crosshair (improved)
     g.lineStyle(2, 0xff0000, 0.8);
     g.strokeCircle(12, 12, 10);
