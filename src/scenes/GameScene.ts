@@ -30,6 +30,7 @@ export class GameScene extends Phaser.Scene {
   private playerShadow!: Phaser.GameObjects.Image;
   private zombieShadows: Map<Zombie, Phaser.GameObjects.Image> = new Map();
   private trees: Phaser.GameObjects.Image[] = [];
+  private activeDmgNumbers: Phaser.GameObjects.Text[] = [];
 
   constructor() {
     super({ key: 'GameScene' });
@@ -934,17 +935,53 @@ export class GameScene extends Phaser.Scene {
   private showDamageNumber(x: number, y: number, damage: number) {
     const color = damage >= 50 ? '#ff4444' : damage >= 20 ? '#ffaa00' : '#ffffff';
     const size = damage >= 50 ? '18px' : damage >= 20 ? '14px' : '12px';
-    const txt = this.add.text(x, y, `-${damage}`, {
+
+    // Push away any existing damage numbers that are close
+    const pushRadius = 20;
+    for (const old of this.activeDmgNumbers) {
+      if (!old.active) continue;
+      const dist = Phaser.Math.Distance.Between(x, y, old.x, old.y);
+      if (dist < pushRadius) {
+        // Fling the old number to the side
+        const angle = dist > 0
+          ? Phaser.Math.Angle.Between(x, y, old.x, old.y)
+          : Phaser.Math.FloatBetween(0, Math.PI * 2);
+        const pushDist = 25 + Phaser.Math.Between(0, 15);
+        this.tweens.add({
+          targets: old,
+          x: old.x + Math.cos(angle) * pushDist,
+          y: old.y + Math.sin(angle) * pushDist - 10,
+          alpha: 0,
+          scale: 0.5,
+          duration: 400,
+          ease: 'Power2',
+          onComplete: () => old.destroy(),
+        });
+      }
+    }
+
+    // Scatter new number slightly from center
+    const offsetX = Phaser.Math.Between(-12, 12);
+    const offsetY = Phaser.Math.Between(-8, 8);
+
+    const txt = this.add.text(x + offsetX, y + offsetY, `-${damage}`, {
       fontSize: size, fontFamily: 'monospace', color: color, fontStyle: 'bold',
       shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true },
     }).setOrigin(0.5).setDepth(11);
+
+    this.activeDmgNumbers.push(txt);
+
     this.tweens.add({
       targets: txt,
-      y: y - 30,
+      y: txt.y - 30,
       alpha: 0,
       duration: 800,
       ease: 'Power2',
-      onComplete: () => txt.destroy(),
+      onComplete: () => {
+        const idx = this.activeDmgNumbers.indexOf(txt);
+        if (idx >= 0) this.activeDmgNumbers.splice(idx, 1);
+        txt.destroy();
+      },
     });
   }
 
