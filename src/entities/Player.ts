@@ -13,7 +13,7 @@ export interface WeaponState {
 export class Player extends Phaser.Physics.Arcade.Sprite {
   hp: number = 100;
   maxHp: number = 100;
-  speed: number = 100;
+  speed: number = 150;
   private sprintMultiplier: number = 2;
   isSprinting: boolean = false;
   isReloading: boolean = false;

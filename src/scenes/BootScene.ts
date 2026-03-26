@@ -1117,27 +1117,41 @@ export class BootScene extends Phaser.Scene {
 
     // === DECORATION TEXTURES ===
 
-    // Dead tree (top-down, dark silhouette)
-    g.fillStyle(0x000000, 0.2);
-    g.fillCircle(16, 18, 14);
-    g.fillStyle(0x3a2a18);
-    g.fillCircle(16, 16, 6); // trunk center
-    g.fillStyle(0x4a3a22);
-    g.fillCircle(16, 16, 4);
-    // Branches
-    g.lineStyle(3, 0x3a2a18);
-    g.lineBetween(16, 16, 4, 6);
-    g.lineBetween(16, 16, 28, 4);
-    g.lineBetween(16, 16, 6, 26);
-    g.lineBetween(16, 16, 28, 24);
-    g.lineStyle(2, 0x4a3a22);
-    g.lineBetween(4, 6, 0, 2);
-    g.lineBetween(4, 6, 2, 10);
-    g.lineBetween(28, 4, 30, 0);
-    g.lineBetween(28, 4, 32, 8);
-    g.lineBetween(6, 26, 2, 30);
-    g.lineBetween(28, 24, 32, 28);
-    g.generateTexture('deco-dead-tree', 32, 32);
+    // Tree (top-down, lush canopy with trunk visible through gaps) — 48x48
+    // Shadow
+    g.fillStyle(0x000000, 0.3);
+    g.fillCircle(26, 28, 19);
+    // Trunk (visible through canopy gaps)
+    g.fillStyle(0x5d4037);
+    g.fillRect(20, 20, 8, 8);
+    g.fillStyle(0x4a3528);
+    g.fillRect(21, 21, 6, 6);
+    // Canopy base (dark green, largest layer)
+    g.fillStyle(0x1b5e20);
+    g.fillCircle(24, 24, 18);
+    // Mid-layer leaves (offset circles for natural shape)
+    g.fillStyle(0x2e7d32);
+    g.fillCircle(18, 20, 11);
+    g.fillCircle(30, 18, 12);
+    g.fillCircle(28, 32, 10);
+    g.fillCircle(14, 30, 9);
+    g.fillCircle(24, 14, 10);
+    // Light highlights (top leaves catching sunlight)
+    g.fillStyle(0x4caf50);
+    g.fillCircle(20, 20, 7);
+    g.fillCircle(30, 22, 6);
+    g.fillCircle(22, 30, 5);
+    // Bright spots
+    g.fillStyle(0x66bb6a, 0.6);
+    g.fillCircle(18, 18, 4);
+    g.fillCircle(28, 16, 3);
+    g.fillCircle(26, 28, 3);
+    // Leaf texture details (tiny dark spots for depth)
+    g.fillStyle(0x1a4a1a, 0.4);
+    g.fillCircle(22, 26, 3);
+    g.fillCircle(14, 22, 2);
+    g.fillCircle(32, 26, 2);
+    g.generateTexture('deco-dead-tree', 48, 48);
     g.clear();
 
     // Bush (top-down, green blob)
