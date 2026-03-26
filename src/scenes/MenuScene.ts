@@ -24,46 +24,126 @@ export class MenuScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const CX = width / 2;
 
-    this.cameras.main.setBackgroundColor('#0a0a0a');
+    this.cameras.main.setBackgroundColor('#050808');
     audioManager.init();
     audioManager.startMenuMusic();
 
-    // Fog
-    for (let i = 0; i < 12; i++) {
+    // Dark ground texture grid for atmosphere
+    for (let x = 0; x < width; x += 64) {
+      for (let y = 0; y < height; y += 64) {
+        this.add.image(x + 32, y + 32, 'ground1').setAlpha(0.08).setTint(0x334433);
+      }
+    }
+
+    // Fog (more layers, slower, denser)
+    for (let i = 0; i < 18; i++) {
       const fog = this.add.image(
-        Phaser.Math.Between(0, width), Phaser.Math.Between(0, height), 'fog-particle'
-      ).setAlpha(Phaser.Math.FloatBetween(0.1, 0.3)).setScale(Phaser.Math.FloatBetween(1.5, 3));
-      this.tweens.add({ targets: fog, x: fog.x + Phaser.Math.Between(-200, 200), y: fog.y + Phaser.Math.Between(-100, 100), alpha: Phaser.Math.FloatBetween(0.05, 0.2), duration: Phaser.Math.Between(4000, 8000), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        Phaser.Math.Between(-100, width + 100), Phaser.Math.Between(-50, height + 50), 'fog-particle'
+      ).setAlpha(Phaser.Math.FloatBetween(0.08, 0.25)).setScale(Phaser.Math.FloatBetween(2, 4.5)).setTint(0x1a3a1a);
+      this.tweens.add({ targets: fog, x: fog.x + Phaser.Math.Between(-250, 250), y: fog.y + Phaser.Math.Between(-120, 120), alpha: Phaser.Math.FloatBetween(0.03, 0.18), duration: Phaser.Math.Between(5000, 10000), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
 
-    // Zombie silhouettes
-    for (let i = 0; i < 6; i++) {
-      const z = this.add.image(Phaser.Math.Between(-40, width + 40), Phaser.Math.Between(height * 0.3, height * 0.85), 'menu-zombie').setAlpha(Phaser.Math.FloatBetween(0.15, 0.35)).setScale(Phaser.Math.FloatBetween(1.2, 2.5));
-      this.tweens.add({ targets: z, x: z.x + Phaser.Math.Between(100, 300) * (Math.random() > 0.5 ? 1 : -1), duration: Phaser.Math.Between(6000, 12000), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    // Red mist (adds danger feel)
+    for (let i = 0; i < 5; i++) {
+      const mist = this.add.image(
+        Phaser.Math.Between(0, width), Phaser.Math.Between(height * 0.4, height), 'fog-particle'
+      ).setAlpha(Phaser.Math.FloatBetween(0.03, 0.08)).setScale(Phaser.Math.FloatBetween(2, 4)).setTint(0xff2200);
+      this.tweens.add({ targets: mist, x: mist.x + Phaser.Math.Between(-150, 150), alpha: Phaser.Math.FloatBetween(0.02, 0.06), duration: Phaser.Math.Between(6000, 12000), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
 
-    // Vignette
+    // Zombie silhouettes (more, with shadows, varying sizes)
+    for (let i = 0; i < 10; i++) {
+      const zy = Phaser.Math.Between(height * 0.25, height * 0.88);
+      const zScale = Phaser.Math.FloatBetween(1.0, 3.0);
+      const zAlpha = Phaser.Math.FloatBetween(0.08, 0.3);
+      // Shadow under zombie
+      const zShadow = this.add.image(Phaser.Math.Between(-40, width + 40), zy + 10, 'shadow').setAlpha(zAlpha * 0.5).setScale(zScale * 0.6);
+      const z = this.add.image(zShadow.x, zy, 'menu-zombie').setAlpha(zAlpha).setScale(zScale);
+      const drift = Phaser.Math.Between(80, 350) * (Math.random() > 0.5 ? 1 : -1);
+      const dur = Phaser.Math.Between(5000, 14000);
+      this.tweens.add({ targets: z, x: z.x + drift, duration: dur, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      this.tweens.add({ targets: zShadow, x: zShadow.x + drift, duration: dur, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      // Some zombies have glowing eyes
+      if (Math.random() > 0.5) {
+        const eyeGlow = this.add.circle(z.x - 4 * zScale, zy - 3 * zScale, 2 * zScale, 0xff0000, zAlpha * 0.8).setDepth(1);
+        const eyeGlow2 = this.add.circle(z.x + 4 * zScale, zy - 3 * zScale, 2 * zScale, 0xff0000, zAlpha * 0.8).setDepth(1);
+        this.tweens.add({ targets: [eyeGlow, eyeGlow2], x: `+=${drift}`, duration: dur, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        this.tweens.add({ targets: [eyeGlow, eyeGlow2], alpha: { from: zAlpha * 0.3, to: zAlpha * 1.0 }, duration: Phaser.Math.Between(500, 1500), yoyo: true, repeat: -1 });
+      }
+    }
+
+    // Floating dust/ash particles
+    for (let i = 0; i < 20; i++) {
+      const dust = this.add.image(Phaser.Math.Between(0, width), Phaser.Math.Between(0, height), 'particle-dust')
+        .setAlpha(Phaser.Math.FloatBetween(0.1, 0.3)).setScale(Phaser.Math.FloatBetween(0.5, 1.5)).setDepth(2);
+      this.tweens.add({
+        targets: dust,
+        x: dust.x + Phaser.Math.Between(-80, 80),
+        y: dust.y - Phaser.Math.Between(50, 200),
+        alpha: 0,
+        duration: Phaser.Math.Between(4000, 8000),
+        onComplete: () => {
+          dust.setPosition(Phaser.Math.Between(0, width), height + 20);
+          dust.setAlpha(Phaser.Math.FloatBetween(0.1, 0.3));
+          this.tweens.add({ targets: dust, y: -20, alpha: 0, duration: Phaser.Math.Between(5000, 10000), repeat: -1 });
+        },
+      });
+    }
+
+    // Vignette (improved, gradient-like)
     const vig = this.add.graphics();
-    vig.fillStyle(0x110000, 0.4);
-    vig.fillRect(0, 0, width, 60); vig.fillRect(0, height - 60, width, 60);
-    vig.fillRect(0, 0, 60, height); vig.fillRect(width - 60, 0, 60, height);
-    vig.setDepth(1);
+    // Top/bottom bars (thicker, more gradient)
+    for (let i = 0; i < 4; i++) {
+      const a = 0.35 - i * 0.08;
+      vig.fillStyle(0x050000, a);
+      vig.fillRect(0, i * 25, width, 25);
+      vig.fillRect(0, height - (i + 1) * 25, width, 25);
+      vig.fillRect(0, 0, (4 - i) * 20, height);
+      vig.fillRect(width - (4 - i) * 20, 0, (4 - i) * 20, height);
+    }
+    vig.setDepth(3);
+
+    // Scanline effect (subtle CRT lines)
+    const scanlines = this.add.graphics().setDepth(3).setAlpha(0.04);
+    for (let y = 0; y < height; y += 3) {
+      scanlines.fillStyle(0x000000);
+      scanlines.fillRect(0, y, width, 1);
+    }
 
     // ============ CENTER — Title + Nickname + START ============
 
-    // Title
+    // Title glow background
+    const titleGlow = this.add.graphics().setDepth(9);
+    titleGlow.fillStyle(0xff0000, 0.05);
+    titleGlow.fillCircle(CX, 110, 180);
+    titleGlow.fillStyle(0xff0000, 0.03);
+    titleGlow.fillCircle(CX, 110, 250);
+    this.tweens.add({ targets: titleGlow, alpha: { from: 1, to: 0.3 }, duration: 2000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+    // Title (with stronger glow)
     const title = this.add.text(CX, 80, 'ZOMBIE\nSIMULATOR', {
       fontSize: '80px', fontFamily: 'monospace', color: '#ff2222',
       align: 'center', fontStyle: 'bold',
-      shadow: { offsetX: 0, offsetY: 0, color: '#ff0000', blur: 25, fill: true },
+      shadow: { offsetX: 0, offsetY: 4, color: '#880000', blur: 30, fill: true },
     }).setOrigin(0.5).setDepth(10);
-    this.tweens.add({ targets: title, alpha: { from: 1, to: 0.3 }, duration: 80, yoyo: true, repeat: -1, repeatDelay: Phaser.Math.Between(1500, 4000), hold: 40 });
+    // Flicker effect (like broken neon sign)
+    this.tweens.add({ targets: title, alpha: { from: 1, to: 0.2 }, duration: 60, yoyo: true, repeat: -1, repeatDelay: Phaser.Math.Between(2000, 5000), hold: 30 });
 
-    // Subtitle
-    const sub = this.add.text(CX, 210, 'Survive the horde', {
-      fontSize: '22px', fontFamily: 'monospace', color: '#668866', fontStyle: 'italic',
+    // Blood drip decoration under title
+    const drips = this.add.graphics().setDepth(9);
+    drips.fillStyle(0xaa0000, 0.4);
+    [CX - 100, CX - 40, CX + 20, CX + 80, CX + 130].forEach((dx, i) => {
+      const dripH = 8 + (i * 7) % 20;
+      drips.fillRect(dx, 165, 3, dripH);
+      drips.fillCircle(dx + 1, 165 + dripH, 2);
+    });
+
+    // Subtitle (with typewriter-like appearance)
+    const sub = this.add.text(CX, 215, 'Survive the horde', {
+      fontSize: '22px', fontFamily: 'monospace', color: '#446644', fontStyle: 'italic',
+      shadow: { offsetX: 0, offsetY: 0, color: '#224422', blur: 8, fill: true },
     }).setOrigin(0.5).setAlpha(0).setDepth(10);
-    this.tweens.add({ targets: sub, alpha: 1, duration: 2000, delay: 500 });
+    this.tweens.add({ targets: sub, alpha: 0.8, duration: 2500, delay: 600, ease: 'Power2' });
 
     // Nickname
     this.add.text(CX, 260, 'Nickname (optional)', {
@@ -71,23 +151,56 @@ export class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(10);
     this.createNicknameInput(CX, 285);
 
-    // START button — big, center
-    const startBtn = this.add.text(CX, 370, '[ START GAME ]', {
-      fontSize: '48px', fontFamily: 'monospace', color: '#555555',
-      shadow: { offsetX: 0, offsetY: 0, color: '#333333', blur: 5, fill: true },
+    // START button — big, center, with background panel
+    const startBtnBg = this.add.graphics().setDepth(9);
+    startBtnBg.fillStyle(0x0a1a0a, 0.6);
+    startBtnBg.fillRoundedRect(CX - 200, 345, 400, 60, 8);
+    startBtnBg.lineStyle(2, 0x333333);
+    startBtnBg.strokeRoundedRect(CX - 200, 345, 400, 60, 8);
+
+    const startBtn = this.add.text(CX, 375, '[ START GAME ]', {
+      fontSize: '48px', fontFamily: 'monospace', color: '#333333',
+      shadow: { offsetX: 0, offsetY: 0, color: '#222222', blur: 5, fill: true },
     }).setOrigin(0.5).setDepth(10);
 
     let ready = false;
     this.time.delayedCall(1200, () => {
       ready = true;
       startBtn.setColor('#44ff44');
-      startBtn.setShadow(0, 0, '#00ff00', 15, true);
+      startBtn.setShadow(0, 0, '#00ff00', 20, true);
+      startBtnBg.clear();
+      startBtnBg.fillStyle(0x0a1a0a, 0.7);
+      startBtnBg.fillRoundedRect(CX - 200, 345, 400, 60, 8);
+      startBtnBg.lineStyle(2, 0x44ff44, 0.6);
+      startBtnBg.strokeRoundedRect(CX - 200, 345, 400, 60, 8);
       startBtn.setInteractive({ useHandCursor: true });
       this.tweens.add({ targets: startBtn, scaleX: 1.03, scaleY: 1.03, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      // Glow pulse on the button background
+      this.tweens.add({ targets: startBtnBg, alpha: { from: 1, to: 0.7 }, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     });
 
-    startBtn.on('pointerover', () => { if (ready) { startBtn.setColor('#88ff88'); startBtn.setScale(1.1); } });
-    startBtn.on('pointerout', () => { if (ready) { startBtn.setColor('#44ff44'); startBtn.setScale(1); } });
+    startBtn.on('pointerover', () => {
+      if (ready) {
+        startBtn.setColor('#aaffaa');
+        startBtn.setScale(1.08);
+        startBtnBg.clear();
+        startBtnBg.fillStyle(0x0a2a0a, 0.8);
+        startBtnBg.fillRoundedRect(CX - 210, 340, 420, 70, 8);
+        startBtnBg.lineStyle(2, 0x88ff88);
+        startBtnBg.strokeRoundedRect(CX - 210, 340, 420, 70, 8);
+      }
+    });
+    startBtn.on('pointerout', () => {
+      if (ready) {
+        startBtn.setColor('#44ff44');
+        startBtn.setScale(1);
+        startBtnBg.clear();
+        startBtnBg.fillStyle(0x0a1a0a, 0.7);
+        startBtnBg.fillRoundedRect(CX - 200, 345, 400, 60, 8);
+        startBtnBg.lineStyle(2, 0x44ff44, 0.6);
+        startBtnBg.strokeRoundedRect(CX - 200, 345, 400, 60, 8);
+      }
+    });
     let starting = false;
     startBtn.on('pointerdown', () => {
       if (starting || !ready) return;
@@ -100,10 +213,15 @@ export class MenuScene extends Phaser.Scene {
       this.time.delayedCall(300, () => this.scene.start('GameScene'));
     });
 
-    // ============ LEFT SIDE — Square buttons ============
+    // ============ BOTTOM — Square buttons with icons ============
     const btnSize = 80;
     const btnY = height - 60;
     const btnStyle = { fontSize: '11px', fontFamily: 'monospace', align: 'center' as const };
+
+    // Button bar background
+    const btnBarBg = this.add.graphics().setDepth(8);
+    btnBarBg.fillStyle(0x000000, 0.4);
+    btnBarBg.fillRoundedRect(10, btnY - btnSize - 10, (btnSize + 10) * 5 + 10, btnSize + 20, 8);
 
     // SHOP button (square)
     const shopBg = this.add.graphics().setDepth(10);
@@ -170,34 +288,53 @@ export class MenuScene extends Phaser.Scene {
     abZone.on('pointerout', () => { abBg.clear(); abBg.fillStyle(0x1a1a0a); abBg.fillRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6); abBg.lineStyle(2, 0xff6644); abBg.strokeRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6); });
     abZone.on('pointerdown', () => this.openAbilities());
 
-    // ============ RIGHT SIDE — Stats ============
+    // ============ RIGHT SIDE — Stats with panel ============
     const RX = width - 30;
 
-    // Coins
-    this.coinsText = this.add.text(RX, 230, `Coins: ${shop.getCoins()}`, {
+    // Stats panel background
+    const statsBg = this.add.graphics().setDepth(8);
+    statsBg.fillStyle(0x000000, 0.4);
+    statsBg.fillRoundedRect(RX - 200, 220, 210, 200, 8);
+    statsBg.lineStyle(1, 0x333333, 0.5);
+    statsBg.strokeRoundedRect(RX - 200, 220, 210, 200, 8);
+
+    // Coins (with icon)
+    this.add.image(RX - 185, 242, 'coin-icon').setDepth(10).setScale(1.3);
+    this.coinsText = this.add.text(RX - 170, 234, `${shop.getCoins()}`, {
       fontSize: '20px', fontFamily: 'monospace', color: '#ffcc22',
-    }).setOrigin(1, 0).setDepth(10);
+      shadow: { offsetX: 0, offsetY: 0, color: '#ffaa00', blur: 6, fill: true },
+    }).setOrigin(0, 0).setDepth(10);
 
     // Personal best
     const best = leaderboard.getPersonalBest();
     if (best > 0) {
-      this.add.text(RX, 258, `Your best: ${best}`, {
+      this.add.text(RX, 262, `Best: ${best}`, {
         fontSize: '15px', fontFamily: 'monospace', color: '#ffaa00',
+        shadow: { offsetX: 0, offsetY: 0, color: '#884400', blur: 4, fill: true },
       }).setOrigin(1, 0).setDepth(10);
     }
+
+    // Divider line
+    const divider = this.add.graphics().setDepth(9);
+    divider.lineStyle(1, 0x444444, 0.5);
+    divider.lineBetween(RX - 190, 285, RX - 5, 285);
 
     // Leaderboard
     this.createMenuLeaderboard(RX, 295);
 
     // ============ BOTTOM CENTER — Controls ============
-    const ctrl = this.add.text(CX, height - 20, 'WASD — move  |  MOUSE — aim & shoot  |  R — reload  |  1-5 — switch weapon', {
-      fontSize: '12px', fontFamily: 'monospace', color: '#444444',
-    }).setOrigin(0.5, 1).setAlpha(0).setDepth(10);
-    this.tweens.add({ targets: ctrl, alpha: 0.7, duration: 1500, delay: 1000 });
+    const ctrlBg = this.add.graphics().setDepth(8);
+    ctrlBg.fillStyle(0x000000, 0.3);
+    ctrlBg.fillRoundedRect(CX - 350, height - 30, 700, 22, 4);
+    const ctrl = this.add.text(CX, height - 19, 'WASD — move  |  MOUSE — aim & shoot  |  R — reload  |  1-5 — switch weapon  |  F — ability', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#444444',
+    }).setOrigin(0.5, 0.5).setAlpha(0).setDepth(10);
+    this.tweens.add({ targets: [ctrl, ctrlBg], alpha: 0.7, duration: 1500, delay: 1200 });
 
     // Version
-    this.add.text(width - 10, height - 8, 'v1.1', {
+    this.add.text(width - 10, height - 8, 'v1.2', {
       fontSize: '11px', fontFamily: 'monospace', color: '#222222',
+      shadow: { offsetX: 0, offsetY: 0, color: '#111111', blur: 2, fill: true },
     }).setOrigin(1, 1).setDepth(10);
 
     // Admin console
