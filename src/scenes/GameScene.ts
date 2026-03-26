@@ -41,12 +41,15 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, this.mapSize, this.mapSize);
 
     // Ground tiles
-    const grassTiles = ['ground1', 'ground2', 'ground3'];
+    const grassTiles = ['ground1', 'ground2', 'ground3', 'ground4', 'ground5'];
     for (let x = 0; x < this.mapSize; x += 64) {
       for (let y = 0; y < this.mapSize; y += 64) {
-        this.add.image(x + 32, y + 32, grassTiles[Phaser.Math.Between(0, 2)]).setDepth(0);
+        this.add.image(x + 32, y + 32, grassTiles[Phaser.Math.Between(0, 4)]).setDepth(0);
       }
     }
+
+    // Scatter decorations across the map
+    this.placeDecorations();
 
     this.walls = this.physics.add.staticGroup();
     this.generateObstacles();
@@ -59,9 +62,22 @@ export class GameScene extends Phaser.Scene {
     const playerPos = this.getSafePlayerSpawn();
     this.player = new Player(this, playerPos.x, playerPos.y);
 
+    // Shadow under player
+    const playerShadow = this.add.image(this.player.x, this.player.y, 'shadow').setDepth(0.5).setAlpha(0.3).setScale(0.8);
+    this.events.on('update', () => {
+      if (this.player?.active) {
+        playerShadow.setPosition(this.player.x, this.player.y + 4);
+      }
+    });
+
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cameras.main.setBounds(0, 0, this.mapSize, this.mapSize);
     this.cameras.main.setZoom(1.5);
+
+    // Vignette effect (dark edges)
+    const vignette = this.add.image(0, 0, 'vignette').setScrollFactor(0).setDepth(998).setAlpha(0.6);
+    vignette.setDisplaySize(this.cameras.main.width * 2, this.cameras.main.height * 2);
+    vignette.setPosition(this.cameras.main.width / 2, this.cameras.main.height / 2);
 
     this.physics.add.collider(this.player, this.walls);
     this.physics.add.collider(this.zombies, this.walls);
@@ -98,6 +114,13 @@ export class GameScene extends Phaser.Scene {
       }
 
       const killed = z.takeDamage(b.damage);
+
+      // Blood particles on hit
+      this.spawnBloodParticles(z.x, z.y, 3);
+
+      // Floating damage number
+      this.showDamageNumber(z.x, z.y - 16, b.damage);
+
       if (killed) {
         this.onZombieKilled(z);
       }
@@ -269,6 +292,13 @@ export class GameScene extends Phaser.Scene {
     shop.addCoins(z.coinValue);
     this.player.sessionCoins += z.coinValue;
 
+    // Blood splatter on ground
+    this.spawnBloodParticles(z.x, z.y, 6);
+    const splat = this.add.image(z.x, z.y, 'blood-splat').setDepth(0.8).setAlpha(0.6).setScale(Phaser.Math.FloatBetween(0.6, 1.2));
+    splat.setAngle(Phaser.Math.Between(0, 360));
+    // Fade blood splat over time
+    this.tweens.add({ targets: splat, alpha: 0, duration: 15000, delay: 5000, onComplete: () => splat.destroy() });
+
     // Roll material drops independently
     const materialTypes: { type: PickupType; chance: number }[] = [
       { type: 'wood', chance: z.drops.wood },
@@ -383,6 +413,7 @@ export class GameScene extends Phaser.Scene {
         const zombie = new Zombie(this, pos.x, pos.y, this.getRandomZombieType());
         zombie.wallsGroup = this.walls;
         this.zombies.add(zombie);
+        this.addZombieShadow(zombie);
       });
     }
     // Spawn boss
@@ -393,6 +424,7 @@ export class GameScene extends Phaser.Scene {
         const zombie = new Zombie(this, pos.x, pos.y, 'boss');
         zombie.wallsGroup = this.walls;
         this.zombies.add(zombie);
+        this.addZombieShadow(zombie);
       });
     }
   }
@@ -484,6 +516,7 @@ export class GameScene extends Phaser.Scene {
       const zombie = new Zombie(this, x, y, type);
       zombie.wallsGroup = this.walls;
       this.zombies.add(zombie);
+      this.addZombieShadow(zombie);
       this.zombiesRemaining++;
     });
   }
@@ -858,6 +891,86 @@ export class GameScene extends Phaser.Scene {
       });
       this.abilityActive = false;
     });
+  }
+
+  // === VISUAL EFFECTS HELPERS ===
+
+  private spawnBloodParticles(x: number, y: number, count: number) {
+    for (let i = 0; i < count; i++) {
+      const p = this.add.image(x, y, 'particle-blood').setDepth(10).setScale(Phaser.Math.FloatBetween(0.5, 1.2));
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const dist = Phaser.Math.FloatBetween(8, 24);
+      this.tweens.add({
+        targets: p,
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist,
+        alpha: 0,
+        scale: 0.2,
+        duration: Phaser.Math.Between(200, 500),
+        onComplete: () => p.destroy(),
+      });
+    }
+  }
+
+  private showDamageNumber(x: number, y: number, damage: number) {
+    const color = damage >= 50 ? '#ff4444' : damage >= 20 ? '#ffaa00' : '#ffffff';
+    const size = damage >= 50 ? '18px' : damage >= 20 ? '14px' : '12px';
+    const txt = this.add.text(x, y, `-${damage}`, {
+      fontSize: size, fontFamily: 'monospace', color: color, fontStyle: 'bold',
+      shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true },
+    }).setOrigin(0.5).setDepth(11);
+    this.tweens.add({
+      targets: txt,
+      y: y - 30,
+      alpha: 0,
+      duration: 800,
+      ease: 'Power2',
+      onComplete: () => txt.destroy(),
+    });
+  }
+
+  private addZombieShadow(zombie: Zombie) {
+    const scale = zombie.zombieType === 'boss' || zombie.zombieType === 'tank' ? 1.0 : 0.7;
+    const shadow = this.add.image(zombie.x, zombie.y, 'shadow').setDepth(0.5).setAlpha(0.25).setScale(scale);
+    const updateShadow = () => {
+      if (zombie.active) {
+        shadow.setPosition(zombie.x, zombie.y + 4);
+      } else {
+        shadow.destroy();
+        this.events.off('update', updateShadow);
+      }
+    };
+    this.events.on('update', updateShadow);
+  }
+
+  private placeDecorations() {
+    const decoTypes = [
+      { key: 'deco-dead-tree', count: 15, scale: 1.0, depth: 1.5 },
+      { key: 'deco-bush', count: 25, scale: 0.8, depth: 0.9 },
+      { key: 'deco-rock', count: 20, scale: 0.7, depth: 0.9 },
+      { key: 'deco-barrel', count: 10, scale: 0.8, depth: 1.5 },
+      { key: 'deco-crate', count: 8, scale: 0.8, depth: 1.5 },
+    ];
+    const cx = this.mapSize / 2, cy = this.mapSize / 2;
+    for (const deco of decoTypes) {
+      for (let i = 0; i < deco.count; i++) {
+        const x = Phaser.Math.Between(120, this.mapSize - 120);
+        const y = Phaser.Math.Between(120, this.mapSize - 120);
+        // Don't place near center spawn area
+        if (Math.abs(x - cx) < 150 && Math.abs(y - cy) < 150) continue;
+        // Don't place on walls
+        if (this.isPositionBlocked(x, y)) continue;
+        const img = this.add.image(x, y, deco.key)
+          .setDepth(deco.depth)
+          .setScale(Phaser.Math.FloatBetween(deco.scale * 0.8, deco.scale * 1.2))
+          .setAngle(Phaser.Math.Between(0, 360))
+          .setAlpha(Phaser.Math.FloatBetween(0.6, 0.9));
+        // Slight random tint for variety
+        if (Math.random() > 0.7) {
+          img.setTint(Phaser.Math.Between(0xdddddd, 0xffffff));
+        }
+      }
+    }
   }
 
   private generateObstacles() {
