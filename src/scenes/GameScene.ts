@@ -686,14 +686,17 @@ export class GameScene extends Phaser.Scene {
     // Zoom out to show entire map, centered
     const cam = this.cameras.main;
     cam.stopFollow();
+    // Remove bounds so camera can freely center on the map
+    cam.removeBounds();
     const targetZoom = Math.min(cam.width / this.mapSize, cam.height / this.mapSize);
-    // Center camera on the map: scroll to map center minus half viewport
-    const centerScrollX = (this.mapSize - cam.width / targetZoom) / 2;
-    const centerScrollY = (this.mapSize - cam.height / targetZoom) / 2;
+    const mapCenter = this.mapSize / 2;
 
     this.tweens.add({
-      targets: cam, zoom: targetZoom, scrollX: centerScrollX, scrollY: centerScrollY,
+      targets: cam, zoom: targetZoom,
       duration: 800, ease: 'Quad.easeOut',
+      onUpdate: () => {
+        cam.centerOn(mapCenter, mapCenter);
+      },
     });
 
     // Mark all zombies with neon markers
@@ -844,6 +847,7 @@ export class GameScene extends Phaser.Scene {
 
       // Return camera to player
       this.time.delayedCall(800, () => {
+        this.cameras.main.setBounds(0, 0, this.mapSize, this.mapSize);
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
         this.tweens.add({
           targets: this.cameras.main, zoom: 1.5, duration: 600, ease: 'Quad.easeOut',
@@ -856,6 +860,7 @@ export class GameScene extends Phaser.Scene {
   private exitNukeMode() {
     this.nukeMode = false;
     this.clearNukeMarkers();
+    this.cameras.main.setBounds(0, 0, this.mapSize, this.mapSize);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.tweens.add({
       targets: this.cameras.main, zoom: 1.5, duration: 600, ease: 'Quad.easeOut',
