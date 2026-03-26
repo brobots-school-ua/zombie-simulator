@@ -29,6 +29,7 @@ export class GameScene extends Phaser.Scene {
   private abilityActive = false;
   private playerShadow!: Phaser.GameObjects.Image;
   private zombieShadows: Map<Zombie, Phaser.GameObjects.Image> = new Map();
+  private trees: Phaser.GameObjects.Image[] = [];
 
   constructor() {
     super({ key: 'GameScene' });
@@ -256,6 +257,12 @@ export class GameScene extends Phaser.Scene {
     });
 
     if (this.shootCooldown > 0) this.shootCooldown -= delta;
+
+    // Trees become semi-transparent when player is nearby
+    for (const tree of this.trees) {
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, tree.x, tree.y);
+      tree.setAlpha(dist < 60 ? 0.25 : 0.85);
+    }
 
     // Auto-fire for rifle/minigun
     if (this.input.activePointer.isDown && this.player.activeWeapon.def.auto && !this.gameOver) {
@@ -948,31 +955,40 @@ export class GameScene extends Phaser.Scene {
   }
 
   private placeDecorations() {
+    this.trees = [];
+    const cx = this.mapSize / 2, cy = this.mapSize / 2;
+
+    // Trees — larger, tracked for transparency effect
+    for (let i = 0; i < 12; i++) {
+      const x = Phaser.Math.Between(150, this.mapSize - 150);
+      const y = Phaser.Math.Between(150, this.mapSize - 150);
+      if (Math.abs(x - cx) < 200 && Math.abs(y - cy) < 200) continue;
+      if (this.isPositionBlocked(x, y)) continue;
+      const tree = this.add.image(x, y, 'deco-dead-tree')
+        .setDepth(12)  // above player so it overlaps
+        .setScale(Phaser.Math.FloatBetween(2.0, 3.5))
+        .setAlpha(0.85);
+      this.trees.push(tree);
+    }
+
+    // Other decorations
     const decoTypes = [
-      { key: 'deco-dead-tree', count: 8, scale: 1.0, depth: 1.5 },
       { key: 'deco-bush', count: 12, scale: 0.8, depth: 0.9 },
       { key: 'deco-rock', count: 10, scale: 0.7, depth: 0.9 },
       { key: 'deco-barrel', count: 5, scale: 0.8, depth: 1.5 },
       { key: 'deco-crate', count: 4, scale: 0.8, depth: 1.5 },
     ];
-    const cx = this.mapSize / 2, cy = this.mapSize / 2;
     for (const deco of decoTypes) {
       for (let i = 0; i < deco.count; i++) {
         const x = Phaser.Math.Between(120, this.mapSize - 120);
         const y = Phaser.Math.Between(120, this.mapSize - 120);
-        // Don't place near center spawn area
         if (Math.abs(x - cx) < 150 && Math.abs(y - cy) < 150) continue;
-        // Don't place on walls
         if (this.isPositionBlocked(x, y)) continue;
-        const img = this.add.image(x, y, deco.key)
+        this.add.image(x, y, deco.key)
           .setDepth(deco.depth)
           .setScale(Phaser.Math.FloatBetween(deco.scale * 0.8, deco.scale * 1.2))
           .setAngle(Phaser.Math.Between(0, 360))
           .setAlpha(Phaser.Math.FloatBetween(0.6, 0.9));
-        // Slight random tint for variety
-        if (Math.random() > 0.7) {
-          img.setTint(Phaser.Math.Between(0xdddddd, 0xffffff));
-        }
       }
     }
   }

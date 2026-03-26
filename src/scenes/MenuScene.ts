@@ -191,120 +191,69 @@ export class MenuScene extends Phaser.Scene {
       this.time.delayedCall(300, () => this.scene.start('GameScene'));
     });
 
-    // ============ BOTTOM — Square buttons with icons ============
-    const btnSize = 80;
-    const btnY = height - 60;
+    // ============ BOTTOM — Wider buttons with full labels ============
+    const btnW = 120;
+    const btnH = 50;
+    const btnGap = 8;
+    const btnY = height - 30;
+    const totalBtnsW = btnW * 5 + btnGap * 4;
+    const btnStartX = (width - totalBtnsW) / 2;
     const btnStyle = { fontSize: '11px', fontFamily: 'monospace', align: 'center' as const };
 
     // Button bar background
     const btnBarBg = this.add.graphics().setDepth(8);
     btnBarBg.fillStyle(0x000000, 0.4);
-    btnBarBg.fillRoundedRect(10, btnY - btnSize - 10, (btnSize + 10) * 5 + 10, btnSize + 20, 8);
+    btnBarBg.fillRoundedRect(btnStartX - 10, btnY - btnH - 10, totalBtnsW + 20, btnH + 20, 8);
 
-    // SHOP button (square)
-    const shopBg = this.add.graphics().setDepth(10);
-    shopBg.fillStyle(0x1a1a0a); shopBg.fillRoundedRect(20, btnY - btnSize, btnSize, btnSize, 6);
-    shopBg.lineStyle(2, 0xffcc22); shopBg.strokeRoundedRect(20, btnY - btnSize, btnSize, btnSize, 6);
-    const shopBtn = this.add.text(20 + btnSize / 2, btnY - btnSize / 2, 'SHOP', {
-      ...btnStyle, fontSize: '16px', color: '#ffcc22',
-    }).setOrigin(0.5).setDepth(11);
-    const shopZone = this.add.zone(20 + btnSize / 2, btnY - btnSize / 2, btnSize, btnSize)
-      .setInteractive({ useHandCursor: true }).setDepth(12);
-    shopZone.on('pointerover', () => { shopBg.clear(); shopBg.fillStyle(0x2a2a1a); shopBg.fillRoundedRect(20, btnY - btnSize, btnSize, btnSize, 6); shopBg.lineStyle(2, 0xffee66); shopBg.strokeRoundedRect(20, btnY - btnSize, btnSize, btnSize, 6); });
-    shopZone.on('pointerout', () => { shopBg.clear(); shopBg.fillStyle(0x1a1a0a); shopBg.fillRoundedRect(20, btnY - btnSize, btnSize, btnSize, 6); shopBg.lineStyle(2, 0xffcc22); shopBg.strokeRoundedRect(20, btnY - btnSize, btnSize, btnSize, 6); });
-    shopZone.on('pointerdown', () => this.openShop());
+    // Helper to create a menu button
+    const makeBtn = (index: number, label: string, color: number, bgColor: number, hoverBg: number, hoverColor: number, onClick: () => void) => {
+      const bx = btnStartX + index * (btnW + btnGap);
+      const bg = this.add.graphics().setDepth(10);
+      bg.fillStyle(bgColor); bg.fillRoundedRect(bx, btnY - btnH, btnW, btnH, 6);
+      bg.lineStyle(2, color); bg.strokeRoundedRect(bx, btnY - btnH, btnW, btnH, 6);
+      this.add.text(bx + btnW / 2, btnY - btnH / 2, label, {
+        ...btnStyle, fontSize: '15px', color: '#' + color.toString(16).padStart(6, '0'),
+      }).setOrigin(0.5).setDepth(11);
+      const zone = this.add.zone(bx + btnW / 2, btnY - btnH / 2, btnW, btnH)
+        .setInteractive({ useHandCursor: true }).setDepth(12);
+      zone.on('pointerover', () => { bg.clear(); bg.fillStyle(hoverBg); bg.fillRoundedRect(bx, btnY - btnH, btnW, btnH, 6); bg.lineStyle(2, hoverColor); bg.strokeRoundedRect(bx, btnY - btnH, btnW, btnH, 6); });
+      zone.on('pointerout', () => { bg.clear(); bg.fillStyle(bgColor); bg.fillRoundedRect(bx, btnY - btnH, btnW, btnH, 6); bg.lineStyle(2, color); bg.strokeRoundedRect(bx, btnY - btnH, btnW, btnH, 6); });
+      zone.on('pointerdown', onClick);
+      return { bg, zone };
+    };
 
-    // VOLUME button (square)
-    const volBg = this.add.graphics().setDepth(10);
-    volBg.fillStyle(0x0a1a0a); volBg.fillRoundedRect(20 + btnSize + 10, btnY - btnSize, btnSize, btnSize, 6);
-    volBg.lineStyle(2, 0x44ff44); volBg.strokeRoundedRect(20 + btnSize + 10, btnY - btnSize, btnSize, btnSize, 6);
-    const volX = 20 + btnSize + 10;
-    this.add.text(volX + btnSize / 2, btnY - btnSize / 2 - 10, 'VOL', {
-      ...btnStyle, fontSize: '14px', color: '#44ff44',
-    }).setOrigin(0.5).setDepth(11);
-    this.createVolumeSlider(volX + btnSize / 2, btnY - btnSize / 2 + 12, btnSize - 16);
+    makeBtn(0, 'SHOP', 0xffcc22, 0x1a1a0a, 0x2a2a1a, 0xffee66, () => this.openShop());
+    makeBtn(1, 'VOLUME', 0x44ff44, 0x0a1a0a, 0x1a2a1a, 0x88ff88, () => {});
+    makeBtn(2, 'BESTIARY', 0xcc44ff, 0x1a0a1a, 0x2a1a2a, 0xee66ff, () => this.openBestiary());
+    makeBtn(3, 'BACKPACK', 0x88aa44, 0x0a1a0a, 0x1a2a1a, 0xaacc66, () => this.openBackpack());
+    makeBtn(4, 'ABILITIES', 0xff6644, 0x1a1a0a, 0x2a1a0a, 0xff8866, () => this.openAbilities());
 
-    // BESTIARY button (square)
-    const bestBg = this.add.graphics().setDepth(10);
-    const bestX = 20 + (btnSize + 10) * 2;
-    bestBg.fillStyle(0x1a0a1a); bestBg.fillRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6);
-    bestBg.lineStyle(2, 0xcc44ff); bestBg.strokeRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6);
-    this.add.text(bestX + btnSize / 2, btnY - btnSize / 2, 'BEST\nIARY', {
-      ...btnStyle, fontSize: '13px', color: '#cc44ff', align: 'center',
-    }).setOrigin(0.5).setDepth(11);
-    const bestZone = this.add.zone(bestX + btnSize / 2, btnY - btnSize / 2, btnSize, btnSize)
-      .setInteractive({ useHandCursor: true }).setDepth(12);
-    bestZone.on('pointerover', () => { bestBg.clear(); bestBg.fillStyle(0x2a1a2a); bestBg.fillRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6); bestBg.lineStyle(2, 0xee66ff); bestBg.strokeRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6); });
-    bestZone.on('pointerout', () => { bestBg.clear(); bestBg.fillStyle(0x1a0a1a); bestBg.fillRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6); bestBg.lineStyle(2, 0xcc44ff); bestBg.strokeRoundedRect(bestX, btnY - btnSize, btnSize, btnSize, 6); });
-    bestZone.on('pointerdown', () => this.openBestiary());
-
-    // BACKPACK button (square)
-    const bpBg = this.add.graphics().setDepth(10);
-    const bpX = 20 + (btnSize + 10) * 3;
-    bpBg.fillStyle(0x0a1a0a); bpBg.fillRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6);
-    bpBg.lineStyle(2, 0x88aa44); bpBg.strokeRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6);
-    this.add.text(bpX + btnSize / 2, btnY - btnSize / 2, 'BACK\nPACK', {
-      ...btnStyle, fontSize: '13px', color: '#88aa44', align: 'center',
-    }).setOrigin(0.5).setDepth(11);
-    const bpZone = this.add.zone(bpX + btnSize / 2, btnY - btnSize / 2, btnSize, btnSize)
-      .setInteractive({ useHandCursor: true }).setDepth(12);
-    bpZone.on('pointerover', () => { bpBg.clear(); bpBg.fillStyle(0x1a2a1a); bpBg.fillRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6); bpBg.lineStyle(2, 0xaacc66); bpBg.strokeRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6); });
-    bpZone.on('pointerout', () => { bpBg.clear(); bpBg.fillStyle(0x0a1a0a); bpBg.fillRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6); bpBg.lineStyle(2, 0x88aa44); bpBg.strokeRoundedRect(bpX, btnY - btnSize, btnSize, btnSize, 6); });
-    bpZone.on('pointerdown', () => this.openBackpack());
-
-    // ABILITIES button (square)
-    const abBg = this.add.graphics().setDepth(10);
-    const abX = 20 + (btnSize + 10) * 4;
-    abBg.fillStyle(0x1a1a0a); abBg.fillRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6);
-    abBg.lineStyle(2, 0xff6644); abBg.strokeRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6);
-    this.add.text(abX + btnSize / 2, btnY - btnSize / 2, 'ABI\nLITY', {
-      ...btnStyle, fontSize: '13px', color: '#ff6644', align: 'center',
-    }).setOrigin(0.5).setDepth(11);
-    const abZone = this.add.zone(abX + btnSize / 2, btnY - btnSize / 2, btnSize, btnSize)
-      .setInteractive({ useHandCursor: true }).setDepth(12);
-    abZone.on('pointerover', () => { abBg.clear(); abBg.fillStyle(0x2a1a0a); abBg.fillRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6); abBg.lineStyle(2, 0xff8866); abBg.strokeRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6); });
-    abZone.on('pointerout', () => { abBg.clear(); abBg.fillStyle(0x1a1a0a); abBg.fillRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6); abBg.lineStyle(2, 0xff6644); abBg.strokeRoundedRect(abX, btnY - btnSize, btnSize, btnSize, 6); });
-    abZone.on('pointerdown', () => this.openAbilities());
+    // Volume slider inside the VOLUME button area
+    const volBtnX = btnStartX + 1 * (btnW + btnGap);
+    this.createVolumeSlider(volBtnX + btnW / 2, btnY - btnH / 2 + 4, btnW - 24);
 
     // ============ RIGHT SIDE — Stats with panel ============
     const RX = width - 30;
 
-    // Stats panel background
+    // Coins panel
     const statsBg = this.add.graphics().setDepth(8);
     statsBg.fillStyle(0x000000, 0.4);
-    statsBg.fillRoundedRect(RX - 200, 220, 210, 200, 8);
-    statsBg.lineStyle(1, 0x333333, 0.5);
-    statsBg.strokeRoundedRect(RX - 200, 220, 210, 200, 8);
+    statsBg.fillRoundedRect(RX - 160, 230, 170, 50, 8);
+    statsBg.lineStyle(1, 0xffcc22, 0.3);
+    statsBg.strokeRoundedRect(RX - 160, 230, 170, 50, 8);
 
     // Coins (with icon)
-    this.add.image(RX - 185, 242, 'coin-icon').setDepth(10).setScale(1.3);
-    this.coinsText = this.add.text(RX - 170, 234, `${shop.getCoins()}`, {
-      fontSize: '20px', fontFamily: 'monospace', color: '#ffcc22',
+    this.add.image(RX - 140, 255, 'coin-icon').setDepth(10).setScale(1.5);
+    this.coinsText = this.add.text(RX - 122, 246, `${shop.getCoins()}`, {
+      fontSize: '22px', fontFamily: 'monospace', color: '#ffcc22',
       shadow: { offsetX: 0, offsetY: 0, color: '#ffaa00', blur: 6, fill: true },
     }).setOrigin(0, 0).setDepth(10);
-
-    // Personal best
-    const best = leaderboard.getPersonalBest();
-    if (best > 0) {
-      this.add.text(RX, 262, `Best: ${best}`, {
-        fontSize: '15px', fontFamily: 'monospace', color: '#ffaa00',
-        shadow: { offsetX: 0, offsetY: 0, color: '#884400', blur: 4, fill: true },
-      }).setOrigin(1, 0).setDepth(10);
-    }
-
-    // Divider line
-    const divider = this.add.graphics().setDepth(9);
-    divider.lineStyle(1, 0x444444, 0.5);
-    divider.lineBetween(RX - 190, 285, RX - 5, 285);
-
-    // Leaderboard
-    this.createMenuLeaderboard(RX, 295);
 
     // ============ BOTTOM CENTER — Controls ============
     const ctrlBg = this.add.graphics().setDepth(8);
     ctrlBg.fillStyle(0x000000, 0.3);
     ctrlBg.fillRoundedRect(CX - 350, height - 30, 700, 22, 4);
-    const ctrl = this.add.text(CX, height - 19, 'WASD — move  |  MOUSE — aim & shoot  |  R — reload  |  1-5 — switch weapon  |  F — ability', {
+    const ctrl = this.add.text(CX, height - 19, 'WASD — move  |  SHIFT — sprint  |  MOUSE — shoot  |  R — reload  |  1-5 — weapon  |  F — ability', {
       fontSize: '11px', fontFamily: 'monospace', color: '#444444',
     }).setOrigin(0.5, 0.5).setAlpha(0).setDepth(10);
     this.tweens.add({ targets: [ctrl, ctrlBg], alpha: 0.7, duration: 1500, delay: 1200 });
@@ -454,23 +403,6 @@ export class MenuScene extends Phaser.Scene {
     if (this.shopPanel) { this.shopPanel.remove(); this.shopPanel = null; }
   }
 
-  private createMenuLeaderboard(rightX: number, startY: number) {
-    const top5 = leaderboard.getTop(5);
-    if (top5.length === 0) {
-      this.add.text(rightX, startY, 'No scores yet', {
-        fontSize: '14px', fontFamily: 'monospace', color: '#555544',
-      }).setOrigin(1, 0).setDepth(10);
-      return;
-    }
-    this.add.text(rightX, startY, 'LEADERBOARD', {
-      fontSize: '16px', fontFamily: 'monospace', color: '#ffaa00', fontStyle: 'bold',
-    }).setOrigin(1, 0).setDepth(10);
-    top5.forEach((entry, i) => {
-      this.add.text(rightX, startY + 24 + i * 20, `${i + 1}. ${entry.name} — ${entry.score}`, {
-        fontSize: '14px', fontFamily: 'monospace', color: '#aa8844',
-      }).setOrigin(1, 0).setDepth(10);
-    });
-  }
 
   private createVolumeSlider(centerX: number, y: number, sliderW: number) {
     const sliderX = centerX - sliderW / 2;

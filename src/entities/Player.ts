@@ -13,7 +13,9 @@ export interface WeaponState {
 export class Player extends Phaser.Physics.Arcade.Sprite {
   hp: number = 100;
   maxHp: number = 100;
-  speed: number = 200;
+  speed: number = 100;
+  private sprintMultiplier: number = 2;
+  isSprinting: boolean = false;
   isReloading: boolean = false;
   score: number = 0;
   kills: number = 0;
@@ -51,6 +53,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     R: Phaser.Input.Keyboard.Key;
     Q: Phaser.Input.Keyboard.Key;
     E: Phaser.Input.Keyboard.Key;
+    SHIFT: Phaser.Input.Keyboard.Key;
   };
   private weaponKeys: Phaser.Input.Keyboard.Key[] = [];
 
@@ -136,6 +139,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       R: scene.input.keyboard!.addKey('R'),
       Q: scene.input.keyboard!.addKey('Q'),
       E: scene.input.keyboard!.addKey('E'),
+      SHIFT: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
     };
 
     // Weapon switch keys (1-5)
@@ -154,10 +158,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.keys.A.isDown) vx = -1;
     if (this.keys.D.isDown) vx = 1;
 
+    // Sprint on Shift
+    this.isSprinting = this.keys.SHIFT.isDown && (vx !== 0 || vy !== 0);
+    const currentSpeed = this.isSprinting ? this.speed * this.sprintMultiplier : this.speed;
+
     const len = Math.sqrt(vx * vx + vy * vy);
     if (len > 0) {
-      vx = (vx / len) * this.speed;
-      vy = (vy / len) * this.speed;
+      vx = (vx / len) * currentSpeed;
+      vy = (vy / len) * currentSpeed;
     }
     this.setVelocity(vx, vy);
 
