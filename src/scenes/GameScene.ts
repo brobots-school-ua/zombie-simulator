@@ -185,34 +185,34 @@ export class GameScene extends Phaser.Scene {
       b.destroy();
     });
 
-    // Ammo spawner
+    // Ammo spawner (max 5 on map)
     this.time.addEvent({
       delay: Phaser.Math.Between(10000, 15000),
       loop: true,
       callback: () => {
-        if (this.gameOver) return;
+        if (this.gameOver || !this.canSpawnPickup('ammo')) return;
         const pos = this.getSafeSpawnPosition();
         this.pickups.add(new Pickup(this, pos.x, pos.y, 'ammo'));
       },
     });
 
-    // Bandage spawner — every 20 seconds
+    // Bandage spawner — every 20 seconds (max 3 on map)
     this.time.addEvent({
       delay: 20000,
       loop: true,
       callback: () => {
-        if (this.gameOver) return;
+        if (this.gameOver || !this.canSpawnPickup('bandage')) return;
         const pos = this.getSafeSpawnPosition();
         this.pickups.add(new Pickup(this, pos.x, pos.y, 'bandage'));
       },
     });
 
-    // Medkit spawner — every 45 seconds
+    // Medkit spawner — every 45 seconds (max 2 on map)
     this.time.addEvent({
       delay: 45000,
       loop: true,
       callback: () => {
-        if (this.gameOver) return;
+        if (this.gameOver || !this.canSpawnPickup('medkit')) return;
         const pos = this.getSafeSpawnPosition();
         this.pickups.add(new Pickup(this, pos.x, pos.y, 'medkit'));
       },
@@ -261,6 +261,42 @@ export class GameScene extends Phaser.Scene {
     audioManager.startGameMusic();
     this.scene.launch('UIScene', { gameScene: this });
     this.spawnWave();
+  }
+
+  // Clean up resources when scene stops (location transition or game over)
+  shutdown() {
+    // Destroy zombie shadows
+    for (const shadow of this.zombieShadows.values()) {
+      shadow.destroy();
+    }
+    this.zombieShadows.clear();
+
+    // Destroy trees
+    for (const tree of this.trees) {
+      tree.destroy();
+    }
+    this.trees = [];
+
+    // Destroy damage numbers
+    for (const txt of this.activeDmgNumbers) {
+      txt.destroy();
+    }
+    this.activeDmgNumbers = [];
+
+    // Destroy nuke markers
+    for (const m of this.nukeMarkers) {
+      m.destroy();
+    }
+    this.nukeMarkers = [];
+
+    // Clear grid lookup
+    this.wallGridSet.clear();
+    this.alleySpawnPoints = [];
+
+    // Destroy player shadow
+    if (this.playerShadow) {
+      this.playerShadow.destroy();
+    }
   }
 
   update(_time: number, delta: number) {
@@ -390,7 +426,7 @@ export class GameScene extends Phaser.Scene {
     ];
     let dropOffset = 0;
     for (const mat of materialTypes) {
-      if (Math.random() * 100 < mat.chance) {
+      if (Math.random() * 100 < mat.chance && this.canSpawnPickup(mat.type)) {
         // Spread drops slightly so they don't stack on top of each other
         const ox = (dropOffset - 1) * 16;
         this.pickups.add(new Pickup(this, z.x + ox, z.y + 10, mat.type));
@@ -646,12 +682,44 @@ export class GameScene extends Phaser.Scene {
     return this.getSpawnPosition();
   }
 
-  private isPositionBlocked(x: number, y: number): boolean {
-    const r = new Phaser.Geom.Rectangle(x - 16, y - 16, 32, 32);
-    for (const wall of this.walls.getChildren() as Phaser.Physics.Arcade.Sprite[]) {
-      if (Phaser.Geom.Intersects.RectangleToRectangle(r, new Phaser.Geom.Rectangle(wall.x - wall.displayWidth / 2, wall.y - wall.displayHeight / 2, wall.displayWidth, wall.displayHeight))) return true;
+  // Max pickups of each type allowed on map at once
+  private static readonly PICKUP_LIMITS: Partial<Record<PickupType, number>> = {
+    ammo: 5, bandage: 3, medkit: 2, wood: 8, metal: 8, screws: 8,
+  };
+
+  private countPickupsOfType(type: PickupType): number {
+    let count = 0;
+    for (const obj of this.pickups.getChildren()) {
+      const p = obj as Pickup;
+      if (p.active && p.pickupType === type) count++;
     }
-    return false;
+    return count;
+  }
+
+  private canSpawnPickup(type: PickupType): boolean {
+    const limit = GameScene.PICKUP_LIMITS[type];
+    if (limit === undefined) return true;
+    return this.countPickupsOfType(type) < limit;
+  }
+
+  // Set of occupied grid cells (64px grid) for fast collision lookup
+  private wallGridSet: Set<string> = new Set();
+
+  private buildWallGrid() {
+    this.wallGridSet.clear();
+    for (const wall of this.walls.getChildren() as Phaser.Physics.Arcade.Sprite[]) {
+      // Mark the grid cell this wall occupies
+      const gx = Math.floor(wall.x / 64);
+      const gy = Math.floor(wall.y / 64);
+      this.wallGridSet.add(`${gx},${gy}`);
+    }
+  }
+
+  private isPositionBlocked(x: number, y: number): boolean {
+    // Fast O(1) grid-based check instead of O(n) wall iteration
+    const gx = Math.floor(x / 64);
+    const gy = Math.floor(y / 64);
+    return this.wallGridSet.has(`${gx},${gy}`);
   }
 
   private getRandomZombieType(): ZombieType {
@@ -1096,6 +1164,9 @@ export class GameScene extends Phaser.Scene {
     } else if (this.location.generateObstacles === 'city') {
       this.generateCityBuildings(tex);
     }
+
+    // Build grid lookup for fast isPositionBlocked() checks
+    this.buildWallGrid();
   }
 
   // Field — random scattered wall clusters
