@@ -4,6 +4,7 @@ import { GameScene } from './scenes/GameScene';
 import { UIScene } from './scenes/UIScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { MenuScene } from './scenes/MenuScene';
+import { TransitionScene } from './scenes/TransitionScene';
 
 // Game configuration
 const config: Phaser.Types.Core.GameConfig = {
@@ -19,7 +20,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, MenuScene, GameScene, UIScene, GameOverScene],
+  scene: [BootScene, MenuScene, GameScene, UIScene, GameOverScene, TransitionScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

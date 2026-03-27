@@ -8,6 +8,7 @@ import { leaderboard } from '../systems/LeaderboardManager';
 import { shop } from '../systems/ShopConfig';
 import { bestiary } from '../systems/BestiaryManager';
 import { getSelectedAbility, ABILITIES } from '../systems/AbilityConfig';
+import { getLocationForWave, shouldChangeLocation, LocationDef } from '../systems/LocationConfig';
 
 // Main game scene — where all gameplay happens
 export class GameScene extends Phaser.Scene {
@@ -31,29 +32,38 @@ export class GameScene extends Phaser.Scene {
   private zombieShadows: Map<Zombie, Phaser.GameObjects.Image> = new Map();
   private trees: Phaser.GameObjects.Image[] = [];
   private activeDmgNumbers: Phaser.GameObjects.Text[] = [];
+  private location!: LocationDef;
+  private incomingPlayerState: any = null;
+  private alleySpawnPoints: { x: number; y: number }[] = [];
 
   constructor() {
     super({ key: 'GameScene' });
   }
 
-  create() {
-    this.wave = 1;
+  create(data?: { wave?: number; playerState?: any }) {
+    // Determine starting wave and location
+    this.wave = data?.wave ?? 1;
+    this.incomingPlayerState = data?.playerState ?? null;
+    this.location = getLocationForWave(this.wave);
+
     this.shootCooldown = 0;
     this.waveDelay = false;
     this.gameOver = false;
+    this.alleySpawnPoints = [];
 
+    this.mapSize = this.location.mapSize;
     this.physics.world.setBounds(0, 0, this.mapSize, this.mapSize);
 
-    // Ground tiles
-    const grassTiles = ['ground1', 'ground2', 'ground3', 'ground4', 'ground5'];
+    // Ground tiles — from location config
+    const tiles = this.location.groundTiles;
     for (let x = 0; x < this.mapSize; x += 64) {
       for (let y = 0; y < this.mapSize; y += 64) {
-        this.add.image(x + 32, y + 32, grassTiles[Phaser.Math.Between(0, 4)]).setDepth(0);
+        this.add.image(x + 32, y + 32, tiles[Phaser.Math.Between(0, tiles.length - 1)]).setDepth(0);
       }
     }
 
     this.walls = this.physics.add.staticGroup();
-    this.generateObstacles();
+    this.generateMap();
 
     // Scatter decorations AFTER walls are generated
     this.placeDecorations();
@@ -65,6 +75,27 @@ export class GameScene extends Phaser.Scene {
     // Safe player spawn
     const playerPos = this.getSafePlayerSpawn();
     this.player = new Player(this, playerPos.x, playerPos.y);
+
+    // Restore player state from previous location if available
+    if (this.incomingPlayerState) {
+      const s = this.incomingPlayerState;
+      this.player.hp = s.hp;
+      this.player.maxHp = s.maxHp;
+      this.player.score = s.score;
+      this.player.kills = s.kills;
+      this.player.sessionCoins = s.sessionCoins;
+      this.player.bandages = s.bandages;
+      this.player.medkits = s.medkits;
+      this.player.wood = s.wood;
+      this.player.metal = s.metal;
+      this.player.screws = s.screws;
+      // Restore weapons
+      if (s.weapons) {
+        this.player.weapons = s.weapons;
+        this.player.activeWeaponIndex = s.activeWeaponIndex ?? 0;
+      }
+      this.incomingPlayerState = null;
+    }
 
     // Shadow under player (updated in main update loop)
     this.playerShadow = this.add.image(this.player.x, this.player.y, 'shadow').setDepth(0.5).setAlpha(0.3).setScale(0.8);
@@ -293,10 +324,42 @@ export class GameScene extends Phaser.Scene {
     // Wave check
     if (this.zombiesRemaining <= 0 && !this.waveDelay) {
       this.waveDelay = true;
-      this.wave++;
-      this.time.delayedCall(3000, () => {
-        if (!this.gameOver) { this.spawnWave(); this.waveDelay = false; }
-      });
+      const nextWave = this.wave + 1;
+
+      // Check if we need to change location
+      if (shouldChangeLocation(this.wave, nextWave)) {
+        // Transition to new location!
+        this.time.delayedCall(2000, () => {
+          if (this.gameOver) return;
+          const newLocation = getLocationForWave(nextWave);
+          const playerState = {
+            hp: this.player.hp,
+            maxHp: this.player.maxHp,
+            score: this.player.score,
+            kills: this.player.kills,
+            sessionCoins: this.player.sessionCoins,
+            weapons: this.player.weapons,
+            activeWeaponIndex: this.player.activeWeaponIndex,
+            bandages: this.player.bandages,
+            medkits: this.player.medkits,
+            wood: this.player.wood,
+            metal: this.player.metal,
+            screws: this.player.screws,
+          };
+          this.scene.stop('UIScene');
+          audioManager.stopGameMusic(1);
+          this.scene.start('TransitionScene', {
+            locationName: newLocation.displayName,
+            wave: nextWave,
+            playerState,
+          });
+        });
+      } else {
+        this.wave = nextWave;
+        this.time.delayedCall(3000, () => {
+          if (!this.gameOver) { this.spawnWave(); this.waveDelay = false; }
+        });
+      }
     }
   }
 
@@ -567,6 +630,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   private getSafeSpawnPosition(): { x: number; y: number } {
+    // In city mode, 70% chance to spawn in alleys
+    if (this.location.spawnMode === 'alleys' && this.alleySpawnPoints.length > 0 && Math.random() < 0.7) {
+      const point = this.alleySpawnPoints[Phaser.Math.Between(0, this.alleySpawnPoints.length - 1)];
+      // Add some random offset within alley
+      return {
+        x: point.x + Phaser.Math.Between(-30, 30),
+        y: point.y + Phaser.Math.Between(-30, 30),
+      };
+    }
     for (let i = 0; i < 20; i++) {
       const pos = this.getSpawnPosition();
       if (!this.isPositionBlocked(pos.x, pos.y)) return pos;
@@ -980,49 +1052,54 @@ export class GameScene extends Phaser.Scene {
   private placeDecorations() {
     this.trees = [];
     const cx = this.mapSize / 2, cy = this.mapSize / 2;
+    const decos = this.location.decorations;
 
-    // Trees — larger, tracked for transparency effect
-    for (let i = 0; i < 12; i++) {
-      const x = Phaser.Math.Between(150, this.mapSize - 150);
-      const y = Phaser.Math.Between(150, this.mapSize - 150);
-      if (Math.abs(x - cx) < 200 && Math.abs(y - cy) < 200) continue;
-      if (this.isPositionBlocked(x, y)) continue;
-      const tree = this.add.image(x, y, 'deco-dead-tree')
-        .setDepth(12)  // above player so it overlaps
-        .setScale(Phaser.Math.FloatBetween(2.0, 3.5))
-        .setAlpha(0.85);
-      this.trees.push(tree);
-    }
-
-    // Other decorations
-    const decoTypes = [
-      { key: 'deco-bush', count: 12, scale: 0.8, depth: 0.9 },
-      { key: 'deco-rock', count: 10, scale: 0.7, depth: 0.9 },
-      { key: 'deco-barrel', count: 5, scale: 0.8, depth: 1.5 },
-      { key: 'deco-crate', count: 4, scale: 0.8, depth: 1.5 },
-    ];
-    for (const deco of decoTypes) {
+    for (const deco of decos) {
       for (let i = 0; i < deco.count; i++) {
-        const x = Phaser.Math.Between(120, this.mapSize - 120);
-        const y = Phaser.Math.Between(120, this.mapSize - 120);
-        if (Math.abs(x - cx) < 150 && Math.abs(y - cy) < 150) continue;
+        const x = Phaser.Math.Between(150, this.mapSize - 150);
+        const y = Phaser.Math.Between(150, this.mapSize - 150);
+        if (Math.abs(x - cx) < 200 && Math.abs(y - cy) < 200) continue;
         if (this.isPositionBlocked(x, y)) continue;
-        this.add.image(x, y, deco.key)
-          .setDepth(deco.depth)
-          .setScale(Phaser.Math.FloatBetween(deco.scale * 0.8, deco.scale * 1.2))
-          .setAngle(Phaser.Math.Between(0, 360))
-          .setAlpha(Phaser.Math.FloatBetween(0.6, 0.9));
+
+        if (deco.isTree) {
+          // Trees/lampposts — tracked for transparency effect
+          const tree = this.add.image(x, y, deco.key)
+            .setDepth(deco.depth)
+            .setScale(Phaser.Math.FloatBetween(deco.scale * 0.8, deco.scale * 1.4))
+            .setAlpha(0.85);
+          this.trees.push(tree);
+        } else {
+          this.add.image(x, y, deco.key)
+            .setDepth(deco.depth)
+            .setScale(Phaser.Math.FloatBetween(deco.scale * 0.8, deco.scale * 1.2))
+            .setAngle(Phaser.Math.Between(0, 360))
+            .setAlpha(Phaser.Math.FloatBetween(0.6, 0.9));
+        }
       }
     }
   }
 
-  private generateObstacles() {
+  // Generate map layout based on current location
+  private generateMap() {
+    const tex = this.location.wallTexture;
+
+    // Border walls (always present)
     for (let i = 0; i < this.mapSize; i += 64) {
-      (this.walls.create(i + 32, 32, 'wall') as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
-      (this.walls.create(i + 32, this.mapSize - 32, 'wall') as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
-      (this.walls.create(32, i + 32, 'wall') as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
-      (this.walls.create(this.mapSize - 32, i + 32, 'wall') as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
+      (this.walls.create(i + 32, 32, tex) as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
+      (this.walls.create(i + 32, this.mapSize - 32, tex) as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
+      (this.walls.create(32, i + 32, tex) as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
+      (this.walls.create(this.mapSize - 32, i + 32, tex) as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
     }
+
+    if (this.location.generateObstacles === 'field') {
+      this.generateFieldObstacles(tex);
+    } else if (this.location.generateObstacles === 'city') {
+      this.generateCityBuildings(tex);
+    }
+  }
+
+  // Field — random scattered wall clusters
+  private generateFieldObstacles(tex: string) {
     const count = 15 + Math.floor(Math.random() * 10);
     for (let i = 0; i < count; i++) {
       const bx = Phaser.Math.Between(200, this.mapSize - 200);
@@ -1032,9 +1109,69 @@ export class GameScene extends Phaser.Scene {
       const bw = Phaser.Math.Between(1, 4), bh = Phaser.Math.Between(1, 3);
       for (let wx = 0; wx < bw; wx++) {
         for (let wy = 0; wy < bh; wy++) {
-          (this.walls.create(bx + wx * 64, by + wy * 64, 'wall') as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
+          (this.walls.create(bx + wx * 64, by + wy * 64, tex) as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
         }
       }
     }
+  }
+
+  // City — grid of buildings with alleys between them
+  private generateCityBuildings(tex: string) {
+    this.alleySpawnPoints = [];
+
+    // City layout: buildings in a grid pattern with alleys
+    // Building grid: ~5x5 blocks with alleys between them
+    const margin = 192;       // distance from border
+    const alleyWidth = 128;   // space between buildings (alleys)
+    const buildingSizes = [    // possible building sizes in tiles (64px each)
+      { w: 3, h: 3 }, { w: 4, h: 3 }, { w: 3, h: 4 },
+      { w: 4, h: 4 }, { w: 5, h: 3 }, { w: 3, h: 5 },
+    ];
+
+    // Place buildings in a grid pattern
+    let bx = margin;
+    while (bx < this.mapSize - margin) {
+      let by = margin;
+      const colWidth = Phaser.Math.Between(3, 5) * 64; // building width for this column
+
+      while (by < this.mapSize - margin) {
+        const size = buildingSizes[Phaser.Math.Between(0, buildingSizes.length - 1)];
+        const bw = size.w * 64;
+        const bh = size.h * 64;
+
+        // Skip center area for player spawn
+        const cx = this.mapSize / 2, cy = this.mapSize / 2;
+        if (Math.abs(bx + bw / 2 - cx) < 200 && Math.abs(by + bh / 2 - cy) < 200) {
+          by += bh + alleyWidth;
+          continue;
+        }
+
+        // Place building walls
+        for (let wx = 0; wx < bw; wx += 64) {
+          for (let wy = 0; wy < bh; wy += 64) {
+            (this.walls.create(bx + wx + 32, by + wy + 32, tex) as Phaser.Physics.Arcade.Sprite).setDepth(2).refreshBody();
+          }
+        }
+
+        // Record alley spawn points (around this building)
+        // Right side alley
+        for (let ay = by; ay < by + bh; ay += 64) {
+          this.alleySpawnPoints.push({ x: bx + bw + alleyWidth / 2, y: ay + 32 });
+        }
+        // Bottom alley
+        for (let ax = bx; ax < bx + bw; ax += 64) {
+          this.alleySpawnPoints.push({ x: ax + 32, y: by + bh + alleyWidth / 2 });
+        }
+
+        by += bh + alleyWidth;
+      }
+      bx += colWidth + alleyWidth;
+    }
+
+    // Filter out alley points that are inside walls or outside map
+    this.alleySpawnPoints = this.alleySpawnPoints.filter(p => {
+      if (p.x < 100 || p.x > this.mapSize - 100 || p.y < 100 || p.y > this.mapSize - 100) return false;
+      return !this.isPositionBlocked(p.x, p.y);
+    });
   }
 }

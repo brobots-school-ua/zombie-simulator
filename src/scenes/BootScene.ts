@@ -1037,6 +1037,98 @@ export class BootScene extends Phaser.Scene {
     this.generateGrassTile(g, 'ground4', 0x3b7d38, 3);
     this.generateGrassTile(g, 'ground5', 0x3e7e42, 4);
 
+    // === CITY GROUND TILES — asphalt variants ===
+    this.generateAsphaltTile(g, 'city-ground1', 0x3a3a3e, 0);
+    this.generateAsphaltTile(g, 'city-ground2', 0x36363a, 1);
+    this.generateAsphaltTile(g, 'city-ground3', 0x3e3e42, 2);
+    this.generateAsphaltTile(g, 'city-ground4', 0x383840, 3);
+    this.generateAsphaltTile(g, 'city-ground5', 0x3c3c3c, 4);
+
+    // === CITY WALL — concrete building block ===
+    g.fillStyle(0x555560);
+    g.fillRect(0, 0, 64, 64);
+    // Concrete texture variation
+    for (let i = 0; i < 20; i++) {
+      const sx = (i * 17 + 3) % 60 + 2;
+      const sy = (i * 23 + 7) % 60 + 2;
+      g.fillStyle(0x4a4a55, 0.3);
+      g.fillRect(sx, sy, 3, 2);
+    }
+    // Window (dark rectangle with frame)
+    g.fillStyle(0x222233);
+    g.fillRect(18, 16, 28, 20);
+    g.fillStyle(0x333344);
+    g.fillRect(20, 18, 24, 16);
+    // Window cross
+    g.fillStyle(0x555560);
+    g.fillRect(31, 18, 2, 16);
+    g.fillRect(20, 25, 24, 2);
+    // Window reflection
+    g.fillStyle(0x4466aa, 0.15);
+    g.fillRect(21, 19, 10, 5);
+    // Border
+    g.lineStyle(1, 0x444450);
+    g.strokeRect(0, 0, 64, 64);
+    g.generateTexture('city-wall', 64, 64);
+    g.clear();
+
+    // === CITY DECORATIONS ===
+
+    // Dumpster — green rectangular bin
+    g.fillStyle(0x2a5a2a);
+    g.fillRect(2, 6, 20, 14);
+    g.fillStyle(0x3a7a3a);
+    g.fillRect(3, 7, 18, 12);
+    // Lid
+    g.fillStyle(0x1a4a1a);
+    g.fillRect(2, 5, 20, 3);
+    // Handle
+    g.fillStyle(0x888888);
+    g.fillRect(10, 4, 4, 2);
+    g.generateTexture('deco-dumpster', 24, 24);
+    g.clear();
+
+    // Broken car — top-down view
+    g.fillStyle(0x664444);
+    g.fillRect(4, 2, 24, 44);
+    // Car body
+    g.fillStyle(0x884444);
+    g.fillRect(6, 4, 20, 40);
+    // Windshield (cracked)
+    g.fillStyle(0x446688);
+    g.fillRect(8, 8, 16, 8);
+    g.lineStyle(1, 0x88aacc);
+    g.lineBetween(12, 8, 18, 16);
+    g.lineBetween(16, 10, 10, 14);
+    // Rear window
+    g.fillStyle(0x334455);
+    g.fillRect(8, 32, 16, 6);
+    // Wheels
+    g.fillStyle(0x222222);
+    g.fillRect(3, 10, 4, 8);
+    g.fillRect(25, 10, 4, 8);
+    g.fillRect(3, 30, 4, 8);
+    g.fillRect(25, 30, 4, 8);
+    // Rust
+    g.fillStyle(0x995533, 0.4);
+    g.fillCircle(14, 24, 5);
+    g.fillCircle(22, 18, 3);
+    g.generateTexture('deco-car', 32, 48);
+    g.clear();
+
+    // Lamppost — top-down view (circle base + line)
+    g.fillStyle(0x555555);
+    g.fillCircle(12, 12, 5);
+    g.fillStyle(0x777777);
+    g.fillCircle(12, 12, 3);
+    // Light glow
+    g.fillStyle(0xffee88, 0.15);
+    g.fillCircle(12, 12, 10);
+    g.fillStyle(0xffee88, 0.08);
+    g.fillCircle(12, 12, 16);
+    g.generateTexture('deco-lamppost', 32, 32);
+    g.clear();
+
     // Stone wall texture — weathered apocalyptic bricks
     g.fillStyle(0x3a3832);
     g.fillRect(0, 0, 64, 64);
@@ -1515,6 +1607,56 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(0x1a3a1a, 0.12);
     g.fillCircle(24, 22, 9);
     g.fillCircle(42, 38, 7);
+
+    g.generateTexture(key, 64, 64);
+    g.clear();
+  }
+
+  // Generate asphalt ground tile for city location
+  private generateAsphaltTile(g: Phaser.GameObjects.Graphics, key: string, baseColor: number, variant: number) {
+    // Base asphalt
+    g.fillStyle(baseColor);
+    g.fillRect(0, 0, 64, 64);
+
+    // Subtle color variation patches
+    for (let i = 0; i < 8; i++) {
+      const px = (i * 19 + variant * 7) % 56 + 4;
+      const py = (i * 23 + variant * 11) % 56 + 4;
+      const shade = ((i + variant) % 3 === 0) ? 0x444448 : 0x3a3a40;
+      g.fillStyle(shade, 0.4);
+      g.fillRect(px, py, 6 + (i % 3) * 2, 4 + (i % 2) * 2);
+    }
+
+    // Cracks in asphalt
+    g.lineStyle(1, 0x2a2a2e, 0.5);
+    const cx1 = (variant * 13 + 10) % 50 + 7;
+    const cy1 = (variant * 17 + 20) % 50 + 7;
+    g.lineBetween(cx1, cy1, cx1 + 12, cy1 + 8);
+    if (variant % 2 === 0) {
+      g.lineBetween(cx1 + 6, cy1 + 4, cx1 + 4, cy1 + 14);
+    }
+
+    // Small gravel / debris
+    for (let i = 0; i < 5; i++) {
+      const gx = (i * 14 + variant * 9 + 5) % 60 + 2;
+      const gy = (i * 18 + variant * 13 + 3) % 60 + 2;
+      g.fillStyle(0x505058, 0.3);
+      g.fillCircle(gx, gy, 1);
+    }
+
+    // Oil stain (one per some tiles)
+    if (variant % 3 === 0) {
+      g.fillStyle(0x222228, 0.2);
+      g.fillCircle(32, 32, 8);
+      g.fillCircle(30, 34, 5);
+    }
+
+    // Yellow road marking on some tiles
+    if (variant === 1) {
+      g.fillStyle(0xccaa33, 0.6);
+      g.fillRect(30, 0, 4, 20);
+      g.fillRect(30, 32, 4, 20);
+    }
 
     g.generateTexture(key, 64, 64);
     g.clear();
