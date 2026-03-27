@@ -46,10 +46,18 @@ export class GameScene extends Phaser.Scene {
     this.incomingPlayerState = data?.playerState ?? null;
     this.location = getLocationForWave(this.wave);
 
+    // Reset ALL state for clean scene restart
     this.shootCooldown = 0;
     this.waveDelay = false;
     this.gameOver = false;
     this.alleySpawnPoints = [];
+    this.zombieShadows = new Map();
+    this.trees = [];
+    this.activeDmgNumbers = [];
+    this.nukeMarkers = [];
+    this.wallGridSet = new Set();
+    this.nukeMode = false;
+    this.abilityActive = false;
 
     this.mapSize = this.location.mapSize;
     this.physics.world.setBounds(0, 0, this.mapSize, this.mapSize);
@@ -384,11 +392,13 @@ export class GameScene extends Phaser.Scene {
           };
           this.scene.stop('UIScene');
           audioManager.stopGameMusic(1);
-          this.scene.start('TransitionScene', {
+          // Stop this scene first, then launch TransitionScene
+          this.scene.launch('TransitionScene', {
             locationName: newLocation.displayName,
             wave: nextWave,
             playerState,
           });
+          this.scene.stop();
         });
       } else {
         this.wave = nextWave;
@@ -1238,6 +1248,9 @@ export class GameScene extends Phaser.Scene {
       }
       bx += colWidth + alleyWidth;
     }
+
+    // Build wall grid BEFORE filtering so isPositionBlocked works correctly
+    this.buildWallGrid();
 
     // Filter out alley points that are inside walls or outside map
     this.alleySpawnPoints = this.alleySpawnPoints.filter(p => {

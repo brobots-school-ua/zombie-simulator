@@ -100,14 +100,25 @@ export class TransitionScene extends Phaser.Scene {
 
     // After 3 seconds, start the game scene with new location
     this.time.delayedCall(3000, () => {
-      // Fade out
-      this.cameras.main.fadeOut(500, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
+      let transitioned = false;
+      const startGame = () => {
+        if (transitioned) return;
+        transitioned = true;
+        // Stop GameScene if it's still running before restarting it
+        if (this.scene.isActive('GameScene')) {
+          this.scene.stop('GameScene');
+        }
         this.scene.start('GameScene', {
           wave: data.wave,
           playerState: data.playerState,
         });
-      });
+      };
+
+      // Fade out
+      this.cameras.main.fadeOut(500, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', startGame);
+      // Fallback if camera fade event doesn't fire
+      this.time.delayedCall(800, startGame);
     });
   }
 }
