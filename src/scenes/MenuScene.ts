@@ -545,42 +545,45 @@ export class MenuScene extends Phaser.Scene {
       width: 480px;
     `;
 
-    const btnStyle = `padding:2px 8px; background:#1a2a1a; border:1px solid #44ff44; color:#44ff44; font-family:monospace; font-size:14px; cursor:pointer; border-radius:3px;`;
-    const btnDisabled = `padding:2px 8px; background:#111; border:1px solid #333; color:#333; font-family:monospace; font-size:14px; border-radius:3px; cursor:default;`;
+    const btnOn = `padding:4px 12px; background:#1a2a1a; border:1px solid #44ff44; color:#44ff44; font-family:monospace; font-size:16px; cursor:pointer; border-radius:3px;`;
+    const btnOff = `padding:4px 12px; background:#111; border:1px solid #333; color:#333; font-family:monospace; font-size:16px; border-radius:3px; cursor:default;`;
 
     const render = () => {
       if (!this.backpackPanel) return;
       const m = profile.getMaterials();
       const s = profile.getStash();
 
-      const row = (label: string, color: string, icon: string, invKey: string, invCount: number, stashCount: number) => `
-        <div style="display:flex; align-items:center; gap:6px; padding:6px; border:1px solid #333; border-radius:4px; background:rgba(0,0,0,0.3);">
-          <span style="color:${color}; font-size:16px; width:18px; text-align:center;">${icon}</span>
-          <span style="color:#ddd; width:65px; font-size:13px;">${label}</span>
-          <span style="color:#88aa44; width:28px; text-align:right; font-weight:bold;">${invCount}</span>
-          <button class="stash-to-stash" data-key="${invKey}" style="${invCount > 0 ? btnStyle : btnDisabled}" ${invCount <= 0 ? 'disabled' : ''}>&#8594;</button>
-          <button class="stash-to-inv" data-key="${invKey}" style="${stashCount > 0 ? btnStyle : btnDisabled}" ${stashCount <= 0 ? 'disabled' : ''}>&#8592;</button>
-          <span style="color:#ffcc22; width:28px; font-weight:bold;">${stashCount}</span>
+      const row = (label: string, color: string, icon: string, key: string, invCount: number, stashCount: number) => `
+        <div style="display:flex; align-items:center; padding:5px 0;">
+          <span style="color:${color}; font-size:14px; width:16px; text-align:center;">${icon}</span>
+          <span style="color:#ddd; width:65px; font-size:12px;">${label}</span>
+          <span style="color:#88aa44; width:30px; text-align:right; font-weight:bold; font-size:15px;">${invCount}</span>
+          <div style="flex:1; display:flex; justify-content:center; gap:8px;">
+            <button class="stash-to-stash" data-key="${key}" style="${invCount > 0 ? btnOn : btnOff}" ${invCount <= 0 ? 'disabled' : ''}>&#8594;</button>
+            <button class="stash-to-inv" data-key="${key}" style="${stashCount > 0 ? btnOn : btnOff}" ${stashCount <= 0 ? 'disabled' : ''}>&#8592;</button>
+          </div>
+          <span style="color:#ffcc22; width:30px; font-weight:bold; font-size:15px;">${stashCount}</span>
+          <span style="color:#ddd; width:65px; text-align:right; font-size:12px;">${label}</span>
+          <span style="color:${color}; font-size:14px; width:16px; text-align:center;">${icon}</span>
         </div>`;
 
       this.backpackPanel!.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="margin:0; color:#ffcc22; font-size:20px;">STASH</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <button id="bp-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1;">&#10005;</button>
         </div>
-        <div style="display:flex; gap:10px; margin-bottom:8px; padding:0 24px 0 36px;">
-          <span style="color:#88aa44; flex:1; text-align:right; font-size:11px;">INVENTORY</span>
-          <span style="width:52px;"></span>
-          <span style="color:#ffcc22; flex:1; font-size:11px;">STASH</span>
+        <div style="display:flex; margin-bottom:6px;">
+          <span style="color:#88aa44; font-size:13px; font-weight:bold;">INVENTORY</span>
+          <span style="flex:1;"></span>
+          <span style="color:#ffcc22; font-size:13px; font-weight:bold;">STASH</span>
         </div>
-        <div style="display:flex; flex-direction:column; gap:5px;">
+        <div style="border:1px solid #333; border-radius:6px; padding:8px; background:rgba(0,0,0,0.3); display:flex; flex-direction:column; gap:4px;">
           ${row('Bandages', '#44ff44', '+', 'bandages', 0, s.bandages)}
           ${row('Medkits', '#ff4444', '+', 'medkits', 0, s.medkits)}
           ${row('Wood', '#8b5a2b', '\u25a0', 'wood', m.wood, s.wood)}
           ${row('Metal', '#999', '\u25a0', 'metal', m.metal, s.metal)}
           ${row('Screws', '#777', '\u2699', 'screws', m.screws, s.screws)}
         </div>
-        <p style="color:#555; font-size:10px; margin:10px 0 0 0; text-align:center;">Stash is safe between games. Inventory resets on death.</p>
+        <p style="color:#555; font-size:10px; margin:8px 0 0 0; text-align:center;">Stash is safe between games</p>
       `;
 
       this.backpackPanel!.querySelector('#bp-close')!.addEventListener('click', () => this.closeBackpack());
