@@ -56,7 +56,7 @@ export const WEAPONS: WeaponDef[] = [
     startReserve: 16,
     maxReserve: 16,
     bulletSpeed: 400,
-    maxRange: 400,
+    maxRange: 300,
     reloadTime: 2000,
     spread: 0,
     pellets: 8,
