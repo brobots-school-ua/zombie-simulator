@@ -359,16 +359,20 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('acc-backpack', 16, 12);
     g.clear();
 
-    // Coin icon
-    g.fillStyle(0xddaa00);
-    g.fillCircle(6, 6, 6);
-    g.fillStyle(0xffcc22);
-    g.fillCircle(6, 6, 5);
-    g.fillStyle(0xddaa00);
-    g.fillCircle(6, 6, 3);
-    g.fillStyle(0xffdd44, 0.5);
-    g.fillCircle(5, 5, 2);
-    g.generateTexture('coin-icon', 12, 12);
+    // Skull icon (Kills currency)
+    g.fillStyle(0xcccccc);
+    g.fillCircle(6, 5, 5);           // head
+    g.fillStyle(0x111111);
+    g.fillCircle(4, 4, 1.5);         // left eye
+    g.fillCircle(8, 4, 1.5);         // right eye
+    g.fillStyle(0x111111);
+    g.fillRect(5, 6, 2, 1);          // nose
+    g.fillStyle(0xcccccc);
+    g.fillRect(3, 9, 6, 2);          // jaw
+    g.fillStyle(0x111111);
+    g.fillRect(4, 9, 1, 2);          // tooth gap
+    g.fillRect(7, 9, 1, 2);          // tooth gap
+    g.generateTexture('skull-icon', 12, 12);
     g.clear();
 
     // === PROJECTILE TEXTURES ===

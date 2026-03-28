@@ -18,7 +18,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
   speed: number;
   damage: number;
   score: number;
-  coins: number;
+  killValue: number;
   detectionRange: number;
   drops: MaterialDropChance;
 }> = {
@@ -29,7 +29,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     speed: 60,
     damage: 10,
     score: 10,
-    coins: 1,
+    killValue: 1,
     detectionRange: 300,
     drops: { wood: 20, metal: 15, screws: 5 },
   },
@@ -40,7 +40,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     speed: 140,
     damage: 8,
     score: 20,
-    coins: 2,
+    killValue: 2,
     detectionRange: 400,
     drops: { wood: 20, metal: 20, screws: 7 },
   },
@@ -51,7 +51,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     speed: 35,
     damage: 25,
     score: 50,
-    coins: 3,
+    killValue: 3,
     detectionRange: 250,
     drops: { wood: 17, metal: 17, screws: 10 },
   },
@@ -62,7 +62,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     speed: 50,
     damage: 5,
     score: 30,
-    coins: 2,
+    killValue: 2,
     detectionRange: 300,
     drops: { wood: 22, metal: 22, screws: 12 },
   },
@@ -73,7 +73,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     speed: 180,
     damage: 0, // explosion handles damage
     score: 25,
-    coins: 2,
+    killValue: 2,
     detectionRange: 9999, // sees across entire map
     drops: { wood: 25, metal: 25, screws: 15 },
   },
@@ -84,7 +84,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     speed: 45,
     damage: 30,
     score: 200,
-    coins: 10,
+    killValue: 10,
     detectionRange: 9999,
     drops: { wood: 100, metal: 100, screws: 100 },
   },
@@ -98,7 +98,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   speed: number;
   damage: number;
   scoreValue: number;
-  coinValue: number;
+  killValue: number;
   detectionRange: number;
   drops: MaterialDropChance;
   private attackCooldown: number = 0;
@@ -138,7 +138,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     this.speed = config.speed;
     this.damage = config.damage;
     this.scoreValue = config.score;
-    this.coinValue = config.coins;
+    this.killValue = config.killValue;
     this.detectionRange = config.detectionRange;
     this.drops = config.drops;
 

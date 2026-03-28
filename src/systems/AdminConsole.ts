@@ -122,7 +122,7 @@ export class AdminConsole {
 
       <div style="display:flex; gap:10px; align-items:end; margin-bottom:8px;">
         <div style="flex:1;">
-          <label style="display:block; margin-bottom:4px; color:#888;">Give coins:</label>
+          <label style="display:block; margin-bottom:4px; color:#888;">Give Kills:</label>
           <input id="admin-coins" type="number" value="100" style="${inputStyle.replace('#44ff44', '#ffcc22')}">
         </div>
         <button id="admin-give-coins" style="${btnStyle('#3a3a1a', '#ffcc22', '#ffcc22')}">Give</button>
@@ -211,7 +211,7 @@ export class AdminConsole {
     this.panel.querySelector('#admin-give-coins')!.addEventListener('click', () => {
       const amount = parseInt((this.panel!.querySelector('#admin-coins') as HTMLInputElement).value, 10);
       if (isNaN(amount) || amount <= 0) { msg.textContent = 'Invalid amount!'; msg.style.color = '#ff4444'; return; }
-      shop.addCoins(amount); msg.textContent = `+${amount} coins! Total: ${shop.getCoins()}`; msg.style.color = '#ffcc22';
+      shop.addKills(amount); msg.textContent = `+${amount} Kills! Total: ${shop.getKills()}`; msg.style.color = '#ffcc22';
     });
 
     // Max ammo

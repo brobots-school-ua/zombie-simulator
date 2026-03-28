@@ -1,5 +1,7 @@
 // Location system — defines different map environments
 // Each location has its own ground tiles, obstacle generation, and decorations
+import { FIELD_MAP } from '../maps/fieldMap';
+import { CITY_MAP } from '../maps/cityMap';
 
 export interface LocationDef {
   id: string;
@@ -9,7 +11,7 @@ export interface LocationDef {
   wallTexture: string;        // texture key for walls/buildings
   mapSize: number;
   decorations: DecorationDef[];
-  generateObstacles: 'field' | 'city';  // which generation algorithm to use
+  tileMap: number[][];         // static 2D map: 0=empty, 1=wall, 2=zombie spawn
   spawnMode: 'random' | 'alleys';       // where zombies spawn
 }
 
@@ -36,7 +38,7 @@ const FIELD: LocationDef = {
     { key: 'deco-barrel', count: 5, scale: 0.8, depth: 1.5 },
     { key: 'deco-crate', count: 4, scale: 0.8, depth: 1.5 },
   ],
-  generateObstacles: 'field',
+  tileMap: FIELD_MAP,
   spawnMode: 'random',
 };
 
@@ -55,7 +57,7 @@ const CITY: LocationDef = {
     { key: 'deco-barrel', count: 6, scale: 0.8, depth: 1.5 },
     { key: 'deco-crate', count: 6, scale: 0.8, depth: 1.5 },
   ],
-  generateObstacles: 'city',
+  tileMap: CITY_MAP,
   spawnMode: 'alleys',
 };
 

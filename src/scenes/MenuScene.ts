@@ -16,7 +16,7 @@ export class MenuScene extends Phaser.Scene {
   private backpackPanel: HTMLDivElement | null = null;
   private abilitiesPanel: HTMLDivElement | null = null;
   private equipmentPanel: HTMLDivElement | null = null;
-  private coinsText!: Phaser.GameObjects.Text;
+  private killsText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -247,8 +247,8 @@ export class MenuScene extends Phaser.Scene {
     statsBg.strokeRoundedRect(RX - 160, 230, 170, 50, 8);
 
     // Coins (with icon)
-    this.add.image(RX - 140, 255, 'coin-icon').setDepth(10).setScale(1.5);
-    this.coinsText = this.add.text(RX - 122, 246, `${shop.getCoins()}`, {
+    this.add.image(RX - 140, 255, 'skull-icon').setDepth(10).setScale(1.5);
+    this.killsText = this.add.text(RX - 122, 246, `${shop.getKills()}`, {
       fontSize: '22px', fontFamily: 'monospace', color: '#ffcc22',
       shadow: { offsetX: 0, offsetY: 0, color: '#ffaa00', blur: 6, fill: true },
     }).setOrigin(0, 0).setDepth(10);
@@ -282,7 +282,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   update() {
-    if (this.coinsText) this.coinsText.setText(`Coins: ${shop.getCoins()}`);
+    if (this.killsText) this.killsText.setText(`Kills: ${shop.getKills()}`);
   }
 
   private createNicknameInput(centerX: number, centerY: number) {
@@ -350,7 +350,7 @@ export class MenuScene extends Phaser.Scene {
             <span style="color:#556655; font-size:10px; margin-top:4px;">Hover to preview</span>
           </div>
           <div>
-            <p style="color:#ffdd44; margin:0 0 6px 0;">Coins: ${shop.getCoins()}</p>
+            <p style="color:#ffdd44; margin:0 0 6px 0;">Kills: ${shop.getKills()}</p>
             <p style="color:#888; margin:0; font-size:11px;">${equipped ? 'Wearing: ' + ACCESSORIES.find(a => a.id === equipped)?.name : 'No accessory equipped'}</p>
           </div>
         </div>
@@ -358,7 +358,7 @@ export class MenuScene extends Phaser.Scene {
         ${ACCESSORIES.map(acc => {
           const owned = shop.owns(acc.id);
           const isEquipped = equipped === acc.id;
-          const canBuy = shop.getCoins() >= acc.price;
+          const canBuy = shop.getKills() >= acc.price;
           let buttons = '';
           if (isEquipped) {
             buttons = `<button class="shop-btn" data-action="unequip" style="padding:4px 8px; background:#333; border:1px solid #44ff44; color:#44ff44; font-family:monospace; cursor:pointer; border-radius:3px; font-size:11px;">Equipped</button>`;
@@ -384,7 +384,7 @@ export class MenuScene extends Phaser.Scene {
           e.stopPropagation();
           const action = (btn as HTMLElement).dataset.action;
           const id = (btn as HTMLElement).dataset.id || '';
-          if (action === 'buy') { if (!shop.buy(id)) alert('Not enough coins!'); renderShop(); }
+          if (action === 'buy') { if (!shop.buy(id)) alert('Not enough Kills!'); renderShop(); }
           if (action === 'equip') { shop.equip(id); renderShop(); }
           if (action === 'unequip') { shop.unequip(); renderShop(); }
           if (action === 'refund') { shop.refund(id); renderShop(); }
@@ -638,7 +638,7 @@ export class MenuScene extends Phaser.Scene {
 
     const renderPanel = () => {
       if (!this.equipmentPanel) return;
-      const coins = shop.getCoins();
+      const kills = shop.getKills();
       const equipped = equipment.getEquipped();
       const baseHp = 100;
       const baseSpeed = 150;
@@ -654,14 +654,14 @@ export class MenuScene extends Phaser.Scene {
             ${items.map(item => {
               const owned = equipment.owns(item.id);
               const isEquipped = equippedId === item.id;
-              const canBuy = coins >= item.price;
+              const canBuy = kills >= item.price;
               let btn = '';
               if (isEquipped) {
                 btn = `<button class="eq-btn" data-action="unequip" data-slot="${slot}" style="padding:4px 10px; background:#333; border:1px solid #44bbff; color:#44bbff; font-family:monospace; cursor:pointer; border-radius:3px; font-size:11px;">Equipped ✓</button>`;
               } else if (owned) {
                 btn = `<button class="eq-btn" data-action="equip" data-id="${item.id}" style="padding:4px 10px; background:#1a2a3a; border:1px solid #44bbff; color:#44bbff; font-family:monospace; cursor:pointer; border-radius:3px; font-size:11px;">Equip</button>`;
               } else {
-                btn = `<button class="eq-btn" data-action="buy" data-id="${item.id}" style="padding:4px 10px; background:${canBuy ? '#2a2a1a' : '#222'}; border:1px solid ${canBuy ? '#ffcc22' : '#555'}; color:${canBuy ? '#ffcc22' : '#555'}; font-family:monospace; cursor:pointer; border-radius:3px; font-size:11px;" ${canBuy ? '' : 'disabled'}>${item.price} coins</button>`;
+                btn = `<button class="eq-btn" data-action="buy" data-id="${item.id}" style="padding:4px 10px; background:${canBuy ? '#2a2a1a' : '#222'}; border:1px solid ${canBuy ? '#ffcc22' : '#555'}; color:${canBuy ? '#ffcc22' : '#555'}; font-family:monospace; cursor:pointer; border-radius:3px; font-size:11px;" ${canBuy ? '' : 'disabled'}>${item.price} Kills</button>`;
               }
               return `
                 <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; margin:3px 0; border:1px solid ${isEquipped ? '#44bbff' : '#333'}; border-radius:4px; background:${isEquipped ? 'rgba(68,187,255,0.1)' : 'rgba(0,0,0,0.3)'};">
@@ -699,7 +699,7 @@ export class MenuScene extends Phaser.Scene {
           </div>
         </div>
 
-        <p style="color:#ffcc22; margin:0 0 12px 0; font-size:13px;">Coins: ${coins}</p>
+        <p style="color:#ffcc22; margin:0 0 12px 0; font-size:13px;">Kills: ${kills}</p>
 
         ${renderSlot('helmet', 'Helmet', '🪖')}
         ${renderSlot('belt', 'Belt', '🔗')}
@@ -715,8 +715,8 @@ export class MenuScene extends Phaser.Scene {
           const id = el.dataset.id || '';
           const slot = el.dataset.slot as 'helmet' | 'belt';
           if (action === 'buy') {
-            if (equipment.buy(id, shop.getCoins())) {
-              shop.addCoins(-EQUIPMENT.find(i => i.id === id)!.price);
+            if (equipment.buy(id, shop.getKills())) {
+              shop.addKills(-EQUIPMENT.find(i => i.id === id)!.price);
             }
             renderPanel();
           }

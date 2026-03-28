@@ -25,24 +25,24 @@ const OWNED_KEY = 'zombie-sim-accessories';
 const EQUIPPED_KEY = 'zombie-sim-equipped';
 
 export class ShopManager {
-  getCoins(): number {
+  getKills(): number {
     const v = localStorage.getItem(COINS_KEY);
     const n = v ? parseInt(v, 10) : 0;
     return isNaN(n) ? 0 : n;
   }
 
-  setCoins(value: number) {
+  setKills(value: number) {
     localStorage.setItem(COINS_KEY, Math.max(0, Math.floor(value)).toString());
   }
 
-  addCoins(amount: number) {
-    this.setCoins(this.getCoins() + amount);
+  addKills(amount: number) {
+    this.setKills(this.getKills() + amount);
   }
 
-  spendCoins(amount: number): boolean {
-    const coins = this.getCoins();
-    if (coins < amount) return false;
-    this.setCoins(coins - amount);
+  spendKills(amount: number): boolean {
+    const kills = this.getKills();
+    if (kills < amount) return false;
+    this.setKills(kills - amount);
     return true;
   }
 
@@ -60,7 +60,7 @@ export class ShopManager {
     const acc = ACCESSORIES.find(a => a.id === id);
     if (!acc) return false;
     if (this.owns(id)) return false;
-    if (!this.spendCoins(acc.price)) return false;
+    if (!this.spendKills(acc.price)) return false;
 
     const owned = this.getOwned();
     owned.push(id);
@@ -104,7 +104,7 @@ export class ShopManager {
     // Refund all owned accessories
     for (const id of this.getOwned()) {
       const acc = ACCESSORIES.find(a => a.id === id);
-      if (acc) this.addCoins(acc.price);
+      if (acc) this.addKills(acc.price);
     }
     localStorage.setItem(OWNED_KEY, JSON.stringify([]));
     this.unequip();
@@ -122,8 +122,8 @@ export class ShopManager {
     const owned = this.getOwned().filter(a => a !== id);
     localStorage.setItem(OWNED_KEY, JSON.stringify(owned));
 
-    // Return coins
-    this.addCoins(acc.price);
+    // Return kills
+    this.addKills(acc.price);
     return true;
   }
 }

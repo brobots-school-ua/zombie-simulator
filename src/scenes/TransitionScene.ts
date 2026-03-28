@@ -15,7 +15,7 @@ export class TransitionScene extends Phaser.Scene {
       maxHp: number;
       score: number;
       kills: number;
-      sessionCoins: number;
+      sessionKills: number;
       weapons: any[];
       activeWeaponIndex: number;
       bandages: number;

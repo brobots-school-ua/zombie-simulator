@@ -20,7 +20,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   isReloading: boolean = false;
   score: number = 0;
   kills: number = 0;
-  sessionCoins: number = 0;
+  sessionKills: number = 0;
   weapon: Phaser.GameObjects.Sprite;
   private accessorySprite: Phaser.GameObjects.Sprite | null = null;
 

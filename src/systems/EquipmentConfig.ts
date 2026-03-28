@@ -45,9 +45,9 @@ export class EquipmentManager {
     } catch { return { helmet: null, belt: null }; }
   }
 
-  buy(id: string, coins: number): boolean {
+  buy(id: string, kills: number): boolean {
     const item = EQUIPMENT.find(e => e.id === id);
-    if (!item || this.owns(id) || coins < item.price) return false;
+    if (!item || this.owns(id) || kills < item.price) return false;
     const owned = this.getOwned();
     owned.push(id);
     localStorage.setItem(OWNED_KEY, JSON.stringify(owned));
