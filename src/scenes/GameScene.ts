@@ -76,8 +76,8 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // Let browser breathe, then continue
-    this.time.delayedCall(50, () => this.createPhase2());
+    // Use native setTimeout so it fires even if Phaser scene loop isn't ready yet
+    setTimeout(() => this.createPhase2(), 100);
   }
 
   private createPhase2() {
@@ -248,8 +248,8 @@ export class GameScene extends Phaser.Scene {
       });
     });
 
-    // Let browser breathe once more, then reveal
-    this.time.delayedCall(50, () => this.createPhase3());
+    // Use native setTimeout to let browser render before final phase
+    setTimeout(() => this.createPhase3(), 100);
   }
 
   private createPhase3() {

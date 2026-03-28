@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 
 // Transition scene — black screen between locations
-// Stays active until GameScene tells it to fade out
+// Overlay scene: runs on top, GameScene builds underneath, then this fades out
 export class TransitionScene extends Phaser.Scene {
   constructor() {
     super({ key: 'TransitionScene' });
@@ -69,19 +69,23 @@ export class TransitionScene extends Phaser.Scene {
       },
     });
 
-    // After 2 seconds, stop old GameScene and start new one
-    // TransitionScene stays visible until GameScene calls fadeOut on it
-    this.time.delayedCall(2000, () => {
+    // Use native setTimeout to guarantee execution even if scene lifecycle is tricky
+    setTimeout(() => {
+      // Stop old GameScene completely
       if (this.scene.isActive('GameScene')) {
         this.scene.stop('GameScene');
       }
-      // Small delay to let GameScene fully clean up
-      this.time.delayedCall(100, () => {
-        this.scene.start('GameScene', {
+
+      // Another timeout to let cleanup finish
+      setTimeout(() => {
+        // Launch GameScene (not start — we keep TransitionScene alive as overlay)
+        this.scene.launch('GameScene', {
           wave: data.wave,
           playerState: data.playerState,
         });
-      });
-    });
+        // Put TransitionScene on top so it stays visible
+        this.scene.bringToTop('TransitionScene');
+      }, 200);
+    }, 2000);
   }
 }
