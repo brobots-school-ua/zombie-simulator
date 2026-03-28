@@ -40,6 +40,8 @@ export class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' });
   }
 
+  private loadingOverlay!: Phaser.GameObjects.Rectangle;
+
   create(data?: { wave?: number; playerState?: any }) {
     // Determine starting wave and location
     this.wave = data?.wave ?? 1;
@@ -59,10 +61,14 @@ export class GameScene extends Phaser.Scene {
     this.nukeMode = false;
     this.abilityActive = false;
 
+    // Black overlay — hides everything while map builds
+    this.loadingOverlay = this.add.rectangle(0, 0, 4000, 4000, 0x000000)
+      .setOrigin(0).setDepth(9999).setScrollFactor(0);
+
     this.mapSize = this.location.mapSize;
     this.physics.world.setBounds(0, 0, this.mapSize, this.mapSize);
 
-    // Ground tiles — from location config
+    // === PHASE 1: ground tiles ===
     const tiles = this.location.groundTiles;
     for (let x = 0; x < this.mapSize; x += 64) {
       for (let y = 0; y < this.mapSize; y += 64) {
@@ -70,19 +76,24 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    // Let browser breathe, then continue
+    this.time.delayedCall(50, () => this.createPhase2());
+  }
+
+  private createPhase2() {
+    // === PHASE 2: walls, decorations, player, physics ===
     this.walls = this.physics.add.staticGroup();
     this.generateMap();
-
-    // Scatter decorations AFTER walls are generated
     this.placeDecorations();
 
     this.zombies = this.add.group({ runChildUpdate: false });
     this.bullets = this.add.group({ runChildUpdate: false });
     this.pickups = this.add.group();
 
-    // Safe player spawn
-    const playerPos = this.getSafePlayerSpawn();
-    this.player = new Player(this, playerPos.x, playerPos.y);
+    // Player spawns at fixed center point (maps have clear center)
+    const cx = this.mapSize / 2;
+    const cy = this.mapSize / 2;
+    this.player = new Player(this, cx, cy);
 
     // Restore player state from previous location if available
     if (this.incomingPlayerState) {
@@ -97,7 +108,6 @@ export class GameScene extends Phaser.Scene {
       this.player.wood = s.wood;
       this.player.metal = s.metal;
       this.player.screws = s.screws;
-      // Restore weapons
       if (s.weapons) {
         this.player.weapons = s.weapons;
         this.player.activeWeaponIndex = s.activeWeaponIndex ?? 0;
@@ -105,65 +115,48 @@ export class GameScene extends Phaser.Scene {
       this.incomingPlayerState = null;
     }
 
-    // Shadow under player (updated in main update loop)
     this.playerShadow = this.add.image(this.player.x, this.player.y, 'shadow').setDepth(0.5).setAlpha(0.3).setScale(0.8);
 
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cameras.main.setBounds(0, 0, this.mapSize, this.mapSize);
     this.cameras.main.setZoom(1.5);
 
+    // Physics colliders
     this.physics.add.collider(this.player, this.walls);
     this.physics.add.collider(this.zombies, this.walls);
-    // Zombies collide with player
+
     this.physics.add.collider(this.player, this.zombies, (_player, zombie) => {
       if (this.gameOver) return;
       const z = zombie as Zombie;
       if (!z.active) return;
-
-      // Kamikaze explodes on contact!
       if (z.explodeOnContact) {
         this.doAoeDamage(z.x, z.y, 70, 50);
         this.onZombieKilled(z);
         z.destroy();
         return;
       }
-
       if (z.canAttack()) {
         this.player.takeDamage(z.damage);
       }
     });
 
-    // Bullet hits zombie
     this.physics.add.overlap(this.bullets, this.zombies, (bullet, zombie) => {
       if (this.gameOver) return;
       const b = bullet as Bullet;
       const z = zombie as Zombie;
       if (!b.active || !z.active) return;
-
       if (b.aoeRadius > 0) {
         this.doAoeDamage(b.x, b.y, b.aoeRadius, b.damage);
         b.destroy();
         return;
       }
-
       const killed = z.takeDamage(b.damage);
-
-      // Blood particles on hit
       this.spawnBloodParticles(z.x, z.y, 2);
-
-      // Floating damage number
       this.showDamageNumber(z.x, z.y - 16, b.damage);
-
-      if (killed) {
-        this.onZombieKilled(z);
-      }
-
-      if (b.onHitZombie()) {
-        b.destroy();
-      }
+      if (killed) this.onZombieKilled(z);
+      if (b.onHitZombie()) b.destroy();
     });
 
-    // Pickups
     this.physics.add.overlap(this.player, this.pickups, (_player, pickup) => {
       const p = pickup as Pickup;
       if (!p.active) return;
@@ -183,7 +176,6 @@ export class GameScene extends Phaser.Scene {
       p.destroy();
     });
 
-    // Bullets hit walls
     this.physics.add.collider(this.bullets, this.walls, (bullet) => {
       const b = bullet as Bullet;
       if (!b.active) return;
@@ -193,7 +185,7 @@ export class GameScene extends Phaser.Scene {
       b.destroy();
     });
 
-    // Ammo spawner (max 5 on map)
+    // Pickup spawners
     this.time.addEvent({
       delay: Phaser.Math.Between(10000, 15000),
       loop: true,
@@ -203,8 +195,6 @@ export class GameScene extends Phaser.Scene {
         this.pickups.add(new Pickup(this, pos.x, pos.y, 'ammo'));
       },
     });
-
-    // Bandage spawner — every 20 seconds (max 3 on map)
     this.time.addEvent({
       delay: 20000,
       loop: true,
@@ -214,8 +204,6 @@ export class GameScene extends Phaser.Scene {
         this.pickups.add(new Pickup(this, pos.x, pos.y, 'bandage'));
       },
     });
-
-    // Medkit spawner — every 45 seconds (max 2 on map)
     this.time.addEvent({
       delay: 45000,
       loop: true,
@@ -237,38 +225,56 @@ export class GameScene extends Phaser.Scene {
 
     // Shooting
     this.input.on('pointerdown', () => {
-      if (this.nukeMode) {
-        this.launchNuke();
-        return;
-      }
+      if (this.nukeMode) { this.launchNuke(); return; }
       if (!this.gameOver) this.fireWeapon();
     });
 
-    // Player death — ONCE only
+    // Player death
     this.events.once('player-died', () => {
       if (this.gameOver) return;
       this.gameOver = true;
       this.player.setActive(false);
       this.player.setVelocity(0, 0);
-      this.physics.pause(); // stop all physics immediately
-      const data = { score: this.player.score, kills: this.player.kills, wave: this.wave };
+      this.physics.pause();
+      const deathData = { score: this.player.score, kills: this.player.kills, wave: this.wave };
       leaderboard.saveResult(this.player.score, this.wave);
-      // Save materials to localStorage
       localStorage.setItem('zombie-sim-materials', JSON.stringify({
         wood: this.player.wood, metal: this.player.metal, screws: this.player.screws,
       }));
       audioManager.stopGameMusic(1.5);
-      // Wait for next frame then transition
       this.time.delayedCall(500, () => {
         this.scene.stop('UIScene');
-        this.scene.launch('GameOverScene', data);
+        this.scene.launch('GameOverScene', deathData);
       });
     });
+
+    // Let browser breathe once more, then reveal
+    this.time.delayedCall(50, () => this.createPhase3());
+  }
+
+  private createPhase3() {
+    // === PHASE 3: remove overlay, start game ===
+
+    // Stop TransitionScene if it was active
+    if (this.scene.isActive('TransitionScene')) {
+      this.scene.stop('TransitionScene');
+    }
 
     audioManager.resume();
     audioManager.startGameMusic();
     this.scene.launch('UIScene', { gameScene: this });
-    this.spawnWave();
+
+    // Fade out black overlay then spawn zombies
+    this.tweens.add({
+      targets: this.loadingOverlay,
+      alpha: 0,
+      duration: 500,
+      ease: 'Power2',
+      onComplete: () => {
+        this.loadingOverlay.destroy();
+        this.spawnWave();
+      },
+    });
   }
 
   // Clean up resources when scene stops (location transition or game over)
@@ -392,13 +398,12 @@ export class GameScene extends Phaser.Scene {
           };
           this.scene.stop('UIScene');
           audioManager.stopGameMusic(1);
-          // Stop this scene first, then launch TransitionScene
+          // Launch TransitionScene — it will stop GameScene when ready
           this.scene.launch('TransitionScene', {
             locationName: newLocation.displayName,
             wave: nextWave,
             playerState,
           });
-          this.scene.stop();
         });
       } else {
         this.wave = nextWave;
@@ -648,30 +653,6 @@ export class GameScene extends Phaser.Scene {
       this.addZombieShadow(zombie);
       this.zombiesRemaining++;
     });
-  }
-
-  private getSafePlayerSpawn(): { x: number; y: number } {
-    const cx = this.mapSize / 2, cy = this.mapSize / 2;
-    for (let r = 0; r < 300; r += 20) {
-      for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
-        const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
-        // Check 3x3 area around player so they don't clip into adjacent walls
-        if (!this.isAreaBlocked(x, y)) return { x, y };
-      }
-    }
-    return { x: cx, y: cy };
-  }
-
-  // Check if a 3x3 tile area around position has any walls
-  private isAreaBlocked(x: number, y: number): boolean {
-    const gx = Math.floor(x / 64);
-    const gy = Math.floor(y / 64);
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dy = -1; dy <= 1; dy++) {
-        if (this.wallGridSet.has(`${gx + dx},${gy + dy}`)) return true;
-      }
-    }
-    return false;
   }
 
   private getSpawnPosition(): { x: number; y: number } {

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 
-// Transition scene — loading screen between locations
-// Shows "Moving to new location..." text with the location name
+// Transition scene — black screen between locations
+// Stays active until GameScene tells it to fade out
 export class TransitionScene extends Phaser.Scene {
   constructor() {
     super({ key: 'TransitionScene' });
@@ -30,58 +30,29 @@ export class TransitionScene extends Phaser.Scene {
     // Black background
     this.cameras.main.setBackgroundColor('#000000');
 
-    // "Moving to new location..." text with typewriter effect
-    const movingText = this.add.text(width / 2, height / 2 - 40, '', {
-      fontSize: '24px',
+    // Main text
+    this.add.text(width / 2, height / 2 - 50, 'Перехід на нову локацію', {
+      fontSize: '22px',
       color: '#888888',
       fontFamily: 'monospace',
     }).setOrigin(0.5);
 
-    const fullText = 'Moving to new location...';
-    let charIndex = 0;
-    this.time.addEvent({
-      delay: 50,
-      repeat: fullText.length - 1,
-      callback: () => {
-        charIndex++;
-        movingText.setText(fullText.substring(0, charIndex));
-      },
-    });
+    // Location name
+    this.add.text(width / 2, height / 2 + 10, data.locationName, {
+      fontSize: '48px',
+      color: '#cc4444',
+      fontFamily: 'monospace',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
 
-    // Location name appears after typing finishes
-    this.time.delayedCall(fullText.length * 50 + 300, () => {
-      const nameText = this.add.text(width / 2, height / 2 + 20, data.locationName, {
-        fontSize: '48px',
-        color: '#cc4444',
-        fontFamily: 'monospace',
-        fontStyle: 'bold',
-      }).setOrigin(0.5).setAlpha(0);
+    // Wave info
+    this.add.text(width / 2, height / 2 + 60, `Wave ${data.wave}`, {
+      fontSize: '18px',
+      color: '#666666',
+      fontFamily: 'monospace',
+    }).setOrigin(0.5);
 
-      // Fade in location name
-      this.tweens.add({
-        targets: nameText,
-        alpha: 1,
-        duration: 500,
-        ease: 'Power2',
-      });
-
-      // Wave info
-      const waveText = this.add.text(width / 2, height / 2 + 70, `Wave ${data.wave}`, {
-        fontSize: '18px',
-        color: '#666666',
-        fontFamily: 'monospace',
-      }).setOrigin(0.5).setAlpha(0);
-
-      this.tweens.add({
-        targets: waveText,
-        alpha: 1,
-        duration: 500,
-        delay: 200,
-        ease: 'Power2',
-      });
-    });
-
-    // Loading dots animation
+    // Loading dots
     const dotsText = this.add.text(width / 2, height - 60, '.', {
       fontSize: '32px',
       color: '#444444',
@@ -98,27 +69,19 @@ export class TransitionScene extends Phaser.Scene {
       },
     });
 
-    // After 3 seconds, start the game scene with new location
-    this.time.delayedCall(3000, () => {
-      let transitioned = false;
-      const startGame = () => {
-        if (transitioned) return;
-        transitioned = true;
-        // Stop GameScene if it's still running before restarting it
-        if (this.scene.isActive('GameScene')) {
-          this.scene.stop('GameScene');
-        }
+    // After 2 seconds, stop old GameScene and start new one
+    // TransitionScene stays visible until GameScene calls fadeOut on it
+    this.time.delayedCall(2000, () => {
+      if (this.scene.isActive('GameScene')) {
+        this.scene.stop('GameScene');
+      }
+      // Small delay to let GameScene fully clean up
+      this.time.delayedCall(100, () => {
         this.scene.start('GameScene', {
           wave: data.wave,
           playerState: data.playerState,
         });
-      };
-
-      // Fade out
-      this.cameras.main.fadeOut(500, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', startGame);
-      // Fallback if camera fade event doesn't fire
-      this.time.delayedCall(800, startGame);
+      });
     });
   }
 }
