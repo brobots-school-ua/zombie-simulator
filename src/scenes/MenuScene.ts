@@ -234,7 +234,7 @@ export class MenuScene extends Phaser.Scene {
     makeBtn(0, 'ACCESS.', 0xffcc22, 0x1a1a0a, 0x2a2a1a, 0xffee66, () => this.openShop());
     makeBtn(1, 'VOLUME', 0x44ff44, 0x0a1a0a, 0x1a2a1a, 0x88ff88, () => {});
     makeBtn(2, 'BESTIARY', 0xcc44ff, 0x1a0a1a, 0x2a1a2a, 0xee66ff, () => this.openBestiary());
-    makeBtn(3, 'BACKPACK', 0x88aa44, 0x0a1a0a, 0x1a2a1a, 0xaacc66, () => this.openBackpack());
+    makeBtn(3, 'STASH', 0x88aa44, 0x0a1a0a, 0x1a2a1a, 0xaacc66, () => this.openBackpack());
     makeBtn(4, 'ABILITIES', 0xff6644, 0x1a1a0a, 0x2a1a0a, 0xff8866, () => this.openAbilities());
     makeBtn(5, 'EQUIP', 0x44bbff, 0x0a1a2a, 0x1a2a3a, 0x66ddff, () => this.openEquipment());
 
@@ -538,37 +538,38 @@ export class MenuScene extends Phaser.Scene {
     if (this.backpackPanel) return;
 
     const materials = profile.getMaterials();
+    const s = profile.getStash();
+
+    const row = (label: string, color: string, icon: string, stashCount: number) => `
+      <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(0,0,0,0.3);">
+        <span style="color:${color}; font-size:16px; width:20px; text-align:center;">${icon}</span>
+        <span style="color:#ddd; flex:1;">${label}</span>
+        <span style="color:#ffcc22; font-size:18px; font-weight:bold;">${stashCount}</span>
+      </div>`;
 
     this.backpackPanel = document.createElement('div');
     this.backpackPanel.style.cssText = `
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.95); border: 2px solid #88aa44; border-radius: 8px;
-      padding: 20px; z-index: 3000; font-family: monospace; color: #88aa44;
-      width: 280px;
+      background: rgba(0,0,0,0.95); border: 2px solid #ffcc22; border-radius: 8px;
+      padding: 20px; z-index: 3000; font-family: monospace; color: #ffcc22;
+      width: 300px;
     `;
 
     this.backpackPanel.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <h3 style="margin:0; color:#88aa44; font-size:20px;">BACKPACK</h3>
-        <button id="bp-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1; transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='#ff4444';this.style.color='#000'" onmouseout="this.style.background='none';this.style.color='#ff4444'">✕</button>
+        <h3 style="margin:0; color:#ffcc22; font-size:20px;">STASH</h3>
+        <button id="bp-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1;">&#10005;</button>
       </div>
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(139,90,43,0.15);">
-          <span style="color:#8b5a2b; font-size:18px;">■</span>
-          <span style="color:#ddd; flex:1;">Wood</span>
-          <span style="color:#88aa44; font-size:18px; font-weight:bold;">${materials.wood}</span>
-        </div>
-        <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(150,150,150,0.1);">
-          <span style="color:#999; font-size:18px;">■</span>
-          <span style="color:#ddd; flex:1;">Metal</span>
-          <span style="color:#88aa44; font-size:18px; font-weight:bold;">${materials.metal}</span>
-        </div>
-        <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(100,100,120,0.1);">
-          <span style="color:#777; font-size:18px;">⚙</span>
-          <span style="color:#ddd; flex:1;">Screws</span>
-          <span style="color:#88aa44; font-size:18px; font-weight:bold;">${materials.screws}</span>
-        </div>
+      <p style="color:#888; font-size:11px; margin:0 0 10px 0;">Items saved between games. Use TAB in-game to move items.</p>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        ${row('Bandages', '#44ff44', '+', s.bandages)}
+        ${row('Medkits', '#ff4444', '+', s.medkits)}
+        ${row('Wood', '#8b5a2b', '\u25a0', s.wood)}
+        ${row('Metal', '#999', '\u25a0', s.metal)}
+        ${row('Screws', '#777', '\u2699', s.screws)}
       </div>
+      <hr style="border-color:#333; margin:12px 0;">
+      <p style="color:#666; font-size:11px; margin:0;">Materials (inventory): Wood ${materials.wood} | Metal ${materials.metal} | Screws ${materials.screws}</p>
     `;
 
     document.body.appendChild(this.backpackPanel);
