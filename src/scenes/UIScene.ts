@@ -7,6 +7,8 @@ import { leaderboard } from '../systems/LeaderboardManager';
 import { AdminConsole } from '../systems/AdminConsole';
 import { shop } from '../systems/ShopConfig';
 import { getSelectedAbility, ABILITIES } from '../systems/AbilityConfig';
+import { profile } from '../systems/ProfileManager';
+import { stash, StashItem } from '../systems/StashManager';
 
 // UI overlay scene — HUD with health, ammo, score, wave info, minimap
 export class UIScene extends Phaser.Scene {
@@ -146,7 +148,7 @@ export class UIScene extends Phaser.Scene {
     });
 
     // Backpack hint text (bottom left, above controls area)
-    this.add.text(20, this.scale.height - 20, 'TAB — backpack', {
+    this.add.text(20, this.scale.height - 20, 'TAB — stash', {
       fontSize: '12px',
       fontFamily: 'monospace',
       color: '#555555',
@@ -576,9 +578,7 @@ export class UIScene extends Phaser.Scene {
   private saveMaterials() {
     if (!this.gameScene?.player) return;
     const p = this.gameScene.player;
-    localStorage.setItem('zombie-sim-materials', JSON.stringify({
-      wood: p.wood, metal: p.metal, screws: p.screws,
-    }));
+    profile.setMaterials({ wood: p.wood, metal: p.metal, screws: p.screws });
   }
 
   private openBackpack() {
@@ -591,43 +591,84 @@ export class UIScene extends Phaser.Scene {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: rgba(0,0,0,0.92); border: 2px solid #88aa44; border-radius: 8px;
       padding: 20px; z-index: 3000; font-family: monospace; color: #88aa44;
-      width: 280px;
+      width: 520px;
     `;
+
+    const btnStyle = `padding:2px 8px; background:#1a2a1a; border:1px solid #44ff44; color:#44ff44; font-family:monospace; font-size:14px; cursor:pointer; border-radius:3px;`;
 
     const render = () => {
       if (!this.backpackPanel || !this.gameScene?.player) return;
       const pl = this.gameScene.player;
-      this.backpackPanel.innerHTML = `
+      const s = stash.getStash();
+
+      const row = (label: string, color: string, icon: string, invCount: number, stashCount: number, type: StashItem) => `
+        <div style="display:flex; align-items:center; gap:6px; padding:6px; border:1px solid #333; border-radius:4px; background:rgba(0,0,0,0.3);">
+          <span style="color:${color}; font-size:16px; width:20px; text-align:center;">${icon}</span>
+          <span style="color:#ddd; width:70px;">${label}</span>
+          <span style="color:#88aa44; width:30px; text-align:right; font-weight:bold;">${invCount}</span>
+          <button class="stash-deposit" data-type="${type}" style="${btnStyle}" ${invCount <= 0 ? 'disabled style="opacity:0.3;' + btnStyle + '"' : ''}>&#8594;</button>
+          <button class="stash-withdraw" data-type="${type}" style="${btnStyle}" ${stashCount <= 0 ? 'disabled style="opacity:0.3;' + btnStyle + '"' : ''}>&#8592;</button>
+          <span style="color:#ffcc22; width:30px; text-align:left; font-weight:bold;">${stashCount}</span>
+        </div>`;
+
+      this.backpackPanel!.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-          <h3 style="margin:0; color:#88aa44; font-size:20px;">BACKPACK</h3>
-          <button id="bp-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1; transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='#ff4444';this.style.color='#000'" onmouseout="this.style.background='none';this.style.color='#ff4444'">✕</button>
+          <h3 style="margin:0; color:#88aa44; font-size:20px;">INVENTORY & STASH</h3>
+          <button id="bp-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1;">&#10005;</button>
         </div>
-        <div style="display:flex; flex-direction:column; gap:10px;">
-          <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(139,90,43,0.15);">
-            <span style="color:#8b5a2b; font-size:18px;">■</span>
-            <span style="color:#ddd; flex:1;">Wood</span>
-            <span style="color:#88aa44; font-size:18px; font-weight:bold;">${pl.wood}</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(150,150,150,0.1);">
-            <span style="color:#999; font-size:18px;">■</span>
-            <span style="color:#ddd; flex:1;">Metal</span>
-            <span style="color:#88aa44; font-size:18px; font-weight:bold;">${pl.metal}</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(100,100,120,0.1);">
-            <span style="color:#777; font-size:18px;">⚙</span>
-            <span style="color:#ddd; flex:1;">Screws</span>
-            <span style="color:#88aa44; font-size:18px; font-weight:bold;">${pl.screws}</span>
-          </div>
+        <div style="display:flex; gap:20px; margin-bottom:10px;">
+          <span style="color:#88aa44; flex:1; text-align:right; font-size:12px;">INVENTORY</span>
+          <span style="width:60px;"></span>
+          <span style="color:#ffcc22; flex:1; font-size:12px;">STASH</span>
         </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          ${row('Bandages', '#44ff44', '+', pl.bandages, s.bandages, 'bandages')}
+          ${row('Medkits', '#ff4444', '+', pl.medkits, s.medkits, 'medkits')}
+          ${row('Wood', '#8b5a2b', '\u25a0', pl.wood, s.wood, 'wood')}
+          ${row('Metal', '#999', '\u25a0', pl.metal, s.metal, 'metal')}
+          ${row('Screws', '#777', '\u2699', pl.screws, s.screws, 'screws')}
+        </div>
+        <p style="color:#555; font-size:11px; margin:10px 0 0 0; text-align:center;">Stash items are safe between games</p>
       `;
-      this.backpackPanel.querySelector('#bp-close')?.addEventListener('click', () => this.closeBackpack());
+
+      // Event listeners
+      this.backpackPanel!.querySelector('#bp-close')?.addEventListener('click', () => this.closeBackpack());
+
+      this.backpackPanel!.querySelectorAll('.stash-deposit').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const type = (btn as HTMLElement).dataset.type as StashItem;
+          const pl = this.gameScene.player;
+          let amount = 0;
+          if (type === 'bandages' && pl.bandages > 0) { pl.bandages--; amount = 1; }
+          else if (type === 'medkits' && pl.medkits > 0) { pl.medkits--; amount = 1; }
+          else if (type === 'wood' && pl.wood > 0) { pl.wood--; amount = 1; }
+          else if (type === 'metal' && pl.metal > 0) { pl.metal--; amount = 1; }
+          else if (type === 'screws' && pl.screws > 0) { pl.screws--; amount = 1; }
+          if (amount > 0) { stash.deposit(type, 1); render(); }
+        });
+      });
+
+      this.backpackPanel!.querySelectorAll('.stash-withdraw').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const type = (btn as HTMLElement).dataset.type as StashItem;
+          const pl = this.gameScene.player;
+          const got = stash.withdraw(type, 1);
+          if (got > 0) {
+            if (type === 'bandages') pl.bandages += got;
+            else if (type === 'medkits') pl.medkits += got;
+            else if (type === 'wood') pl.wood += got;
+            else if (type === 'metal') pl.metal += got;
+            else if (type === 'screws') pl.screws += got;
+            render();
+          }
+        });
+      });
     };
 
     document.body.appendChild(this.backpackPanel);
     this.backpackPanel.addEventListener('keydown', (e) => e.stopPropagation());
     render();
 
-    // Live update every 500ms
     const interval = setInterval(() => {
       if (!this.backpackPanel) { clearInterval(interval); return; }
       render();

@@ -9,6 +9,7 @@ import { shop } from '../systems/ShopConfig';
 import { bestiary } from '../systems/BestiaryManager';
 import { getSelectedAbility, ABILITIES } from '../systems/AbilityConfig';
 import { getLocationForWave, shouldChangeLocation, LocationDef } from '../systems/LocationConfig';
+import { profile } from '../systems/ProfileManager';
 
 // Main game scene — where all gameplay happens
 export class GameScene extends Phaser.Scene {
@@ -222,9 +223,7 @@ export class GameScene extends Phaser.Scene {
       this.physics.pause();
       const deathData = { score: this.player.score, kills: this.player.kills, wave: this.wave };
       leaderboard.saveResult(this.player.score, this.wave);
-      localStorage.setItem('zombie-sim-materials', JSON.stringify({
-        wood: this.player.wood, metal: this.player.metal, screws: this.player.screws,
-      }));
+      profile.setMaterials({ wood: this.player.wood, metal: this.player.metal, screws: this.player.screws });
       audioManager.stopGameMusic(1.5);
       this.time.delayedCall(500, () => {
         this.scene.stop('UIScene');

@@ -31,13 +31,13 @@ export const ABILITIES: AbilityDef[] = [
   },
 ];
 
-const STORAGE_KEY = 'zombie-sim-ability';
+import { profile } from './ProfileManager';
 
 // Get/set selected ability
 export function getSelectedAbility(): string {
-  return localStorage.getItem(STORAGE_KEY) || 'big-bomb';
+  return profile.getAbility();
 }
 
 export function setSelectedAbility(id: string) {
-  localStorage.setItem(STORAGE_KEY, id);
+  profile.setAbility(id);
 }

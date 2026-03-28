@@ -1,26 +1,17 @@
 // Bestiary — tracks which zombie types the player has killed
-const STORAGE_KEY = 'zombie-sim-bestiary';
+import { profile } from './ProfileManager';
 
 class BestiaryManager {
-  private unlocked: Set<string>;
-
-  constructor() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    this.unlocked = saved ? new Set(JSON.parse(saved)) : new Set();
-  }
-
   unlock(type: string) {
-    if (this.unlocked.has(type)) return;
-    this.unlocked.add(type);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...this.unlocked]));
+    profile.unlockBestiary(type);
   }
 
   isUnlocked(type: string): boolean {
-    return this.unlocked.has(type);
+    return profile.isBestiaryUnlocked(type);
   }
 
   getUnlocked(): string[] {
-    return [...this.unlocked];
+    return profile.getBestiary();
   }
 }
 

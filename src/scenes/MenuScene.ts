@@ -6,6 +6,7 @@ import { ACCESSORIES, shop } from '../systems/ShopConfig';
 import { bestiary } from '../systems/BestiaryManager';
 import { ABILITIES, getSelectedAbility, setSelectedAbility } from '../systems/AbilityConfig';
 import { EQUIPMENT, equipment } from '../systems/EquipmentConfig';
+import { profile } from '../systems/ProfileManager';
 
 // Atmospheric main menu scene
 export class MenuScene extends Phaser.Scene {
@@ -186,7 +187,12 @@ export class MenuScene extends Phaser.Scene {
       if (starting || !ready) return;
       if (this.shopPanel || this.bestiaryPanel || this.backpackPanel || this.abilitiesPanel || this.equipmentPanel) return;
       starting = true; startBtn.disableInteractive();
-      if (this.nicknameInput) { leaderboard.setNickname(this.nicknameInput.value); this.nicknameInput.remove(); }
+      if (this.nicknameInput) {
+        const name = this.nicknameInput.value.trim();
+        if (name) { profile.setNickname(name); leaderboard.setNickname(name); }
+        this.nicknameInput.remove();
+      }
+      if (this.saveNickBtn) { this.saveNickBtn.remove(); this.saveNickBtn = null; }
       if (this.scene.isActive('GameScene')) this.scene.stop('GameScene');
       if (this.scene.isActive('UIScene')) this.scene.stop('UIScene');
       audioManager.resume(); audioManager.stopMenuMusic(0.5); audioManager.stopGameMusic(0);
@@ -285,6 +291,8 @@ export class MenuScene extends Phaser.Scene {
     if (this.killsText) this.killsText.setText(`Kills: ${shop.getKills()}`);
   }
 
+  private saveNickBtn: HTMLButtonElement | null = null;
+
   private createNicknameInput(centerX: number, centerY: number) {
     const canvas = this.game.canvas;
     const rect = canvas.getBoundingClientRect();
@@ -296,7 +304,7 @@ export class MenuScene extends Phaser.Scene {
     this.nicknameInput.type = 'text';
     this.nicknameInput.maxLength = 16;
     this.nicknameInput.placeholder = 'Enter nickname...';
-    this.nicknameInput.value = leaderboard.getNickname();
+    this.nicknameInput.value = profile.getNickname();
     this.nicknameInput.style.cssText = `
       position: absolute; left: ${rect.left + (centerX - inputW / 2) * scaleX}px;
       top: ${rect.top + centerY * scaleY}px; width: ${inputW * scaleX}px; height: ${inputH * scaleY}px;
@@ -305,11 +313,36 @@ export class MenuScene extends Phaser.Scene {
       outline: none; border-radius: 4px; z-index: 1000;
     `;
     document.body.appendChild(this.nicknameInput);
+
+    // Save button under nickname
+    this.saveNickBtn = document.createElement('button');
+    const btnW = 100, btnH = 26;
+    this.saveNickBtn.textContent = profile.hasProfile() ? '\u2713 Saved' : 'Save';
+    this.saveNickBtn.style.cssText = `
+      position: absolute; left: ${rect.left + (centerX - btnW / 2) * scaleX}px;
+      top: ${rect.top + (centerY + inputH + 6) * scaleY}px; width: ${btnW * scaleX}px; height: ${btnH * scaleY}px;
+      background: ${profile.hasProfile() ? '#1a3a1a' : '#0a1a0a'}; border: 1px solid #44ff44; color: #44ff44;
+      font-family: monospace; font-size: ${12 * scaleY}px; cursor: pointer;
+      border-radius: 4px; z-index: 1000;
+    `;
+    this.saveNickBtn.addEventListener('click', () => {
+      const name = this.nicknameInput?.value.trim() || '';
+      if (!name) return;
+      profile.setNickname(name);
+      leaderboard.setNickname(name);
+      if (this.saveNickBtn) {
+        this.saveNickBtn.textContent = '\u2713 Saved';
+        this.saveNickBtn.style.background = '#1a3a1a';
+      }
+      // Update kills display
+      if (this.killsText) this.killsText.setText(`${shop.getKills()}`);
+    });
+    document.body.appendChild(this.saveNickBtn);
   }
 
   private openShop() {
     if (this.shopPanel) return;
-    shop.cleanupStale();
+    // Accessories are managed by ProfileManager now
 
     this.shopPanel = document.createElement('div');
     this.shopPanel.style.cssText = `
@@ -504,12 +537,7 @@ export class MenuScene extends Phaser.Scene {
   private openBackpack() {
     if (this.backpackPanel) return;
 
-    // Read saved materials from localStorage
-    let materials = { wood: 0, metal: 0, screws: 0 };
-    try {
-      const saved = localStorage.getItem('zombie-sim-materials');
-      if (saved) materials = JSON.parse(saved);
-    } catch { /* use defaults */ }
+    const materials = profile.getMaterials();
 
     this.backpackPanel = document.createElement('div');
     this.backpackPanel.style.cssText = `

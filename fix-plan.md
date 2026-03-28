@@ -1,57 +1,59 @@
-# План: Фікс переходу між локаціями (фінальний)
+# План: Система профілів + Сейф (Wishlist #9)
 
-## Підхід
-Замість перезапуску GameScene — залишаємо одну сцену і робимо метод `changeLocation()` який:
-1. Показує чорний overlay з текстом
-2. Знищує все (тайли, стіни, декорації, зомбі, кулі, пікапи)
-3. Будує нову карту
-4. Переміщує гравця в центр
-5. Знімає overlay і спавнить зомбі
+## Що робимо
 
-TransitionScene більше не потрібна — все відбувається всередині GameScene.
+### 1. Профілі гравців
+Коли гравець вводить нікнейм — всі дані зберігаються під його ім'ям:
+- Kills (валюта)
+- Бестіарій (відкриті зомбі)
+- Матеріали (wood, metal, screws)
+- Аксесуари та екіпірування
+- Сейф (нова фіча)
 
-## Зміни
+Якщо змінив нікнейм — завантажуються дані іншого профілю.
 
-### GameScene.ts — новий метод `changeLocation(wave, playerState?)`
-```
-changeLocation(targetWave):
-  1. Зберегти стан гравця (hp, зброя, ресурси)
-  2. Показати чорний overlay + текст "Перехід на нову локацію"
-  3. Зупинити UIScene
-  4. Знищити: ground tiles, walls, decorations, zombies, bullets, pickups, shadows
-  5. Оновити this.location і this.wave
-  6. Побудувати нову карту (ground tiles, walls, decorations)
-  7. Перемістити гравця в центр нової карти
-  8. Перезапустити камеру bounds
-  9. Запустити UIScene
-  10. Fade out overlay → spawnWave()
-```
+### 2. Сейф замість рюкзака
+Кнопка TAB в грі відкриває панель з 2 колонками:
+- **Інвентар** (ліворуч) — те що гравець має зараз в грі (bandages, medkits, wood, metal, screws)
+- **Сейф** (праворуч) — те що зберігається між іграми, не рахується в грі
 
-### Що треба для очищення
-- Ground tiles: зараз створюються як `this.add.image()` — вони не в групі. Треба зберігати їх в масив щоб потім знищити.
-- Walls: `this.walls.clear(true, true)` — очищає StaticGroup
-- Decorations/trees: зберігаються в `this.trees[]` — destroy all
-- Zombies: `this.zombies.clear(true, true)`
-- Bullets: `this.bullets.clear(true, true)`
-- Pickups: `this.pickups.clear(true, true)`
-- Zombie shadows: destroy all з Map
-- Damage numbers: destroy all
+Кнопки "→" щоб покласти в сейф, "←" щоб дістати з сейфу.
+При смерті — інвентар обнуляється, сейф залишається.
 
-### Що НЕ треба перестворювати
-- Player (тільки переміщуємо)
-- Physics colliders (вже налаштовані — walls група та ж сама)
-- Input handlers (вже підключені)
-- Pickup spawner timers (вже працюють)
+## Зміни по файлах
 
-### GameScene.ts — зміни в create()
-- Зберігати ground tiles в масив `this.groundTiles: Phaser.GameObjects.Image[]`
+### Новий файл: `src/systems/ProfileManager.ts`
+- Зберігає/завантажує профіль по нікнейму
+- localStorage ключ: `zombie-sim-profile-{nickname}`
+- Профіль містить: kills, bestiary, materials, stash, accessories, equipment, ability
+- При зміні нікнейму — зберегти поточний профіль, завантажити новий
+- Старі ключі (`zombie-sim-coins`, `zombie-sim-bestiary` тощо) мігруються в профіль при першому запуску
 
-### Де викликати changeLocation()
-- В update() wave check замість scene.start('TransitionScene')
-- В adminSetWave() замість scene.start('TransitionScene')
+### Новий файл: `src/systems/StashManager.ts`
+- `getStash()` → `{ bandages, medkits, wood, metal, screws }`
+- `deposit(type, amount)` — покласти з інвентаря в сейф
+- `withdraw(type, amount)` — дістати з сейфу в інвентар
+- Зберігається в профілі гравця
 
-### TransitionScene.ts
-- Видалити або залишити порожньою (більше не використовується)
+### `src/scenes/UIScene.ts`
+- TAB тепер відкриває Stash панель замість Backpack
+- Ліва колонка: інвентар (читає з player)
+- Права колонка: сейф (читає з StashManager)
+- Кнопки "→" / "←" для переміщення між ними
 
-## Результат
-Жодних scene.start/stop/launch — все всередині однієї сцени. Зависання неможливе бо браузер вже відрендерив чорний overlay перед початком перебудови.
+### `src/scenes/MenuScene.ts`
+- Під полем нікнейму — кнопка "Save" (зберегти)
+- Натиснув Save → профіль активується під цим ім'ям, завантажуються kills/bestiary/матеріали/сейф
+- Кнопка змінює текст на "✓ Saved" після натискання
+- Якщо нік порожній — кнопка неактивна
+- При натисканні START — перевірити що профіль збережений
+
+### `src/systems/ShopConfig.ts`, `BestiaryManager.ts`
+- Читати/писати через ProfileManager замість напряму в localStorage
+
+## Порядок роботи
+1. Створити ProfileManager
+2. Створити StashManager
+3. Замінити backpack на stash в UIScene
+4. Підключити ProfileManager до існуючих систем
+5. Тест
