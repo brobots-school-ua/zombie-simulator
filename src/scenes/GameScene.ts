@@ -294,10 +294,10 @@ export class GameScene extends Phaser.Scene {
     // Reset nuke mode
     if (this.nukeMode) this.exitNukeMode();
 
-    // Stop UIScene
-    if (this.scene.isActive('UIScene')) {
-      this.scene.stop('UIScene');
-    }
+    // UIScene stays running — it reads from this.gameScene which is the same object
+
+    // Pause player movement
+    this.player.setVelocity(0, 0);
 
     // Black overlay
     const overlay = this.add.rectangle(0, 0, 4000, 4000, 0x000000)
@@ -378,10 +378,9 @@ export class GameScene extends Phaser.Scene {
       this.waveDelay = false;
       this.changingLocation = false;
 
-      // Restart UIScene & music
+      // Restart music
       audioManager.stopGameMusic(0);
       audioManager.startGameMusic();
-      this.scene.launch('UIScene', { gameScene: this });
 
       // Remove transition text
       transText.destroy();
