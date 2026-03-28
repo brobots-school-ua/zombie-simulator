@@ -40,15 +40,10 @@ export class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' });
   }
 
-  private loadingOverlay!: Phaser.GameObjects.Rectangle;
-
-  private loadingReady = false;
-
   create(data?: { wave?: number; playerState?: any }) {
     this.wave = data?.wave ?? 1;
     this.incomingPlayerState = data?.playerState ?? null;
     this.location = getLocationForWave(this.wave);
-    this.loadingReady = false;
 
     // Reset ALL state
     this.shootCooldown = 0;
@@ -63,71 +58,27 @@ export class GameScene extends Phaser.Scene {
     this.nukeMode = false;
     this.abilityActive = false;
 
-    // Black overlay — hides everything while map builds
-    this.loadingOverlay = this.add.rectangle(0, 0, 4000, 4000, 0x000000)
-      .setOrigin(0).setDepth(9999).setScrollFactor(0);
-
     this.mapSize = this.location.mapSize;
     this.physics.world.setBounds(0, 0, this.mapSize, this.mapSize);
 
-    // Build everything in small chunks using requestAnimationFrame
-    // so browser never freezes
-    this.buildMapAsync();
-  }
-
-  private buildMapAsync() {
+    // === BUILD MAP (synchronous — TransitionScene covers the freeze) ===
     const tiles = this.location.groundTiles;
-    const tilePositions: { x: number; y: number }[] = [];
     for (let x = 0; x < this.mapSize; x += 64) {
       for (let y = 0; y < this.mapSize; y += 64) {
-        tilePositions.push({ x: x + 32, y: y + 32 });
+        this.add.image(x + 32, y + 32, tiles[Phaser.Math.Between(0, tiles.length - 1)]).setDepth(0);
       }
     }
 
-    let index = 0;
-    const CHUNK_SIZE = 200; // tiles per frame
-
-    const placeChunk = () => {
-      const end = Math.min(index + CHUNK_SIZE, tilePositions.length);
-      for (let i = index; i < end; i++) {
-        const p = tilePositions[i];
-        this.add.image(p.x, p.y, tiles[Phaser.Math.Between(0, tiles.length - 1)]).setDepth(0);
-      }
-      index = end;
-
-      if (index < tilePositions.length) {
-        requestAnimationFrame(placeChunk);
-      } else {
-        // All ground tiles placed, continue with walls
-        requestAnimationFrame(() => this.buildWallsAndFinish());
-      }
-    };
-
-    requestAnimationFrame(placeChunk);
-  }
-
-  private buildWallsAndFinish() {
-    // Walls from static tilemap
     this.walls = this.physics.add.staticGroup();
     this.generateMap();
+    this.placeDecorations();
 
-    requestAnimationFrame(() => {
-      // Decorations
-      this.placeDecorations();
-
-      requestAnimationFrame(() => {
-        // Player, physics, input, spawners — all lightweight
-        this.setupGameplay();
-      });
-    });
-  }
-
-  private setupGameplay() {
+    // === GROUPS ===
     this.zombies = this.add.group({ runChildUpdate: false });
     this.bullets = this.add.group({ runChildUpdate: false });
     this.pickups = this.add.group();
 
-    // Player at fixed center
+    // === PLAYER at fixed center ===
     const cx = this.mapSize / 2;
     const cy = this.mapSize / 2;
     this.player = new Player(this, cx, cy);
@@ -157,7 +108,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, this.mapSize, this.mapSize);
     this.cameras.main.setZoom(1.5);
 
-    // Physics colliders
+    // === PHYSICS ===
     this.physics.add.collider(this.player, this.walls);
     this.physics.add.collider(this.zombies, this.walls);
 
@@ -221,7 +172,7 @@ export class GameScene extends Phaser.Scene {
       b.destroy();
     });
 
-    // Pickup spawners
+    // === SPAWNERS ===
     this.time.addEvent({
       delay: Phaser.Math.Between(10000, 15000), loop: true,
       callback: () => {
@@ -247,7 +198,7 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
-    // Ability
+    // === INPUT ===
     this.abilityId = getSelectedAbility();
     this.nukeMode = false;
     this.abilityActive = false;
@@ -256,13 +207,12 @@ export class GameScene extends Phaser.Scene {
       if (!this.gameOver && !this.abilityActive) this.activateAbility();
     });
 
-    // Shooting
     this.input.on('pointerdown', () => {
       if (this.nukeMode) { this.launchNuke(); return; }
       if (!this.gameOver) this.fireWeapon();
     });
 
-    // Player death
+    // === PLAYER DEATH ===
     this.events.once('player-died', () => {
       if (this.gameOver) return;
       this.gameOver = true;
@@ -281,23 +231,11 @@ export class GameScene extends Phaser.Scene {
       });
     });
 
-    // === EVERYTHING READY — reveal the game ===
-    this.loadingReady = true;
+    // === START GAME ===
     audioManager.resume();
     audioManager.startGameMusic();
     this.scene.launch('UIScene', { gameScene: this });
-
-    // Fade out overlay, then spawn zombies
-    this.tweens.add({
-      targets: this.loadingOverlay,
-      alpha: 0,
-      duration: 500,
-      ease: 'Power2',
-      onComplete: () => {
-        this.loadingOverlay.destroy();
-        this.spawnWave();
-      },
-    });
+    this.spawnWave();
   }
 
   // Clean up resources when scene stops (location transition or game over)
@@ -337,7 +275,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number) {
-    if (!this.loadingReady || this.gameOver || !this.player?.active) return;
+    if (this.gameOver || !this.player?.active) return;
 
     this.player.update();
 
