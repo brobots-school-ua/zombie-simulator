@@ -31,10 +31,13 @@ export class GameScene extends Phaser.Scene {
   private playerShadow!: Phaser.GameObjects.Image;
   private zombieShadows: Map<Zombie, Phaser.GameObjects.Image> = new Map();
   private trees: Phaser.GameObjects.Image[] = [];
+  private groundTiles: Phaser.GameObjects.Image[] = [];
+  private decorations: Phaser.GameObjects.Image[] = [];
   private activeDmgNumbers: Phaser.GameObjects.Text[] = [];
   private location!: LocationDef;
   private incomingPlayerState: any = null;
   private alleySpawnPoints: { x: number; y: number }[] = [];
+  private changingLocation = false;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -52,22 +55,20 @@ export class GameScene extends Phaser.Scene {
     this.alleySpawnPoints = [];
     this.zombieShadows = new Map();
     this.trees = [];
+    this.groundTiles = [];
+    this.decorations = [];
     this.activeDmgNumbers = [];
     this.nukeMarkers = [];
     this.wallGridSet = new Set();
     this.nukeMode = false;
     this.abilityActive = false;
+    this.changingLocation = false;
 
     this.mapSize = this.location.mapSize;
     this.physics.world.setBounds(0, 0, this.mapSize, this.mapSize);
 
-    // === BUILD MAP (synchronous — TransitionScene covers the freeze) ===
-    const tiles = this.location.groundTiles;
-    for (let x = 0; x < this.mapSize; x += 64) {
-      for (let y = 0; y < this.mapSize; y += 64) {
-        this.add.image(x + 32, y + 32, tiles[Phaser.Math.Between(0, tiles.length - 1)]).setDepth(0);
-      }
-    }
+    // === BUILD MAP ===
+    this.buildMap();
 
     this.walls = this.physics.add.staticGroup();
     this.generateMap();
@@ -274,8 +275,135 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // Build ground tiles and store references for cleanup
+  private buildMap() {
+    const tiles = this.location.groundTiles;
+    for (let x = 0; x < this.mapSize; x += 64) {
+      for (let y = 0; y < this.mapSize; y += 64) {
+        const img = this.add.image(x + 32, y + 32, tiles[Phaser.Math.Between(0, tiles.length - 1)]).setDepth(0);
+        this.groundTiles.push(img);
+      }
+    }
+  }
+
+  // Change location without restarting the scene
+  changeLocation(targetWave: number) {
+    if (this.changingLocation) return;
+    this.changingLocation = true;
+
+    // Reset nuke mode
+    if (this.nukeMode) this.exitNukeMode();
+
+    // Stop UIScene
+    if (this.scene.isActive('UIScene')) {
+      this.scene.stop('UIScene');
+    }
+
+    // Black overlay
+    const overlay = this.add.rectangle(0, 0, 4000, 4000, 0x000000)
+      .setOrigin(0).setDepth(9999).setScrollFactor(0);
+
+    const newLocation = getLocationForWave(targetWave);
+
+    // Transition text (on top of overlay)
+    const { width, height } = this.cameras.main;
+    const transText = this.add.text(width / 2, height / 2 - 50, 'Перехід на нову локацію', {
+      fontSize: '22px', color: '#888888', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(10000).setScrollFactor(0);
+    const locText = this.add.text(width / 2, height / 2 + 10, newLocation.displayName, {
+      fontSize: '48px', color: '#cc4444', fontFamily: 'monospace', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(10000).setScrollFactor(0);
+    const waveText = this.add.text(width / 2, height / 2 + 60, `Wave ${targetWave}`, {
+      fontSize: '18px', color: '#666666', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(10000).setScrollFactor(0);
+
+    // Wait 2 seconds with overlay visible, then rebuild
+    this.time.delayedCall(2000, () => {
+      // === CLEANUP old map ===
+      // Ground tiles
+      for (const t of this.groundTiles) t.destroy();
+      this.groundTiles = [];
+
+      // Walls
+      this.walls.clear(true, true);
+      this.wallGridSet.clear();
+      this.alleySpawnPoints = [];
+
+      // Decorations & trees
+      for (const d of this.decorations) d.destroy();
+      this.decorations = [];
+      for (const t of this.trees) t.destroy();
+      this.trees = [];
+
+      // Zombies & shadows
+      const allZombies = this.zombies.getChildren().slice();
+      for (const obj of allZombies) (obj as Zombie).destroy();
+      for (const shadow of this.zombieShadows.values()) shadow.destroy();
+      this.zombieShadows.clear();
+      this.zombiesRemaining = 0;
+
+      // Bullets & pickups
+      this.bullets.clear(true, true);
+      this.pickups.clear(true, true);
+
+      // Damage numbers & nuke markers
+      for (const txt of this.activeDmgNumbers) txt.destroy();
+      this.activeDmgNumbers = [];
+      for (const m of this.nukeMarkers) m.destroy();
+      this.nukeMarkers = [];
+
+      // === BUILD new map ===
+      this.wave = targetWave;
+      this.location = newLocation;
+      this.mapSize = this.location.mapSize;
+      this.physics.world.setBounds(0, 0, this.mapSize, this.mapSize);
+
+      this.buildMap();
+      this.generateMap();
+      this.placeDecorations();
+
+      // Move player to center
+      const cx = this.mapSize / 2;
+      const cy = this.mapSize / 2;
+      this.player.setPosition(cx, cy);
+      this.player.setVelocity(0, 0);
+      this.playerShadow.setPosition(cx, cy);
+
+      // Reset camera
+      this.cameras.main.setBounds(0, 0, this.mapSize, this.mapSize);
+      this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+      this.cameras.main.setZoom(1.5);
+
+      // Reset state
+      this.waveDelay = false;
+      this.changingLocation = false;
+
+      // Restart UIScene & music
+      audioManager.stopGameMusic(0);
+      audioManager.startGameMusic();
+      this.scene.launch('UIScene', { gameScene: this });
+
+      // Remove transition text
+      transText.destroy();
+      locText.destroy();
+      waveText.destroy();
+
+      // Fade out overlay then spawn wave
+      this.tweens.add({
+        targets: overlay,
+        alpha: 0,
+        duration: 500,
+        ease: 'Power2',
+        onComplete: () => {
+          overlay.destroy();
+          this.spawnWave();
+        },
+      });
+    });
+  }
+
   update(_time: number, delta: number) {
-    if (this.gameOver || !this.player?.active) return;
+    if (this.changingLocation || this.gameOver || !this.player?.active) return;
 
     this.player.update();
 
@@ -339,33 +467,9 @@ export class GameScene extends Phaser.Scene {
 
       // Check if we need to change location
       if (shouldChangeLocation(this.wave, nextWave)) {
-        // Transition to new location!
         this.time.delayedCall(2000, () => {
           if (this.gameOver) return;
-          const newLocation = getLocationForWave(nextWave);
-          const playerState = {
-            hp: this.player.hp,
-            maxHp: this.player.maxHp,
-            score: this.player.score,
-            kills: this.player.kills,
-            sessionKills: this.player.sessionKills,
-            weapons: this.player.weapons,
-            activeWeaponIndex: this.player.activeWeaponIndex,
-            bandages: this.player.bandages,
-            medkits: this.player.medkits,
-            wood: this.player.wood,
-            metal: this.player.metal,
-            screws: this.player.screws,
-          };
-          if (this.nukeMode) this.exitNukeMode();
-          this.scene.stop('UIScene');
-          audioManager.stopGameMusic(1);
-          // Start TransitionScene (stops GameScene automatically)
-          this.scene.start('TransitionScene', {
-            locationName: newLocation.displayName,
-            wave: nextWave,
-            playerState,
-          });
+          this.changeLocation(nextWave);
         });
       } else {
         this.wave = nextWave;
@@ -538,34 +642,10 @@ export class GameScene extends Phaser.Scene {
     this.zombiesRemaining = 0;
     this.waveDelay = false;
 
-    // Reset nuke mode if active
-    if (this.nukeMode) this.exitNukeMode();
-
-    // If target wave needs a different location — full scene restart
+    // If target wave needs a different location — change location in-place
     const newLocation = getLocationForWave(targetWave);
     if (newLocation.id !== this.location.id) {
-      const playerState = {
-        hp: this.player.hp,
-        maxHp: this.player.maxHp,
-        score: this.player.score,
-        kills: this.player.kills,
-        sessionKills: this.player.sessionKills,
-        weapons: this.player.weapons,
-        activeWeaponIndex: this.player.activeWeaponIndex,
-        bandages: this.player.bandages,
-        medkits: this.player.medkits,
-        wood: this.player.wood,
-        metal: this.player.metal,
-        screws: this.player.screws,
-      };
-      this.scene.stop('UIScene');
-      audioManager.stopGameMusic(1);
-      // Restart GameScene via TransitionScene
-      this.scene.start('TransitionScene', {
-        locationName: newLocation.displayName,
-        wave: targetWave,
-        playerState,
-      });
+      this.changeLocation(targetWave);
       return;
     }
 
@@ -1127,6 +1207,7 @@ export class GameScene extends Phaser.Scene {
 
   private placeDecorations() {
     this.trees = [];
+    this.decorations = [];
     const cx = this.mapSize / 2, cy = this.mapSize / 2;
     const decos = this.location.decorations;
 
@@ -1138,18 +1219,18 @@ export class GameScene extends Phaser.Scene {
         if (this.isPositionBlocked(x, y)) continue;
 
         if (deco.isTree) {
-          // Trees/lampposts — tracked for transparency effect
           const tree = this.add.image(x, y, deco.key)
             .setDepth(deco.depth)
             .setScale(Phaser.Math.FloatBetween(deco.scale * 0.8, deco.scale * 1.4))
             .setAlpha(0.85);
           this.trees.push(tree);
         } else {
-          this.add.image(x, y, deco.key)
+          const img = this.add.image(x, y, deco.key)
             .setDepth(deco.depth)
             .setScale(Phaser.Math.FloatBetween(deco.scale * 0.8, deco.scale * 1.2))
             .setAngle(Phaser.Math.Between(0, 360))
             .setAlpha(Phaser.Math.FloatBetween(0.6, 0.9));
+          this.decorations.push(img);
         }
       }
     }

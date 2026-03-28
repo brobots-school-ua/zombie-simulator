@@ -1,65 +1,57 @@
-# План: Фікс переходу між локаціями (антифріз)
+# План: Фікс переходу між локаціями (фінальний)
 
-## Проблема
-Гра зависає при переході Field→City. Причина: `scene.start('GameScene')` викликає `create()` який синхронно створює ~1000 тайлів землі + стіни + декорації + фізику + спавнить хвилю. Все це блокує браузер.
+## Підхід
+Замість перезапуску GameScene — залишаємо одну сцену і робимо метод `changeLocation()` який:
+1. Показує чорний overlay з текстом
+2. Знищує все (тайли, стіни, декорації, зомбі, кулі, пікапи)
+3. Будує нову карту
+4. Переміщує гравця в центр
+5. Знімає overlay і спавнить зомбі
 
-## Рішення: двофазна ініціалізація з чорним екраном
+TransitionScene більше не потрібна — все відбувається всередині GameScene.
 
-### Ідея
-GameScene.create() розділяємо на 2 фази:
-1. **Фаза 1 (під чорним екраном)**: будуємо карту, стіни, декорації, створюємо гравця на ФІКСОВАНІЙ точці (центр карти). Чорний прямокутник закриває все.
-2. **Фаза 2 (після готовності)**: знімаємо чорний екран fade-out, запускаємо UIScene, спавнимо першу хвилю зомбі.
+## Зміни
 
-Між фазами — `time.delayedCall(100)` щоб дати браузеру "продихатися".
-
-### TransitionScene
-Спрощуємо:
-- Чорний екран з текстом "Перехід на нову локацію" (простий текст, без typewriter)
-- Назва локації
-- Номер хвилі
-- Чекаємо 2 секунди → зупиняємо GameScene → запускаємо новий GameScene
-- TransitionScene НЕ зникає сама — GameScene скаже їй зникнути коли все готово
-
-### GameScene.create() — нова логіка
+### GameScene.ts — новий метод `changeLocation(wave, playerState?)`
 ```
-create(data):
-  1. Показати чорний overlay (fillRect на весь екран, depth=9999)
-  2. Скинути стан
-  3. Створити ground tiles
-  4. time.delayedCall(50) → продовжити:
-     5. Створити стіни з тайлмапу
-     6. walls.refresh()
-     7. buildWallGrid()
-     8. placeDecorations()
-     9. Створити гравця на ФІКСОВАНІЙ точці (центр карти, де гарантовано пусто)
-     10. Відновити стан гравця (якщо є)
-     11. Налаштувати фізику, камеру, колайдери
-     12. time.delayedCall(50) → завершити:
-         13. Зупинити TransitionScene (якщо вона ще активна)
-         14. Fade-out чорного overlay (500ms)
-         15. Запустити UIScene
-         16. spawnWave()
+changeLocation(targetWave):
+  1. Зберегти стан гравця (hp, зброя, ресурси)
+  2. Показати чорний overlay + текст "Перехід на нову локацію"
+  3. Зупинити UIScene
+  4. Знищити: ground tiles, walls, decorations, zombies, bullets, pickups, shadows
+  5. Оновити this.location і this.wave
+  6. Побудувати нову карту (ground tiles, walls, decorations)
+  7. Перемістити гравця в центр нової карти
+  8. Перезапустити камеру bounds
+  9. Запустити UIScene
+  10. Fade out overlay → spawnWave()
 ```
 
-### Фіксований спавн гравця
-Замість пошуку безпечної точки — гравець ЗАВЖДИ спавниться в центрі карти. Карти вже мають вільний центр (ми це заклали в статичні карти).
+### Що треба для очищення
+- Ground tiles: зараз створюються як `this.add.image()` — вони не в групі. Треба зберігати їх в масив щоб потім знищити.
+- Walls: `this.walls.clear(true, true)` — очищає StaticGroup
+- Decorations/trees: зберігаються в `this.trees[]` — destroy all
+- Zombies: `this.zombies.clear(true, true)`
+- Bullets: `this.bullets.clear(true, true)`
+- Pickups: `this.pickups.clear(true, true)`
+- Zombie shadows: destroy all з Map
+- Damage numbers: destroy all
 
-## Зміни по файлах
+### Що НЕ треба перестворювати
+- Player (тільки переміщуємо)
+- Physics colliders (вже налаштовані — walls група та ж сама)
+- Input handlers (вже підключені)
+- Pickup spawner timers (вже працюють)
 
-### 1. `src/scenes/TransitionScene.ts`
-- Текст: "Перехід на нову локацію" (без typewriter)
-- Після 2 сек — `scene.start('GameScene', {...})`
-- Залишити TransitionScene активною поки GameScene не скаже зупинитись
+### GameScene.ts — зміни в create()
+- Зберігати ground tiles в масив `this.groundTiles: Phaser.GameObjects.Image[]`
 
-### 2. `src/scenes/GameScene.ts`
-- `create()` — розбити на фази з `time.delayedCall()` між ними
-- Чорний overlay на час завантаження
-- Гравець спавниться на `mapSize/2, mapSize/2` (фіксовано)
-- Видалити `getSafePlayerSpawn()` — більше не потрібен
-- В кінці create → зупинити TransitionScene, fade-out overlay, запустити UIScene, spawnWave
+### Де викликати changeLocation()
+- В update() wave check замість scene.start('TransitionScene')
+- В adminSetWave() замість scene.start('TransitionScene')
 
-## Що це дає
-- Браузер НЕ зависає бо важка робота розбита на кадри
-- Чорний екран ховає "будівництво" карти
-- Зомбі спавняться тільки коли все готово
-- Гравець завжди в центрі — ніколи не в стіні
+### TransitionScene.ts
+- Видалити або залишити порожньою (більше не використовується)
+
+## Результат
+Жодних scene.start/stop/launch — все всередині однієї сцени. Зависання неможливе бо браузер вже відрендерив чорний overlay перед початком перебудови.
