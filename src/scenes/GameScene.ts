@@ -357,10 +357,11 @@ export class GameScene extends Phaser.Scene {
             metal: this.player.metal,
             screws: this.player.screws,
           };
+          if (this.nukeMode) this.exitNukeMode();
           this.scene.stop('UIScene');
           audioManager.stopGameMusic(1);
-          // Launch TransitionScene — it will stop GameScene when ready
-          this.scene.launch('TransitionScene', {
+          // Start TransitionScene (stops GameScene automatically)
+          this.scene.start('TransitionScene', {
             locationName: newLocation.displayName,
             wave: nextWave,
             playerState,
@@ -497,6 +498,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnWave() {
+    // Reset camera if nuke mode was active
+    if (this.nukeMode) this.exitNukeMode();
     const count = 5 + this.wave * 3;
     const hasBoss = this.wave % 5 === 0; // boss every 5 waves
     this.zombiesRemaining = count + (hasBoss ? 1 : 0);
@@ -535,6 +538,9 @@ export class GameScene extends Phaser.Scene {
     this.zombiesRemaining = 0;
     this.waveDelay = false;
 
+    // Reset nuke mode if active
+    if (this.nukeMode) this.exitNukeMode();
+
     // If target wave needs a different location — full scene restart
     const newLocation = getLocationForWave(targetWave);
     if (newLocation.id !== this.location.id) {
@@ -554,7 +560,8 @@ export class GameScene extends Phaser.Scene {
       };
       this.scene.stop('UIScene');
       audioManager.stopGameMusic(1);
-      this.scene.launch('TransitionScene', {
+      // Restart GameScene via TransitionScene
+      this.scene.start('TransitionScene', {
         locationName: newLocation.displayName,
         wave: targetWave,
         playerState,
