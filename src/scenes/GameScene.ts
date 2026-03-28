@@ -42,13 +42,15 @@ export class GameScene extends Phaser.Scene {
 
   private loadingOverlay!: Phaser.GameObjects.Rectangle;
 
+  private loadingReady = false;
+
   create(data?: { wave?: number; playerState?: any }) {
-    // Determine starting wave and location
     this.wave = data?.wave ?? 1;
     this.incomingPlayerState = data?.playerState ?? null;
     this.location = getLocationForWave(this.wave);
+    this.loadingReady = false;
 
-    // Reset ALL state for clean scene restart
+    // Reset ALL state
     this.shootCooldown = 0;
     this.waveDelay = false;
     this.gameOver = false;
@@ -68,34 +70,68 @@ export class GameScene extends Phaser.Scene {
     this.mapSize = this.location.mapSize;
     this.physics.world.setBounds(0, 0, this.mapSize, this.mapSize);
 
-    // === PHASE 1: ground tiles ===
+    // Build everything in small chunks using requestAnimationFrame
+    // so browser never freezes
+    this.buildMapAsync();
+  }
+
+  private buildMapAsync() {
     const tiles = this.location.groundTiles;
+    const tilePositions: { x: number; y: number }[] = [];
     for (let x = 0; x < this.mapSize; x += 64) {
       for (let y = 0; y < this.mapSize; y += 64) {
-        this.add.image(x + 32, y + 32, tiles[Phaser.Math.Between(0, tiles.length - 1)]).setDepth(0);
+        tilePositions.push({ x: x + 32, y: y + 32 });
       }
     }
 
-    // Use native setTimeout so it fires even if Phaser scene loop isn't ready yet
-    setTimeout(() => this.createPhase2(), 100);
+    let index = 0;
+    const CHUNK_SIZE = 200; // tiles per frame
+
+    const placeChunk = () => {
+      const end = Math.min(index + CHUNK_SIZE, tilePositions.length);
+      for (let i = index; i < end; i++) {
+        const p = tilePositions[i];
+        this.add.image(p.x, p.y, tiles[Phaser.Math.Between(0, tiles.length - 1)]).setDepth(0);
+      }
+      index = end;
+
+      if (index < tilePositions.length) {
+        requestAnimationFrame(placeChunk);
+      } else {
+        // All ground tiles placed, continue with walls
+        requestAnimationFrame(() => this.buildWallsAndFinish());
+      }
+    };
+
+    requestAnimationFrame(placeChunk);
   }
 
-  private createPhase2() {
-    // === PHASE 2: walls, decorations, player, physics ===
+  private buildWallsAndFinish() {
+    // Walls from static tilemap
     this.walls = this.physics.add.staticGroup();
     this.generateMap();
-    this.placeDecorations();
 
+    requestAnimationFrame(() => {
+      // Decorations
+      this.placeDecorations();
+
+      requestAnimationFrame(() => {
+        // Player, physics, input, spawners — all lightweight
+        this.setupGameplay();
+      });
+    });
+  }
+
+  private setupGameplay() {
     this.zombies = this.add.group({ runChildUpdate: false });
     this.bullets = this.add.group({ runChildUpdate: false });
     this.pickups = this.add.group();
 
-    // Player spawns at fixed center point (maps have clear center)
+    // Player at fixed center
     const cx = this.mapSize / 2;
     const cy = this.mapSize / 2;
     this.player = new Player(this, cx, cy);
 
-    // Restore player state from previous location if available
     if (this.incomingPlayerState) {
       const s = this.incomingPlayerState;
       this.player.hp = s.hp;
@@ -187,8 +223,7 @@ export class GameScene extends Phaser.Scene {
 
     // Pickup spawners
     this.time.addEvent({
-      delay: Phaser.Math.Between(10000, 15000),
-      loop: true,
+      delay: Phaser.Math.Between(10000, 15000), loop: true,
       callback: () => {
         if (this.gameOver || !this.canSpawnPickup('ammo')) return;
         const pos = this.getSafeSpawnPosition();
@@ -196,8 +231,7 @@ export class GameScene extends Phaser.Scene {
       },
     });
     this.time.addEvent({
-      delay: 20000,
-      loop: true,
+      delay: 20000, loop: true,
       callback: () => {
         if (this.gameOver || !this.canSpawnPickup('bandage')) return;
         const pos = this.getSafeSpawnPosition();
@@ -205,8 +239,7 @@ export class GameScene extends Phaser.Scene {
       },
     });
     this.time.addEvent({
-      delay: 45000,
-      loop: true,
+      delay: 45000, loop: true,
       callback: () => {
         if (this.gameOver || !this.canSpawnPickup('medkit')) return;
         const pos = this.getSafeSpawnPosition();
@@ -248,23 +281,13 @@ export class GameScene extends Phaser.Scene {
       });
     });
 
-    // Use native setTimeout to let browser render before final phase
-    setTimeout(() => this.createPhase3(), 100);
-  }
-
-  private createPhase3() {
-    // === PHASE 3: remove overlay, start game ===
-
-    // Stop TransitionScene if it was active
-    if (this.scene.isActive('TransitionScene')) {
-      this.scene.stop('TransitionScene');
-    }
-
+    // === EVERYTHING READY — reveal the game ===
+    this.loadingReady = true;
     audioManager.resume();
     audioManager.startGameMusic();
     this.scene.launch('UIScene', { gameScene: this });
 
-    // Fade out black overlay then spawn zombies
+    // Fade out overlay, then spawn zombies
     this.tweens.add({
       targets: this.loadingOverlay,
       alpha: 0,
@@ -314,7 +337,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number) {
-    if (this.gameOver || !this.player?.active) return;
+    if (!this.loadingReady || this.gameOver || !this.player?.active) return;
 
     this.player.update();
 
@@ -573,6 +596,34 @@ export class GameScene extends Phaser.Scene {
     }
     this.zombiesRemaining = 0;
     this.waveDelay = false;
+
+    // If target wave needs a different location — full scene restart
+    const newLocation = getLocationForWave(targetWave);
+    if (newLocation.id !== this.location.id) {
+      const playerState = {
+        hp: this.player.hp,
+        maxHp: this.player.maxHp,
+        score: this.player.score,
+        kills: this.player.kills,
+        sessionKills: this.player.sessionKills,
+        weapons: this.player.weapons,
+        activeWeaponIndex: this.player.activeWeaponIndex,
+        bandages: this.player.bandages,
+        medkits: this.player.medkits,
+        wood: this.player.wood,
+        metal: this.player.metal,
+        screws: this.player.screws,
+      };
+      this.scene.stop('UIScene');
+      audioManager.stopGameMusic(1);
+      this.scene.launch('TransitionScene', {
+        locationName: newLocation.displayName,
+        wave: targetWave,
+        playerState,
+      });
+      return;
+    }
+
     this.wave = targetWave;
     this.spawnWave();
   }

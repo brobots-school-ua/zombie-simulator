@@ -1,8 +1,14 @@
 import Phaser from 'phaser';
+import { audioManager } from '../systems/AudioManager';
 
-// Transition scene — black screen between locations
-// Overlay scene: runs on top, GameScene builds underneath, then this fades out
+// Transition scene — black loading screen between locations
+// Flow: GameScene launches this → this shows text → this restarts GameScene
 export class TransitionScene extends Phaser.Scene {
+  private transitionData!: {
+    wave: number;
+    playerState: any;
+  };
+
   constructor() {
     super({ key: 'TransitionScene' });
   }
@@ -25,9 +31,12 @@ export class TransitionScene extends Phaser.Scene {
       screws: number;
     };
   }) {
-    const { width, height } = this.cameras.main;
+    this.transitionData = {
+      wave: data.wave,
+      playerState: data.playerState,
+    };
 
-    // Black background
+    const { width, height } = this.cameras.main;
     this.cameras.main.setBackgroundColor('#000000');
 
     // Main text
@@ -69,23 +78,39 @@ export class TransitionScene extends Phaser.Scene {
       },
     });
 
-    // Use native setTimeout to guarantee execution even if scene lifecycle is tricky
+    // Step 1: Stop GameScene (native timeout for reliability)
     setTimeout(() => {
-      // Stop old GameScene completely
       if (this.scene.isActive('GameScene')) {
         this.scene.stop('GameScene');
       }
+      if (this.scene.isActive('UIScene')) {
+        this.scene.stop('UIScene');
+      }
+    }, 500);
 
-      // Another timeout to let cleanup finish
-      setTimeout(() => {
-        // Launch GameScene (not start — we keep TransitionScene alive as overlay)
-        this.scene.launch('GameScene', {
-          wave: data.wave,
-          playerState: data.playerState,
-        });
-        // Put TransitionScene on top so it stays visible
-        this.scene.bringToTop('TransitionScene');
-      }, 200);
-    }, 2000);
+    // Step 2: After showing text for 2.5 seconds, start GameScene
+    // TransitionScene will be stopped by GameScene when it's ready
+    setTimeout(() => {
+      this.startNewGame();
+    }, 2500);
+  }
+
+  private startNewGame() {
+    // Make sure old scenes are stopped
+    if (this.scene.isActive('GameScene')) {
+      this.scene.stop('GameScene');
+    }
+    if (this.scene.isActive('UIScene')) {
+      this.scene.stop('UIScene');
+    }
+
+    // Use scene.run which handles both stopped and sleeping scenes
+    // Pass data to GameScene
+    this.scene.start('GameScene', {
+      wave: this.transitionData.wave,
+      playerState: this.transitionData.playerState,
+    });
+    // Note: scene.start here stops TransitionScene and starts GameScene
+    // GameScene will show its own black overlay during loading
   }
 }
