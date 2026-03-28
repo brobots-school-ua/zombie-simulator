@@ -537,44 +537,94 @@ export class MenuScene extends Phaser.Scene {
   private openBackpack() {
     if (this.backpackPanel) return;
 
-    const materials = profile.getMaterials();
-    const s = profile.getStash();
-
-    const row = (label: string, color: string, icon: string, stashCount: number) => `
-      <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #333; border-radius:4px; background:rgba(0,0,0,0.3);">
-        <span style="color:${color}; font-size:16px; width:20px; text-align:center;">${icon}</span>
-        <span style="color:#ddd; flex:1;">${label}</span>
-        <span style="color:#ffcc22; font-size:18px; font-weight:bold;">${stashCount}</span>
-      </div>`;
-
     this.backpackPanel = document.createElement('div');
     this.backpackPanel.style.cssText = `
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: rgba(0,0,0,0.95); border: 2px solid #ffcc22; border-radius: 8px;
       padding: 20px; z-index: 3000; font-family: monospace; color: #ffcc22;
-      width: 300px;
+      width: 480px;
     `;
 
-    this.backpackPanel.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <h3 style="margin:0; color:#ffcc22; font-size:20px;">STASH</h3>
-        <button id="bp-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1;">&#10005;</button>
-      </div>
-      <p style="color:#888; font-size:11px; margin:0 0 10px 0;">Items saved between games. Use TAB in-game to move items.</p>
-      <div style="display:flex; flex-direction:column; gap:6px;">
-        ${row('Bandages', '#44ff44', '+', s.bandages)}
-        ${row('Medkits', '#ff4444', '+', s.medkits)}
-        ${row('Wood', '#8b5a2b', '\u25a0', s.wood)}
-        ${row('Metal', '#999', '\u25a0', s.metal)}
-        ${row('Screws', '#777', '\u2699', s.screws)}
-      </div>
-      <hr style="border-color:#333; margin:12px 0;">
-      <p style="color:#666; font-size:11px; margin:0;">Materials (inventory): Wood ${materials.wood} | Metal ${materials.metal} | Screws ${materials.screws}</p>
-    `;
+    const btnStyle = `padding:2px 8px; background:#1a2a1a; border:1px solid #44ff44; color:#44ff44; font-family:monospace; font-size:14px; cursor:pointer; border-radius:3px;`;
+    const btnDisabled = `padding:2px 8px; background:#111; border:1px solid #333; color:#333; font-family:monospace; font-size:14px; border-radius:3px; cursor:default;`;
+
+    const render = () => {
+      if (!this.backpackPanel) return;
+      const m = profile.getMaterials();
+      const s = profile.getStash();
+
+      const row = (label: string, color: string, icon: string, invKey: string, invCount: number, stashCount: number) => `
+        <div style="display:flex; align-items:center; gap:6px; padding:6px; border:1px solid #333; border-radius:4px; background:rgba(0,0,0,0.3);">
+          <span style="color:${color}; font-size:16px; width:18px; text-align:center;">${icon}</span>
+          <span style="color:#ddd; width:65px; font-size:13px;">${label}</span>
+          <span style="color:#88aa44; width:28px; text-align:right; font-weight:bold;">${invCount}</span>
+          <button class="stash-to-stash" data-key="${invKey}" style="${invCount > 0 ? btnStyle : btnDisabled}" ${invCount <= 0 ? 'disabled' : ''}>&#8594;</button>
+          <button class="stash-to-inv" data-key="${invKey}" style="${stashCount > 0 ? btnStyle : btnDisabled}" ${stashCount <= 0 ? 'disabled' : ''}>&#8592;</button>
+          <span style="color:#ffcc22; width:28px; font-weight:bold;">${stashCount}</span>
+        </div>`;
+
+      this.backpackPanel!.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="margin:0; color:#ffcc22; font-size:20px;">STASH</h3>
+          <button id="bp-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1;">&#10005;</button>
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:8px; padding:0 24px 0 36px;">
+          <span style="color:#88aa44; flex:1; text-align:right; font-size:11px;">INVENTORY</span>
+          <span style="width:52px;"></span>
+          <span style="color:#ffcc22; flex:1; font-size:11px;">STASH</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:5px;">
+          ${row('Bandages', '#44ff44', '+', 'bandages', 0, s.bandages)}
+          ${row('Medkits', '#ff4444', '+', 'medkits', 0, s.medkits)}
+          ${row('Wood', '#8b5a2b', '\u25a0', 'wood', m.wood, s.wood)}
+          ${row('Metal', '#999', '\u25a0', 'metal', m.metal, s.metal)}
+          ${row('Screws', '#777', '\u2699', 'screws', m.screws, s.screws)}
+        </div>
+        <p style="color:#555; font-size:10px; margin:10px 0 0 0; text-align:center;">Stash is safe between games. Inventory resets on death.</p>
+      `;
+
+      this.backpackPanel!.querySelector('#bp-close')!.addEventListener('click', () => this.closeBackpack());
+
+      // Move from inventory to stash
+      this.backpackPanel!.querySelectorAll('.stash-to-stash').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = (btn as HTMLElement).dataset.key!;
+          const mat = profile.getMaterials();
+          const st = profile.getStash();
+          if (key === 'wood' && mat.wood > 0) { mat.wood--; st.wood++; }
+          else if (key === 'metal' && mat.metal > 0) { mat.metal--; st.metal++; }
+          else if (key === 'screws' && mat.screws > 0) { mat.screws--; st.screws++; }
+          else if (key === 'bandages') { st.bandages++; }
+          else if (key === 'medkits') { st.medkits++; }
+          else return;
+          profile.setMaterials(mat);
+          profile.setStash(st);
+          render();
+        });
+      });
+
+      // Move from stash to inventory
+      this.backpackPanel!.querySelectorAll('.stash-to-inv').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = (btn as HTMLElement).dataset.key!;
+          const mat = profile.getMaterials();
+          const st = profile.getStash();
+          if (key === 'wood' && st.wood > 0) { st.wood--; mat.wood++; }
+          else if (key === 'metal' && st.metal > 0) { st.metal--; mat.metal++; }
+          else if (key === 'screws' && st.screws > 0) { st.screws--; mat.screws++; }
+          else if (key === 'bandages' && st.bandages > 0) { st.bandages--; }
+          else if (key === 'medkits' && st.medkits > 0) { st.medkits--; }
+          else return;
+          profile.setMaterials(mat);
+          profile.setStash(st);
+          render();
+        });
+      });
+    };
 
     document.body.appendChild(this.backpackPanel);
     this.backpackPanel.addEventListener('keydown', (e) => e.stopPropagation());
-    this.backpackPanel.querySelector('#bp-close')!.addEventListener('click', () => this.closeBackpack());
+    render();
   }
 
   private closeBackpack() {
