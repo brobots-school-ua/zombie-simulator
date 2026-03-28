@@ -18,6 +18,7 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
   private startY: number;
   private maxDistance: number;
   private pierceCount: number = 0;
+  private hitTargets: Set<number> = new Set();
   private trail: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
 
   constructor(scene: Phaser.Scene, x: number, y: number, targetX: number, targetY: number, config: BulletConfig) {
@@ -49,7 +50,17 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
     this.trail.setDepth(7);
   }
 
-  onHitZombie(): boolean {
+  // Check if this bullet already hit a specific target
+  hasHitTarget(id: number): boolean {
+    return this.hitTargets.has(id);
+  }
+
+  // Register a hit — returns true if bullet should be destroyed (pierce exhausted)
+  onHitZombie(targetId?: number): boolean {
+    if (targetId !== undefined) {
+      if (this.hitTargets.has(targetId)) return true; // already hit this one, destroy
+      this.hitTargets.add(targetId);
+    }
     this.pierceCount++;
     return this.pierceCount >= this.pierce;
   }

@@ -139,11 +139,14 @@ export class GameScene extends Phaser.Scene {
         b.destroy();
         return;
       }
+      // Skip if bullet already hit this zombie (prevents multi-hit on same target)
+      const zId = (z as any).__bulletId ?? ((z as any).__bulletId = Math.random());
+      if (b.hasHitTarget(zId)) { b.destroy(); return; }
       const killed = z.takeDamage(b.damage);
       this.spawnBloodParticles(z.x, z.y, 2);
       this.showDamageNumber(z.x, z.y - 16, b.damage);
       if (killed) this.onZombieKilled(z);
-      if (b.onHitZombie()) b.destroy();
+      if (b.onHitZombie(zId)) b.destroy();
     });
 
     this.physics.add.overlap(this.player, this.pickups, (_player, pickup) => {
