@@ -45,6 +45,8 @@ export class UIScene extends Phaser.Scene {
   // backpackPanel removed — stash is only in menu
   private abilityIcon!: Phaser.GameObjects.Text;
   private abilityHint!: Phaser.GameObjects.Text;
+  private abilityChargeBar!: Phaser.GameObjects.Graphics;
+  private abilityChargeText!: Phaser.GameObjects.Text;
 
   private minimapSize = 160;
   private minimapMargin = 15;
@@ -157,6 +159,13 @@ export class UIScene extends Phaser.Scene {
     this.abilityHint = this.add.text(abCX, abY + 32, '[F] ' + abilityDef.name, {
       fontSize: '12px', fontFamily: 'monospace', color: abilityDef.color, align: 'center',
       shadow: { offsetX: 0, offsetY: 0, color: '#000000', blur: 4, fill: true },
+    }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
+
+    // Ability charge bar (below ability icon box)
+    this.abilityChargeBar = this.add.graphics().setDepth(100).setScrollFactor(0);
+    this.abilityChargeText = this.add.text(abCX, abY + 46, '0%', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#44ffaa', align: 'center',
+      shadow: { offsetX: 0, offsetY: 0, color: '#000000', blur: 3, fill: true },
     }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
 
     // Admin console (~ key)
@@ -491,8 +500,62 @@ export class UIScene extends Phaser.Scene {
       this.updateUtilityBar();
       this.updateMaterialsBar();
       this.updateLeaderboard();
+      this.updateAbilityCharge();
       this.drawMinimap(width, height);
     } catch { /* scene shutting down */ }
+  }
+
+  private updateAbilityCharge() {
+    const gs = this.gameScene;
+    if (!gs) return;
+    const charge = gs.abilityCharge ?? 0;
+    const abCX = this.scale.width - 15 - this.minimapSize / 2;
+    const abY = this.scale.height - 15 - this.minimapSize - 70;
+    const barW = 80;
+    const barH = 6;
+    const barX = abCX - barW / 2;
+    const barY = abY + 42;
+
+    this.abilityChargeBar.clear();
+
+    // Bar background
+    this.abilityChargeBar.fillStyle(0x000000, 0.6);
+    this.abilityChargeBar.fillRoundedRect(barX - 2, barY - 2, barW + 4, barH + 4, 3);
+    this.abilityChargeBar.fillStyle(0x222222, 0.8);
+    this.abilityChargeBar.fillRoundedRect(barX, barY, barW, barH, 2);
+
+    // Fill
+    const fillW = (charge / 100) * barW;
+    if (fillW > 0) {
+      const fillColor = charge >= 100 ? 0x44ff44 : 0x44ffaa;
+      this.abilityChargeBar.fillStyle(fillColor, 0.9);
+      this.abilityChargeBar.fillRoundedRect(barX, barY, fillW, barH, 2);
+    }
+
+    // Border glow when charged
+    if (charge >= 100) {
+      this.abilityChargeBar.lineStyle(1, 0x44ff44, 0.8);
+      this.abilityChargeBar.strokeRoundedRect(barX - 2, barY - 2, barW + 4, barH + 4, 3);
+    }
+
+    // Text
+    if (charge >= 100) {
+      this.abilityChargeText.setText('CHARGED [F]');
+      this.abilityChargeText.setColor('#44ff44');
+      this.abilityChargeText.setFontSize(11);
+    } else {
+      this.abilityChargeText.setText(`${charge}%`);
+      this.abilityChargeText.setColor('#44ffaa');
+      this.abilityChargeText.setFontSize(10);
+    }
+    this.abilityChargeText.setPosition(abCX, barY + barH + 10);
+
+    // Update hint text
+    if (charge >= 100) {
+      this.abilityHint.setAlpha(1);
+    } else {
+      this.abilityHint.setAlpha(0.4);
+    }
   }
 
   private drawMinimap(screenW: number, screenH: number) {

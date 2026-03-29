@@ -29,6 +29,8 @@ export class GameScene extends Phaser.Scene {
   private nukeMode = false;
   private nukeMarkers: Phaser.GameObjects.GameObject[] = [];
   private abilityActive = false;
+  abilityCharge: number = 0;
+  private xpOrbs: Phaser.GameObjects.Group | null = null;
   private playerShadow!: Phaser.GameObjects.Image;
   private zombieShadows: Map<Zombie, Phaser.GameObjects.Image> = new Map();
   private trees: Phaser.GameObjects.Image[] = [];
@@ -63,6 +65,7 @@ export class GameScene extends Phaser.Scene {
     this.wallGridSet = new Set();
     this.nukeMode = false;
     this.abilityActive = false;
+    this.abilityCharge = 0;
     this.changingLocation = false;
 
     this.mapSize = this.location.mapSize;
@@ -79,6 +82,7 @@ export class GameScene extends Phaser.Scene {
     this.zombies = this.add.group({ runChildUpdate: false });
     this.bullets = this.add.group({ runChildUpdate: false });
     this.pickups = this.add.group();
+    this.xpOrbs = this.add.group();
 
     // === PLAYER at fixed center ===
     const cx = this.mapSize / 2;
@@ -209,7 +213,7 @@ export class GameScene extends Phaser.Scene {
     this.abilityActive = false;
     const fKey = this.input.keyboard!.addKey('F');
     fKey.on('down', () => {
-      if (!this.gameOver && !this.abilityActive) this.activateAbility();
+      if (!this.gameOver && !this.abilityActive && this.abilityCharge >= 100) this.activateAbility();
     });
 
     this.input.on('pointerdown', () => {
@@ -274,6 +278,11 @@ export class GameScene extends Phaser.Scene {
     // Destroy player shadow
     if (this.playerShadow) {
       this.playerShadow.destroy();
+    }
+
+    // Destroy XP orbs
+    if (this.xpOrbs) {
+      this.xpOrbs.clear(true, true);
     }
   }
 
@@ -344,9 +353,10 @@ export class GameScene extends Phaser.Scene {
       this.zombieShadows.clear();
       this.zombiesRemaining = 0;
 
-      // Bullets & pickups
+      // Bullets, pickups & XP orbs
       this.bullets.clear(true, true);
       this.pickups.clear(true, true);
+      if (this.xpOrbs) this.xpOrbs.clear(true, true);
 
       // Damage numbers & nuke markers
       for (const txt of this.activeDmgNumbers) txt.destroy();
@@ -461,6 +471,31 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    // XP orb attraction and collection
+    if (this.xpOrbs) {
+      const attractRadius = 120;
+      const collectRadius = 18;
+      const orbSpeed = 250;
+      this.xpOrbs.getChildren().forEach((obj) => {
+        const orb = obj as Phaser.GameObjects.Image;
+        if (!orb.active) return;
+        const dist = Phaser.Math.Distance.Between(orb.x, orb.y, this.player.x, this.player.y);
+        if (dist < collectRadius) {
+          // Collect orb
+          orb.destroy();
+          if (this.abilityCharge < 100) {
+            this.abilityCharge = Math.min(100, this.abilityCharge + 1);
+          }
+        } else if (dist < attractRadius) {
+          // Attract toward player (faster when closer)
+          const angle = Phaser.Math.Angle.Between(orb.x, orb.y, this.player.x, this.player.y);
+          const speed = orbSpeed * (1 - dist / attractRadius) + 60;
+          orb.x += Math.cos(angle) * speed * (delta / 1000);
+          orb.y += Math.sin(angle) * speed * (delta / 1000);
+        }
+      });
+    }
+
     // Wave check
     if (this.zombiesRemaining <= 0 && !this.waveDelay) {
       this.waveDelay = true;
@@ -499,6 +534,24 @@ export class GameScene extends Phaser.Scene {
     splat.setAngle(Phaser.Math.Between(0, 360));
     // Fade blood splat over time
     this.tweens.add({ targets: splat, alpha: 0, duration: 15000, delay: 5000, onComplete: () => splat.destroy() });
+
+    // Spawn XP orb for ability charge
+    if (this.xpOrbs && this.abilityCharge < 100) {
+      const orbCount = z.zombieType === 'boss' ? 10 : z.zombieType === 'tank' ? 3 : 1;
+      for (let i = 0; i < orbCount; i++) {
+        const ox = z.x + Phaser.Math.Between(-20, 20);
+        const oy = z.y + Phaser.Math.Between(-20, 20);
+        const orb = this.add.image(ox, oy, 'xp-orb').setDepth(5).setScale(1.2);
+        // Float animation
+        this.tweens.add({
+          targets: orb, y: orb.y - 8, alpha: { from: 0.6, to: 1 },
+          duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+        });
+        this.xpOrbs.add(orb);
+        // Auto-destroy after 15 sec if not collected
+        this.time.delayedCall(15000, () => { if (orb.active) orb.destroy(); });
+      }
+    }
 
     // Roll material drops independently
     const materialTypes: { type: PickupType; chance: number }[] = [
@@ -849,6 +902,7 @@ export class GameScene extends Phaser.Scene {
   // ========== ABILITIES ==========
 
   private activateAbility() {
+    this.abilityCharge = 0;
     if (this.abilityId === 'big-bomb') this.useBigBomb();
     else if (this.abilityId === 'mini-nuke') this.enterNukeMode();
     else if (this.abilityId === 'cryo-capsule') this.useCryoCapsule();

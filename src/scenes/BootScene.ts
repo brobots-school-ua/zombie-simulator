@@ -1424,6 +1424,16 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('particle-spark', 4, 4);
     g.clear();
 
+    // XP orb (glowing ability charge particle)
+    g.fillStyle(0x00ffaa, 0.3);
+    g.fillCircle(5, 5, 5);
+    g.fillStyle(0x44ffcc, 0.6);
+    g.fillCircle(5, 5, 3);
+    g.fillStyle(0xffffff, 0.8);
+    g.fillCircle(5, 5, 1.5);
+    g.generateTexture('xp-orb', 10, 10);
+    g.clear();
+
     // Smoke particle
     g.fillStyle(0x444444, 0.3);
     g.fillCircle(8, 8, 8);
