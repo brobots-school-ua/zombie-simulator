@@ -1,5 +1,6 @@
-import { leaderboard } from './LeaderboardManager';
 import { shop } from './ShopConfig';
+import { profile } from './ProfileManager';
+import { WEAPONS } from './WeaponConfig';
 import { ZombieType } from '../entities/Zombie';
 
 const ADMIN_PASSWORD = 'nikitaadmin';
@@ -80,6 +81,11 @@ export class AdminConsole {
     const btnStyle = (bg: string, border: string, color: string) =>
       `padding:8px; background:${bg}; border:1px solid ${border}; color:${color}; font-family:monospace; font-size:13px; cursor:pointer; border-radius:3px;`;
 
+    const sel = ZOMBIE_TYPES.find(z => z.type === this.selectedZombieType)!;
+
+    // Build weapon unlock options (exclude pistol — always unlocked)
+    const craftableWeapons = WEAPONS.filter(w => w.id !== 'pistol');
+
     this.panel = document.createElement('div');
     this.panel.style.cssText = `
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -88,37 +94,13 @@ export class AdminConsole {
       min-width: 380px; max-height: 90vh; overflow-y: auto;
     `;
 
-    const sel = ZOMBIE_TYPES.find(z => z.type === this.selectedZombieType)!;
-
     this.panel.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
         <h3 style="margin:0; color:#ffaa00; font-size:18px;">ADMIN PANEL</h3>
         <button id="admin-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1; transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='#ff4444';this.style.color='#000'" onmouseout="this.style.background='none';this.style.color='#ff4444'">✕</button>
       </div>
 
-      <div style="margin-bottom:12px;">
-        <label style="display:block; margin-bottom:4px; color:#888;">Nickname:</label>
-        <input id="admin-name" type="text" maxlength="16" style="${inputStyle}">
-      </div>
-      <div style="margin-bottom:12px; display:flex; gap:10px;">
-        <div style="flex:1;">
-          <label style="display:block; margin-bottom:4px; color:#888;">Score:</label>
-          <input id="admin-score" type="number" value="100" style="${inputStyle}">
-        </div>
-        <div style="flex:1;">
-          <label style="display:block; margin-bottom:4px; color:#888;">Wave:</label>
-          <input id="admin-wave" type="number" value="5" style="${inputStyle}">
-        </div>
-      </div>
-
       <div id="admin-msg" style="color:#ffff00; font-size:12px; margin-bottom:12px; min-height:16px;"></div>
-
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
-        <button id="admin-add" style="${btnStyle('#1a3a1a', '#44ff44', '#44ff44')}; flex:1;">Add to leaderboard</button>
-        <button id="admin-clear" style="${btnStyle('#3a1a1a', '#ff4444', '#ff4444')}; flex:1;">Clear leaderboard</button>
-      </div>
-
-      <hr style="border-color:#333; margin:12px 0;">
 
       <div style="display:flex; gap:10px; align-items:end; margin-bottom:8px;">
         <div style="flex:1;">
@@ -168,6 +150,21 @@ export class AdminConsole {
 
       <hr style="border-color:#333; margin:12px 0;">
 
+      <label style="display:block; margin-bottom:8px; color:#888;">Weapons:</label>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+        ${craftableWeapons.map(w => {
+          const unlocked = profile.isWeaponUnlocked(w.id);
+          return `<button class="admin-unlock-wep" data-id="${w.id}" style="${btnStyle(
+            unlocked ? '#1a3a1a' : '#2a1a0a',
+            unlocked ? '#44ff44' : '#ff8844',
+            unlocked ? '#44ff44' : '#ff8844'
+          )}; flex:1; min-width:80px;">${unlocked ? '✓ ' : ''}${w.name}</button>`;
+        }).join('')}
+      </div>
+      <button id="admin-unlock-all" style="${btnStyle('#2a1a0a', '#ff8844', '#ff8844')}; width:100%; margin-bottom:8px;">Unlock ALL weapons</button>
+
+      <hr style="border-color:#333; margin:12px 0;">
+
       <label style="display:block; margin-bottom:8px; color:#888;">Spawn Zombie:</label>
       <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
         <div id="admin-zombie-preview" style="width:50px; height:50px; border:2px solid ${sel.color}; border-radius:6px; background:#111; cursor:pointer; display:flex; align-items:center; justify-content:center;">
@@ -188,24 +185,6 @@ export class AdminConsole {
 
     // Close button (X)
     this.panel.querySelector('#admin-close')!.addEventListener('click', () => this.closeAdminPanel());
-
-    // Leaderboard
-    const nameInput = this.panel.querySelector('#admin-name') as HTMLInputElement;
-    const scoreInput = this.panel.querySelector('#admin-score') as HTMLInputElement;
-    const waveInput = this.panel.querySelector('#admin-wave') as HTMLInputElement;
-    this.panel.querySelector('#admin-add')!.addEventListener('click', () => {
-      const name = nameInput.value.trim();
-      const score = parseInt(scoreInput.value, 10);
-      const wave = parseInt(waveInput.value, 10);
-      if (!name) { msg.textContent = 'Enter a nickname!'; msg.style.color = '#ff4444'; return; }
-      if (isNaN(score) || score < 0) { msg.textContent = 'Invalid score!'; msg.style.color = '#ff4444'; return; }
-      if (isNaN(wave) || wave < 1) { msg.textContent = 'Invalid wave!'; msg.style.color = '#ff4444'; return; }
-      leaderboard.adminAdd(name, score, wave);
-      msg.textContent = `Added: ${name} — ${score} pts (wave ${wave})`; msg.style.color = '#44ff44';
-    });
-    this.panel.querySelector('#admin-clear')!.addEventListener('click', () => {
-      leaderboard.clearLeaderboard(); msg.textContent = 'Leaderboard cleared!'; msg.style.color = '#ff4444';
-    });
 
     // Coins
     this.panel.querySelector('#admin-give-coins')!.addEventListener('click', () => {
@@ -247,18 +226,57 @@ export class AdminConsole {
       msg.textContent = `Medkits maxed! (${gs.player.medkits})`; msg.style.color = '#ff4444';
     });
 
-    // Materials
+    // Materials — works both in game and in menu
     this.panel.querySelector('#admin-give-mat')!.addEventListener('click', () => {
-      const gs = this.scene.scene.get('GameScene') as any;
-      if (!gs?.player) { msg.textContent = 'Start a game first!'; msg.style.color = '#ff4444'; return; }
       const matType = (this.panel!.querySelector('#admin-mat-type') as HTMLSelectElement).value;
       const amount = parseInt((this.panel!.querySelector('#admin-mat-amount') as HTMLInputElement).value, 10);
       if (isNaN(amount) || amount <= 0) { msg.textContent = 'Invalid amount!'; msg.style.color = '#ff4444'; return; }
-      if (matType === 'wood') gs.player.wood += amount;
-      else if (matType === 'metal') gs.player.metal += amount;
-      else if (matType === 'screws') gs.player.screws += amount;
+
+      // Update in-game player if active
+      const gs = this.scene.scene.get('GameScene') as any;
+      if (gs?.player) {
+        if (matType === 'wood') gs.player.wood += amount;
+        else if (matType === 'metal') gs.player.metal += amount;
+        else if (matType === 'screws') gs.player.screws += amount;
+      }
+
+      // Always update profile too
+      const mat = profile.getMaterials();
+      if (matType === 'wood') mat.wood += amount;
+      else if (matType === 'metal') mat.metal += amount;
+      else if (matType === 'screws') mat.screws += amount;
+      profile.setMaterials(mat);
+
       const names: Record<string, string> = { wood: 'Wood', metal: 'Metal', screws: 'Screws' };
-      msg.textContent = `+${amount} ${names[matType]}! (total: ${gs.player[matType]})`; msg.style.color = '#bb8844';
+      const total = matType === 'wood' ? mat.wood : matType === 'metal' ? mat.metal : mat.screws;
+      msg.textContent = `+${amount} ${names[matType]}! (total: ${total})`; msg.style.color = '#bb8844';
+    });
+
+    // Weapon unlock
+    this.panel.querySelectorAll('.admin-unlock-wep').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = (btn as HTMLElement).dataset.id!;
+        const w = WEAPONS.find(w => w.id === id);
+        if (!w) return;
+        if (profile.isWeaponUnlocked(id)) {
+          msg.textContent = `${w.name} already unlocked!`; msg.style.color = '#888';
+        } else {
+          profile.unlockWeapon(id);
+          msg.textContent = `${w.name} unlocked!`; msg.style.color = '#ff8844';
+          // Refresh panel to update button states
+          this.closeAdminPanel();
+          this.openAdminPanel();
+        }
+      });
+    });
+
+    this.panel.querySelector('#admin-unlock-all')!.addEventListener('click', () => {
+      for (const w of craftableWeapons) {
+        profile.unlockWeapon(w.id);
+      }
+      msg.textContent = 'All weapons unlocked!'; msg.style.color = '#ff8844';
+      this.closeAdminPanel();
+      this.openAdminPanel();
     });
 
     // Zombie type picker
