@@ -167,24 +167,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createWeaponBar() {
-    const { width, height } = this.scale;
-    const slotW = 90;
-    const slotH = 36;
-    const gap = 4;
-    const totalW = 5 * slotW + 4 * gap;
-    const startX = (width - totalW) / 2;
-    const y = height - slotH - 8;
-
-    for (let i = 0; i < 5; i++) {
-      const x = startX + i * (slotW + gap);
-      const txt = this.add.text(x + slotW / 2, y + slotH / 2, '', {
-        fontSize: '11px',
-        fontFamily: 'monospace',
-        color: '#aaaaaa',
-        align: 'center',
-      }).setOrigin(0.5).setDepth(101);
-      this.weaponBarTexts.push(txt);
-    }
+    // Weapon bar texts are created dynamically in updateWeaponBar
   }
 
   private createUtilityBar() {
@@ -270,16 +253,28 @@ export class UIScene extends Phaser.Scene {
     if (!this.gameScene?.player) return;
     const p = this.gameScene.player;
     const { width, height } = this.scale;
+    const count = p.weapons.length;
     const slotW = 90;
     const slotH = 36;
     const gap = 4;
-    const totalW = 5 * slotW + 4 * gap;
+    const totalW = count * slotW + (count - 1) * gap;
     const startX = (width - totalW) / 2;
     const y = height - slotH - 8;
 
+    // Create text objects if needed
+    while (this.weaponBarTexts.length < count) {
+      const txt = this.add.text(0, 0, '', {
+        fontSize: '11px',
+        fontFamily: 'monospace',
+        color: '#aaaaaa',
+        align: 'center',
+      }).setOrigin(0.5).setDepth(101);
+      this.weaponBarTexts.push(txt);
+    }
+
     this.weaponBarGfx.clear();
 
-    for (let i = 0; i < p.weapons.length; i++) {
+    for (let i = 0; i < count; i++) {
       const w = p.weapons[i];
       const x = startX + i * (slotW + gap);
       const isActive = i === p.activeWeaponIndex;
@@ -297,6 +292,12 @@ export class UIScene extends Phaser.Scene {
       txt.setText(`${i + 1} ${w.def.name}\n${w.magazineAmmo}/${w.reserveAmmo}`);
       txt.setColor(isActive ? '#44ff44' : '#888888');
       txt.setPosition(x + slotW / 2, y + slotH / 2);
+      txt.setVisible(true);
+    }
+
+    // Hide extra texts
+    for (let i = count; i < this.weaponBarTexts.length; i++) {
+      this.weaponBarTexts[i].setVisible(false);
     }
   }
 

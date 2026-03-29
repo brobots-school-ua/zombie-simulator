@@ -105,6 +105,59 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('weapon', 32, 14);
     g.clear();
 
+    // === WEAPON 0: PISTOL (compact handgun) ===
+    // Grip
+    g.fillStyle(0x3a2a1a);
+    g.fillRect(0, 6, 6, 8);
+    g.fillStyle(0x4a3828);
+    g.fillRect(1, 7, 4, 6);
+    // Grip texture lines
+    g.lineStyle(1, 0x2a1a0a, 0.4);
+    g.lineBetween(2, 8, 2, 12);
+    g.lineBetween(4, 8, 4, 12);
+    // Frame/slide
+    g.fillStyle(0x3a3a3e);
+    g.fillRect(3, 3, 14, 7);
+    g.fillStyle(0x4a4a50);
+    g.fillRect(4, 4, 12, 5);
+    // Slide serrations
+    g.lineStyle(1, 0x333338, 0.5);
+    g.lineBetween(12, 4, 12, 8);
+    g.lineBetween(14, 4, 14, 8);
+    // Trigger guard
+    g.fillStyle(0x2a2a2e);
+    g.fillRect(6, 9, 4, 2);
+    // Trigger
+    g.fillStyle(0x555560);
+    g.fillRect(8, 9, 1, 2);
+    // Barrel
+    g.fillStyle(0x3a3a40);
+    g.fillRect(16, 4, 6, 4);
+    g.fillStyle(0x4a4a52);
+    g.fillRect(16, 4, 6, 2);
+    // Muzzle
+    g.fillStyle(0x222228);
+    g.fillRect(20, 3, 3, 6);
+    g.fillStyle(0x1a1a1e);
+    g.fillRect(21, 4, 2, 4);
+    // Sight
+    g.fillStyle(0x555560);
+    g.fillRect(18, 2, 2, 2);
+    g.fillRect(6, 2, 2, 2);
+    // Highlight
+    g.lineStyle(1, 0x6a6a72, 0.3);
+    g.lineBetween(5, 4, 16, 4);
+    g.generateTexture('weapon-pistol', 24, 14);
+    g.clear();
+
+    // Pistol bullet (small yellow dot)
+    g.fillStyle(0xffcc44);
+    g.fillCircle(2, 2, 2);
+    g.fillStyle(0xffdd66);
+    g.fillCircle(2, 2, 1);
+    g.generateTexture('bullet-pistol', 4, 4);
+    g.clear();
+
     // === WEAPON 2: SHOTGUN (pump-action, detailed) ===
     g.fillStyle(0x5a3820);
     g.fillRect(0, 3, 7, 8);

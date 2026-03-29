@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { WEAPONS, WeaponDef } from '../systems/WeaponConfig';
 import { ACCESSORIES, shop } from '../systems/ShopConfig';
 import { equipment } from '../systems/EquipmentConfig';
+import { profile } from '../systems/ProfileManager';
 
 // Per-weapon ammo state
 export interface WeaponState {
@@ -73,13 +74,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setCollideWorldBounds(true);
     this.setDepth(10);
 
-    // Initialize all weapons with starting ammo
+    // Initialize only unlocked weapons with starting ammo
+    const unlocked = profile.getUnlockedWeapons();
     for (const def of WEAPONS) {
-      this.weapons.push({
-        def,
-        magazineAmmo: def.magazineSize,
-        reserveAmmo: def.startReserve,
-      });
+      if (unlocked.includes(def.id)) {
+        this.weapons.push({
+          def,
+          magazineAmmo: def.magazineSize,
+          reserveAmmo: def.startReserve,
+        });
+      }
     }
 
     // Weapon sprite — rotates independently toward mouse

@@ -24,6 +24,28 @@ export interface WeaponDef {
 
 export const WEAPONS: WeaponDef[] = [
   {
+    id: 'pistol',
+    name: 'Pistol',
+    texture: 'weapon-pistol',
+    bulletTexture: 'bullet-pistol',
+    damage: 8,
+    fireRate: 300,
+    magazineSize: 12,
+    startReserve: 24,
+    maxReserve: 36,
+    bulletSpeed: 400,
+    maxRange: 350,
+    reloadTime: 1200,
+    spread: 2,
+    pellets: 1,
+    pelletSpread: 0,
+    pierce: 1,
+    aoeRadius: 0,
+    ammoPickupFixed: 0,
+    auto: false,
+    key: 'ONE',
+  },
+  {
     id: 'rifle',
     name: 'Rifle',
     texture: 'weapon-rifle',
@@ -43,7 +65,7 @@ export const WEAPONS: WeaponDef[] = [
     aoeRadius: 0,
     ammoPickupFixed: 0,
     auto: true,
-    key: 'ONE',
+    key: 'TWO',
   },
   {
     id: 'shotgun',
@@ -65,7 +87,7 @@ export const WEAPONS: WeaponDef[] = [
     aoeRadius: 0,
     ammoPickupFixed: 3,
     auto: false,
-    key: 'TWO',
+    key: 'THREE',
   },
   {
     id: 'sniper',
@@ -87,7 +109,7 @@ export const WEAPONS: WeaponDef[] = [
     aoeRadius: 0,
     ammoPickupFixed: 3,
     auto: false,
-    key: 'THREE',
+    key: 'FOUR',
   },
   {
     id: 'minigun',
@@ -109,7 +131,7 @@ export const WEAPONS: WeaponDef[] = [
     aoeRadius: 0,
     ammoPickupFixed: 0,
     auto: true,
-    key: 'FOUR',
+    key: 'FIVE',
   },
   {
     id: 'grenade',
@@ -131,6 +153,6 @@ export const WEAPONS: WeaponDef[] = [
     aoeRadius: 100,
     ammoPickupFixed: 3,
     auto: false,
-    key: 'FIVE',
+    key: 'SIX',
   },
 ];

@@ -11,6 +11,7 @@ export interface ProfileData {
   equipment: string[];
   equippedEquipment: { helmet: string | null; belt: string | null };
   ability: string;
+  unlockedWeapons: string[];
 }
 
 const PROFILE_PREFIX = 'zombie-profile-';
@@ -27,6 +28,7 @@ function emptyProfile(): ProfileData {
     equipment: [],
     equippedEquipment: { helmet: null, belt: null },
     ability: 'big-bomb',
+    unlockedWeapons: ['pistol'],
   };
 }
 
@@ -195,6 +197,16 @@ class ProfileManager {
   unequipEquipment(slot: 'helmet' | 'belt') {
     this.data.equippedEquipment[slot] = null;
     this.save();
+  }
+
+  // === Weapons ===
+  getUnlockedWeapons(): string[] { return this.data.unlockedWeapons; }
+  isWeaponUnlocked(id: string): boolean { return this.data.unlockedWeapons.includes(id); }
+  unlockWeapon(id: string) {
+    if (!this.data.unlockedWeapons.includes(id)) {
+      this.data.unlockedWeapons.push(id);
+      this.save();
+    }
   }
 
   // === Ability ===

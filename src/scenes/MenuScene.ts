@@ -7,6 +7,7 @@ import { bestiary } from '../systems/BestiaryManager';
 import { ABILITIES, getSelectedAbility, setSelectedAbility } from '../systems/AbilityConfig';
 import { EQUIPMENT, equipment } from '../systems/EquipmentConfig';
 import { profile } from '../systems/ProfileManager';
+import { CRAFT_RECIPES } from '../systems/CraftingConfig';
 
 // Atmospheric main menu scene
 export class MenuScene extends Phaser.Scene {
@@ -17,6 +18,7 @@ export class MenuScene extends Phaser.Scene {
   private backpackPanel: HTMLDivElement | null = null;
   private abilitiesPanel: HTMLDivElement | null = null;
   private equipmentPanel: HTMLDivElement | null = null;
+  private workshopPanel: HTMLDivElement | null = null;
   private killsText!: Phaser.GameObjects.Text;
 
   constructor() {
@@ -185,7 +187,7 @@ export class MenuScene extends Phaser.Scene {
     let starting = false;
     startBtn.on('pointerdown', () => {
       if (starting || !ready) return;
-      if (this.shopPanel || this.bestiaryPanel || this.backpackPanel || this.abilitiesPanel || this.equipmentPanel) return;
+      if (this.shopPanel || this.bestiaryPanel || this.backpackPanel || this.abilitiesPanel || this.equipmentPanel || this.workshopPanel) return;
       starting = true; startBtn.disableInteractive();
       if (this.nicknameInput) {
         const name = this.nicknameInput.value.trim();
@@ -201,11 +203,11 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // ============ BOTTOM — Wider buttons with full labels ============
-    const btnW = 120;
+    const btnW = 105;
     const btnH = 50;
-    const btnGap = 8;
+    const btnGap = 6;
     const btnY = height - 30;
-    const totalBtnsW = btnW * 6 + btnGap * 5;
+    const totalBtnsW = btnW * 7 + btnGap * 6;
     const btnStartX = width - totalBtnsW - 20;
     const btnStyle = { fontSize: '11px', fontFamily: 'monospace', align: 'center' as const };
 
@@ -231,15 +233,16 @@ export class MenuScene extends Phaser.Scene {
       return { bg, zone };
     };
 
-    makeBtn(0, 'ACCESS.', 0xffcc22, 0x1a1a0a, 0x2a2a1a, 0xffee66, () => this.openShop());
-    makeBtn(1, 'VOLUME', 0x44ff44, 0x0a1a0a, 0x1a2a1a, 0x88ff88, () => {});
-    makeBtn(2, 'BESTIARY', 0xcc44ff, 0x1a0a1a, 0x2a1a2a, 0xee66ff, () => this.openBestiary());
-    makeBtn(3, 'STASH', 0x88aa44, 0x0a1a0a, 0x1a2a1a, 0xaacc66, () => this.openBackpack());
-    makeBtn(4, 'ABILITIES', 0xff6644, 0x1a1a0a, 0x2a1a0a, 0xff8866, () => this.openAbilities());
-    makeBtn(5, 'EQUIP', 0x44bbff, 0x0a1a2a, 0x1a2a3a, 0x66ddff, () => this.openEquipment());
+    makeBtn(0, 'WORKSHOP', 0xff8844, 0x1a1a0a, 0x2a1a0a, 0xffaa66, () => this.openWorkshop());
+    makeBtn(1, 'ACCESS.', 0xffcc22, 0x1a1a0a, 0x2a2a1a, 0xffee66, () => this.openShop());
+    makeBtn(2, 'VOLUME', 0x44ff44, 0x0a1a0a, 0x1a2a1a, 0x88ff88, () => {});
+    makeBtn(3, 'BESTIARY', 0xcc44ff, 0x1a0a1a, 0x2a1a2a, 0xee66ff, () => this.openBestiary());
+    makeBtn(4, 'STASH', 0x88aa44, 0x0a1a0a, 0x1a2a1a, 0xaacc66, () => this.openBackpack());
+    makeBtn(5, 'ABILITIES', 0xff6644, 0x1a1a0a, 0x2a1a0a, 0xff8866, () => this.openAbilities());
+    makeBtn(6, 'EQUIP', 0x44bbff, 0x0a1a2a, 0x1a2a3a, 0x66ddff, () => this.openEquipment());
 
     // Volume slider inside the VOLUME button area
-    const volBtnX = btnStartX + 1 * (btnW + btnGap);
+    const volBtnX = btnStartX + 2 * (btnW + btnGap);
     this.createVolumeSlider(volBtnX + btnW / 2, btnY - btnH / 2 + 4, btnW - 24);
 
     // ============ RIGHT SIDE — Stats with panel ============
@@ -263,7 +266,7 @@ export class MenuScene extends Phaser.Scene {
     const ctrlBg = this.add.graphics().setDepth(8);
     ctrlBg.fillStyle(0x000000, 0.3);
     ctrlBg.fillRoundedRect(CX - 350, height - 30, 700, 22, 4);
-    const ctrl = this.add.text(CX, height - 19, 'WASD — move  |  SHIFT — sprint  |  MOUSE — shoot  |  R — reload  |  1-5 — weapon  |  F — ability', {
+    const ctrl = this.add.text(CX, height - 19, 'WASD — move  |  SHIFT — sprint  |  MOUSE — shoot  |  R — reload  |  1-6 — weapon  |  F — ability', {
       fontSize: '11px', fontFamily: 'monospace', color: '#444444',
     }).setOrigin(0.5, 0.5).setAlpha(0).setDepth(10);
     this.tweens.add({ targets: [ctrl, ctrlBg], alpha: 0.7, duration: 1500, delay: 1200 });
@@ -283,6 +286,7 @@ export class MenuScene extends Phaser.Scene {
       this.closeBestiary();
       this.closeBackpack();
       this.closeEquipment();
+      this.closeWorkshop();
       this.adminConsole.destroy();
     });
   }
@@ -815,5 +819,120 @@ export class MenuScene extends Phaser.Scene {
 
   private closeEquipment() {
     if (this.equipmentPanel) { this.equipmentPanel.remove(); this.equipmentPanel = null; }
+  }
+
+  private openWorkshop() {
+    if (this.workshopPanel) return;
+
+    this.workshopPanel = document.createElement('div');
+    this.workshopPanel.style.cssText = `
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.95); border: 2px solid #ff8844; border-radius: 8px;
+      padding: 24px; z-index: 3000; font-family: monospace; color: #ff8844;
+      width: 500px; max-height: 85vh; overflow-y: auto;
+    `;
+
+    const renderPanel = () => {
+      if (!this.workshopPanel) return;
+      const kills = shop.getKills();
+      const mat = profile.getMaterials();
+
+      this.workshopPanel.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="margin:0; color:#ff8844; font-size:20px;">WORKSHOP</h3>
+          <button id="ws-close" style="background:none; border:2px solid #ff4444; color:#ff4444; font-family:monospace; font-size:22px; cursor:pointer; padding:2px 10px; border-radius:4px; line-height:1; transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='#ff4444';this.style.color='#000'" onmouseout="this.style.background='none';this.style.color='#ff4444'">&#10005;</button>
+        </div>
+
+        <div style="display:flex; gap:16px; margin-bottom:16px; padding:10px; border:1px solid #333; border-radius:6px; background:rgba(255,136,68,0.05);">
+          <div style="flex:1; text-align:center;">
+            <div style="color:#888; font-size:11px;">Kills</div>
+            <div style="color:#ffcc22; font-size:18px; font-weight:bold;">${kills}</div>
+          </div>
+          <div style="flex:1; text-align:center;">
+            <div style="color:#888; font-size:11px;">Wood</div>
+            <div style="color:#8b5a2b; font-size:18px; font-weight:bold;">${mat.wood}</div>
+          </div>
+          <div style="flex:1; text-align:center;">
+            <div style="color:#888; font-size:11px;">Metal</div>
+            <div style="color:#999; font-size:18px; font-weight:bold;">${mat.metal}</div>
+          </div>
+          <div style="flex:1; text-align:center;">
+            <div style="color:#888; font-size:11px;">Screws</div>
+            <div style="color:#777; font-size:18px; font-weight:bold;">${mat.screws}</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:8px; padding:8px; border:1px solid #44ff44; border-radius:4px; background:rgba(68,255,68,0.05);">
+          <span style="color:#44ff44; font-size:13px;">Pistol</span>
+          <span style="color:#888; font-size:11px; margin-left:8px;">— starter weapon (always available)</span>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${CRAFT_RECIPES.map(r => {
+            const unlocked = profile.isWeaponUnlocked(r.weaponId);
+            const canCraft = !unlocked && kills >= r.kills && mat.wood >= r.wood && mat.metal >= r.metal && mat.screws >= r.screws;
+            const costColor = (have: number, need: number) => have >= need ? '#44ff44' : '#ff4444';
+
+            if (unlocked) {
+              return `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #44ff44; border-radius:4px; background:rgba(68,255,68,0.05);">
+                <span style="color:#44ff44; font-size:14px;">${r.name}</span>
+                <span style="color:#44ff44; font-size:12px;">CRAFTED &#10003;</span>
+              </div>`;
+            }
+
+            return `<div style="padding:10px; border:1px solid #555; border-radius:4px; background:rgba(0,0,0,0.3);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="color:#ddd; font-size:14px; font-weight:bold;">${r.name}</span>
+                <button class="craft-btn" data-id="${r.weaponId}" style="padding:5px 14px; background:${canCraft ? '#2a1a0a' : '#222'}; border:1px solid ${canCraft ? '#ff8844' : '#555'}; color:${canCraft ? '#ff8844' : '#555'}; font-family:monospace; cursor:${canCraft ? 'pointer' : 'default'}; border-radius:3px; font-size:12px; font-weight:bold;" ${canCraft ? '' : 'disabled'}>CRAFT</button>
+              </div>
+              <div style="display:flex; gap:12px; font-size:11px;">
+                <span style="color:${costColor(kills, r.kills)};">${r.kills} Kills</span>
+                <span style="color:${costColor(mat.wood, r.wood)};">${r.wood} Wood</span>
+                <span style="color:${costColor(mat.metal, r.metal)};">${r.metal} Metal</span>
+                <span style="color:${costColor(mat.screws, r.screws)};">${r.screws} Screws</span>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      `;
+
+      // Event listeners
+      this.workshopPanel!.querySelector('#ws-close')!.addEventListener('click', () => this.closeWorkshop());
+      this.workshopPanel!.querySelectorAll('.craft-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const weaponId = (btn as HTMLElement).dataset.id!;
+          const recipe = CRAFT_RECIPES.find(r => r.weaponId === weaponId);
+          if (!recipe) return;
+
+          const currentKills = shop.getKills();
+          const currentMat = profile.getMaterials();
+          if (currentKills < recipe.kills || currentMat.wood < recipe.wood || currentMat.metal < recipe.metal || currentMat.screws < recipe.screws) return;
+
+          // Deduct resources
+          shop.addKills(-recipe.kills);
+          currentMat.wood -= recipe.wood;
+          currentMat.metal -= recipe.metal;
+          currentMat.screws -= recipe.screws;
+          profile.setMaterials(currentMat);
+
+          // Unlock weapon
+          profile.unlockWeapon(weaponId);
+
+          // Update kills display
+          if (this.killsText) this.killsText.setText(`Kills: ${shop.getKills()}`);
+
+          renderPanel();
+        });
+      });
+    };
+
+    document.body.appendChild(this.workshopPanel);
+    this.workshopPanel.addEventListener('keydown', (e) => e.stopPropagation());
+    renderPanel();
+  }
+
+  private closeWorkshop() {
+    if (this.workshopPanel) { this.workshopPanel.remove(); this.workshopPanel = null; }
   }
 }
