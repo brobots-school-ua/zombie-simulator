@@ -463,15 +463,15 @@ export class MenuScene extends Phaser.Scene {
     const py = (height - panelH) / 2;
 
     // Dim background
-    const dimBg = this.add.graphics().setDepth(50).setVisible(false);
+    const dimBg = this.add.graphics().setDepth(500).setVisible(false);
     dimBg.fillStyle(0x000000, 0.6);
     dimBg.fillRect(0, 0, width, height);
     const dimZone = this.add.zone(width / 2, height / 2, width, height)
-      .setInteractive().setDepth(50).setVisible(false);
+      .setInteractive().setDepth(500).setVisible(false);
     dimZone.on('pointerdown', () => this.toggleSettingsOverlay());
 
     // Panel background
-    const panelBg = this.add.graphics().setDepth(51).setVisible(false);
+    const panelBg = this.add.graphics().setDepth(501).setVisible(false);
     panelBg.fillStyle(0x111811, 0.95);
     panelBg.fillRoundedRect(px, py, panelW, panelH, 12);
     panelBg.lineStyle(2, 0x44ff44, 0.5);
@@ -480,12 +480,12 @@ export class MenuScene extends Phaser.Scene {
     // Title
     const title = this.add.text(width / 2, py + 25, 'SETTINGS', {
       fontSize: '22px', fontFamily: 'monospace', color: '#44ff44', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(52).setVisible(false);
+    }).setOrigin(0.5).setDepth(502).setVisible(false);
 
     // Close button (X)
     const closeBtn = this.add.text(px + panelW - 20, py + 12, '✕', {
       fontSize: '20px', fontFamily: 'monospace', color: '#ff4444',
-    }).setOrigin(0.5).setDepth(52).setVisible(false).setInteractive({ useHandCursor: true });
+    }).setOrigin(0.5).setDepth(502).setVisible(false).setInteractive({ useHandCursor: true });
     closeBtn.on('pointerdown', () => this.toggleSettingsOverlay());
     closeBtn.on('pointerover', () => closeBtn.setColor('#ff8888'));
     closeBtn.on('pointerout', () => closeBtn.setColor('#ff4444'));
@@ -493,20 +493,20 @@ export class MenuScene extends Phaser.Scene {
     // Volume label
     const volLabel = this.add.text(px + 30, py + 65, 'Volume', {
       fontSize: '16px', fontFamily: 'monospace', color: '#aaaaaa',
-    }).setDepth(52).setVisible(false);
+    }).setDepth(502).setVisible(false);
 
     // Volume slider
     const sliderW = 160;
     const sliderX = px + 110;
     const sliderY = py + 75;
-    const trackGfx = this.add.graphics().setDepth(52).setVisible(false);
+    const trackGfx = this.add.graphics().setDepth(502).setVisible(false);
     trackGfx.fillStyle(0x333333);
     trackGfx.fillRoundedRect(sliderX, sliderY - 2, sliderW, 4, 2);
 
-    const sliderGfx = this.add.graphics().setDepth(53).setVisible(false);
+    const sliderGfx = this.add.graphics().setDepth(503).setVisible(false);
     const pctText = this.add.text(sliderX + sliderW + 15, sliderY, `${audioManager.getVolumePercent()}%`, {
       fontSize: '14px', fontFamily: 'monospace', color: '#44ff44',
-    }).setOrigin(0, 0.5).setDepth(52).setVisible(false);
+    }).setOrigin(0, 0.5).setDepth(502).setVisible(false);
 
     const volToX = (vol: number) => sliderX + (vol / 2.0) * sliderW;
     const xToVol = (x: number) => ((x - sliderX) / sliderW) * 2.0;
@@ -520,7 +520,7 @@ export class MenuScene extends Phaser.Scene {
     draw(audioManager.getVolume());
 
     const hitZone = this.add.zone(sliderX + sliderW / 2, sliderY, sliderW + 20, 28)
-      .setInteractive({ useHandCursor: true }).setDepth(54).setVisible(false);
+      .setInteractive({ useHandCursor: true }).setDepth(504).setVisible(false);
     let dragging = false;
     hitZone.on('pointerdown', (p: Phaser.Input.Pointer) => { dragging = true; const v = xToVol(Phaser.Math.Clamp(p.x, sliderX, sliderX + sliderW)); audioManager.setVolume(v); draw(v); });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => { if (!dragging) return; const v = xToVol(Phaser.Math.Clamp(p.x, sliderX, sliderX + sliderW)); audioManager.setVolume(v); draw(v); });
@@ -529,7 +529,7 @@ export class MenuScene extends Phaser.Scene {
     // ESC hint
     const escHint = this.add.text(width / 2, py + panelH - 25, 'Press ESC to close', {
       fontSize: '11px', fontFamily: 'monospace', color: '#555555',
-    }).setOrigin(0.5).setDepth(52).setVisible(false);
+    }).setOrigin(0.5).setDepth(502).setVisible(false);
 
     this.settingsObjects = [dimBg, dimZone, panelBg, title, closeBtn, volLabel, trackGfx, sliderGfx, pctText, hitZone, escHint];
   }
@@ -929,11 +929,6 @@ export class MenuScene extends Phaser.Scene {
             <div style="color:#888; font-size:11px;">Screws</div>
             <div style="color:#777; font-size:18px; font-weight:bold;">${mat.screws}</div>
           </div>
-        </div>
-
-        <div style="margin-bottom:8px; padding:8px; border:1px solid #44ff44; border-radius:4px; background:rgba(68,255,68,0.05);">
-          <span style="color:#44ff44; font-size:13px;">Pistol</span>
-          <span style="color:#888; font-size:11px; margin-left:8px;">— starter weapon (always available)</span>
         </div>
 
         <div style="display:flex; flex-direction:column; gap:8px;">

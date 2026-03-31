@@ -75,8 +75,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(10);
 
     // Initialize only unlocked weapons with starting ammo
+    // If player has any crafted weapon, pistol is replaced
     const unlocked = profile.getUnlockedWeapons();
+    const hasCraftedWeapon = unlocked.some(id => id !== 'pistol');
     for (const def of WEAPONS) {
+      if (def.id === 'pistol' && hasCraftedWeapon) continue;
       if (unlocked.includes(def.id)) {
         this.weapons.push({
           def,
