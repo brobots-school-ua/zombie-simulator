@@ -658,7 +658,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private startWaveBreak() {
-    const breakTime = 15;
+    const breakTime = 20;
     const { width, height } = this.scale;
 
     // Wave complete text
