@@ -482,9 +482,10 @@ export class GameScene extends Phaser.Scene {
         const dist = Phaser.Math.Distance.Between(orb.x, orb.y, this.player.x, this.player.y);
         if (dist < collectRadius) {
           // Collect orb
+          const orbValue = orb.getData('value') || 2;
           orb.destroy();
           if (this.abilityCharge < 100) {
-            this.abilityCharge = Math.min(100, this.abilityCharge + 1);
+            this.abilityCharge = Math.min(100, this.abilityCharge + orbValue);
           }
         } else if (dist < attractRadius) {
           // Stop float tween so it doesn't override Y position
@@ -539,19 +540,21 @@ export class GameScene extends Phaser.Scene {
 
     // Spawn XP orb for ability charge
     if (this.xpOrbs && this.abilityCharge < 100) {
-      const orbCount = z.zombieType === 'boss' ? 10 : z.zombieType === 'tank' ? 3 : 1;
-      for (let i = 0; i < orbCount; i++) {
-        const ox = z.x + Phaser.Math.Between(-20, 20);
-        const oy = z.y + Phaser.Math.Between(-20, 20);
-        const orb = this.add.image(ox, oy, 'xp-orb').setDepth(5).setScale(1.2);
-        // Float animation
-        this.tweens.add({
-          targets: orb, y: orb.y - 8, alpha: { from: 0.6, to: 1 },
-          duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
-        });
-        this.xpOrbs.add(orb);
-        // Auto-destroy after 15 sec if not collected
-        this.time.delayedCall(15000, () => { if (orb.active) orb.destroy(); });
+      const isBoss = z.zombieType === 'boss';
+      const orbValue = isBoss ? 50 : 2;
+      const orbScale = isBoss ? 2.5 : 1.2;
+      const ox = z.x + Phaser.Math.Between(-10, 10);
+      const oy = z.y + Phaser.Math.Between(-10, 10);
+      const orb = this.add.image(ox, oy, 'xp-orb').setDepth(5).setScale(orbScale);
+      orb.setData('value', orbValue);
+      // Float animation
+      this.tweens.add({
+        targets: orb, y: orb.y - 8, alpha: { from: 0.6, to: 1 },
+        duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+      });
+      this.xpOrbs.add(orb);
+      // Auto-destroy after 15 sec if not collected
+      this.time.delayedCall(15000, () => { if (orb.active) orb.destroy(); });
       }
     }
 
