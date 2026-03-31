@@ -556,18 +556,33 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Roll material drops independently
-    const materialTypes: { type: PickupType; chance: number }[] = [
-      { type: 'wood', chance: z.drops.wood },
-      { type: 'metal', chance: z.drops.metal },
-      { type: 'screws', chance: z.drops.screws },
-    ];
-    let dropOffset = 0;
-    for (const mat of materialTypes) {
-      if (Math.random() * 100 < mat.chance && this.canSpawnPickup(mat.type)) {
-        // Spread drops slightly so they don't stack on top of each other
-        const ox = (dropOffset - 1) * 16;
-        this.pickups.add(new Pickup(this, z.x + ox, z.y + 10, mat.type));
-        dropOffset++;
+    if (z.zombieType === 'boss') {
+      // Boss drops fixed amounts
+      const bossDrops: { type: PickupType; count: number }[] = [
+        { type: 'wood', count: 20 },
+        { type: 'metal', count: 15 },
+        { type: 'screws', count: 10 },
+      ];
+      for (const drop of bossDrops) {
+        for (let i = 0; i < drop.count; i++) {
+          const ox = Phaser.Math.Between(-40, 40);
+          const oy = Phaser.Math.Between(-40, 40);
+          this.pickups.add(new Pickup(this, z.x + ox, z.y + oy, drop.type));
+        }
+      }
+    } else {
+      const materialTypes: { type: PickupType; chance: number }[] = [
+        { type: 'wood', chance: z.drops.wood },
+        { type: 'metal', chance: z.drops.metal },
+        { type: 'screws', chance: z.drops.screws },
+      ];
+      let dropOffset = 0;
+      for (const mat of materialTypes) {
+        if (Math.random() * 100 < mat.chance && this.canSpawnPickup(mat.type)) {
+          const ox = (dropOffset - 1) * 16;
+          this.pickups.add(new Pickup(this, z.x + ox, z.y + 10, mat.type));
+          dropOffset++;
+        }
       }
     }
 

@@ -31,7 +31,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     score: 10,
     killValue: 1,
     detectionRange: 300,
-    drops: { wood: 20, metal: 15, screws: 5 },
+    drops: { wood: 40, metal: 30, screws: 15 },
   },
   runner: {
     texture: 'zombie-runner',
@@ -42,7 +42,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     score: 20,
     killValue: 2,
     detectionRange: 400,
-    drops: { wood: 20, metal: 20, screws: 7 },
+    drops: { wood: 40, metal: 35, screws: 18 },
   },
   tank: {
     texture: 'zombie-tank',
@@ -53,7 +53,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     score: 50,
     killValue: 3,
     detectionRange: 250,
-    drops: { wood: 17, metal: 17, screws: 10 },
+    drops: { wood: 35, metal: 35, screws: 22 },
   },
   radioactive: {
     texture: 'zombie-radioactive',
@@ -64,7 +64,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     score: 30,
     killValue: 2,
     detectionRange: 300,
-    drops: { wood: 22, metal: 22, screws: 12 },
+    drops: { wood: 45, metal: 40, screws: 25 },
   },
   kamikaze: {
     texture: 'zombie-kamikaze',
@@ -75,7 +75,7 @@ const ZOMBIE_CONFIG: Record<ZombieType, {
     score: 25,
     killValue: 2,
     detectionRange: 9999, // sees across entire map
-    drops: { wood: 25, metal: 25, screws: 15 },
+    drops: { wood: 50, metal: 45, screws: 30 },
   },
   boss: {
     texture: 'zombie-boss',
