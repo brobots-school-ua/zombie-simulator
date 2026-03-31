@@ -23,7 +23,6 @@ export class UIScene extends Phaser.Scene {
   private lbBg!: Phaser.GameObjects.Graphics;
   private lbTitle!: Phaser.GameObjects.Text;
   private lbEntries: Phaser.GameObjects.Text[] = [];
-  private volumeOpen = false;
   private weaponBarGfx!: Phaser.GameObjects.Graphics;
   private weaponBarTexts: Phaser.GameObjects.Text[] = [];
   private utilityBarGfx!: Phaser.GameObjects.Graphics;
@@ -31,8 +30,17 @@ export class UIScene extends Phaser.Scene {
   private bandageText!: Phaser.GameObjects.Text;
   private medkitIcon!: Phaser.GameObjects.Sprite;
   private medkitText!: Phaser.GameObjects.Text;
-  private escPending = false;
-  private escText!: Phaser.GameObjects.Text;
+  private pauseMenuOpen = false;
+  private pauseObjects: Phaser.GameObjects.GameObject[] = [];
+  private pauseKillsText!: Phaser.GameObjects.Text;
+  private pauseWoodText!: Phaser.GameObjects.Text;
+  private pauseMetalText!: Phaser.GameObjects.Text;
+  private pauseScrewsText!: Phaser.GameObjects.Text;
+  private pauseVolPctText!: Phaser.GameObjects.Text;
+  private pauseSliderGfx!: Phaser.GameObjects.Graphics;
+  private pauseSliderX = 0;
+  private pauseSliderW = 0;
+  private countdownActive = false;
   adminConsole!: AdminConsole;
   private exiting = false;
   private materialsGfx!: Phaser.GameObjects.Graphics;
@@ -106,38 +114,12 @@ export class UIScene extends Phaser.Scene {
     // In-game leaderboard (top right, below wave)
     this.createLeaderboardDisplay();
 
-    // ESC to exit — simple reload approach (no scene juggling)
-    this.escText = this.add.text(0, 0, 'Press ESC again to exit to menu', {
-      fontSize: '18px',
-      fontFamily: 'monospace',
-      color: '#ffff00',
-      backgroundColor: '#000000aa',
-      padding: { x: 12, y: 6 },
-    }).setOrigin(0.5).setDepth(200).setVisible(false);
-
+    // ESC — open/close pause menu
+    this.createPauseMenu();
     const escKey = this.input.keyboard!.addKey('ESC');
     escKey.on('down', () => {
-      if (this.exiting) return;
-      if (this.escPending) {
-        this.exiting = true;
-        // Save score + materials before exit
-        const gs = this.gameScene;
-        if (gs?.player) {
-          leaderboard.saveResult(gs.player.score, gs.wave);
-        }
-        this.saveMaterials();
-        audioManager.stopGameMusic(0);
-        audioManager.stopMenuMusic(0);
-        // Reload page — guaranteed clean state
-        window.location.reload();
-      } else {
-        this.escPending = true;
-        this.escText.setVisible(true);
-        this.time.delayedCall(2000, () => {
-          this.escPending = false;
-          if (this.escText) this.escText.setVisible(false);
-        });
-      }
+      if (this.exiting || this.countdownActive) return;
+      this.togglePauseMenu();
     });
 
     // Ability icon + hint (above minimap)
@@ -171,8 +153,6 @@ export class UIScene extends Phaser.Scene {
     // Admin console (~ key)
     this.adminConsole = new AdminConsole(this);
 
-    // Volume control in-game
-    this.createVolumeControl();
   }
 
   private createWeaponBar() {
@@ -246,16 +226,14 @@ export class UIScene extends Phaser.Scene {
   }
 
   private updateMaterialsBar() {
-    if (!this.gameScene?.player) return;
-    const p = this.gameScene.player;
-
+    // Materials moved to pause menu — hide from HUD
     this.materialsGfx.clear();
-    this.materialsGfx.fillStyle(0x000000, 0.4);
-    this.materialsGfx.fillRoundedRect(14, 105, 190, 22, 4);
-
-    this.woodText.setText(`${p.wood}`);
-    this.metalText.setText(`${p.metal}`);
-    this.screwsText.setText(`${p.screws}`);
+    this.woodIcon.setVisible(false);
+    this.woodText.setVisible(false);
+    this.metalIcon.setVisible(false);
+    this.metalText.setVisible(false);
+    this.screwsIcon.setVisible(false);
+    this.screwsText.setVisible(false);
   }
 
   private updateWeaponBar() {
@@ -369,95 +347,302 @@ export class UIScene extends Phaser.Scene {
     this.lbTitle.setVisible(top5.length > 0);
   }
 
-  private createVolumeControl() {
-    const { width } = this.scale;
-    const btnX = width - 40;
-    const btnY = 55;
+  private createPauseMenu() {
+    const { width, height } = this.scale;
+    const panelW = 360;
+    const panelH = 340;
+    const px = (width - panelW) / 2;
+    const py = (height - panelH) / 2;
 
-    // Volume icon button
-    const volBtn = this.add.text(btnX, btnY, '♪', {
-      fontSize: '22px',
-      fontFamily: 'monospace',
-      color: '#44ff44',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(101);
+    // Dim background
+    const dimBg = this.add.graphics().setDepth(200).setVisible(false);
+    dimBg.fillStyle(0x000000, 0.65);
+    dimBg.fillRect(0, 0, width, height);
 
-    // Slider container (hidden by default)
-    const sliderX = width - 195;
-    const sliderY = btnY;
-    const sliderW = 130;
+    // Panel background
+    const panelBg = this.add.graphics().setDepth(201).setVisible(false);
+    panelBg.fillStyle(0x111811, 0.95);
+    panelBg.fillRoundedRect(px, py, panelW, panelH, 12);
+    panelBg.lineStyle(2, 0x44ff44, 0.5);
+    panelBg.strokeRoundedRect(px, py, panelW, panelH, 12);
 
-    const sliderBg = this.add.graphics().setDepth(101).setVisible(false);
-    const sliderGfx = this.add.graphics().setDepth(102).setVisible(false);
-    const pctText = this.add.text(sliderX - 40, sliderY, `${audioManager.getVolumePercent()}%`, {
-      fontSize: '12px',
-      fontFamily: 'monospace',
-      color: '#44ff44',
-    }).setOrigin(0, 0.5).setDepth(102).setVisible(false);
+    // Title
+    const title = this.add.text(width / 2, py + 28, 'PAUSED', {
+      fontSize: '28px', fontFamily: 'monospace', color: '#44ff44', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(202).setVisible(false);
 
-    // Draw static track background
-    const drawBg = () => {
-      sliderBg.clear();
-      sliderBg.fillStyle(0x000000, 0.6);
-      sliderBg.fillRoundedRect(sliderX - 50, sliderY - 14, sliderW + 60, 28, 5);
-      sliderBg.fillStyle(0x333333);
-      sliderBg.fillRoundedRect(sliderX, sliderY - 2, sliderW, 4, 2);
-    };
+    // Close button (X) top-right
+    const closeBtn = this.add.text(px + panelW - 22, py + 14, '✕', {
+      fontSize: '22px', fontFamily: 'monospace', color: '#ff4444',
+    }).setOrigin(0.5).setDepth(202).setVisible(false).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.closePauseMenu());
+    closeBtn.on('pointerover', () => closeBtn.setColor('#ff8888'));
+    closeBtn.on('pointerout', () => closeBtn.setColor('#ff4444'));
 
-    const volToX = (vol: number) => sliderX + (vol / 2.0) * sliderW;
-    const xToVol = (x: number) => ((x - sliderX) / sliderW) * 2.0;
+    // --- Kills section ---
+    const killsLabel = this.add.text(px + 30, py + 65, 'Kills', {
+      fontSize: '16px', fontFamily: 'monospace', color: '#aaaaaa',
+    }).setDepth(202).setVisible(false);
 
-    const drawSlider = (vol: number) => {
-      const knobX = volToX(vol);
-      sliderGfx.clear();
-      sliderGfx.fillStyle(0x44ff44);
-      sliderGfx.fillRoundedRect(sliderX, sliderY - 2, knobX - sliderX, 4, 2);
-      sliderGfx.fillStyle(0x88ff88);
-      sliderGfx.fillCircle(knobX, sliderY, 6);
-      sliderGfx.fillStyle(0x44ff44);
-      sliderGfx.fillCircle(knobX, sliderY, 4);
-      pctText.setText(`${audioManager.getVolumePercent()}%`);
-    };
+    this.pauseKillsText = this.add.text(px + panelW - 30, py + 65, '0', {
+      fontSize: '16px', fontFamily: 'monospace', color: '#ffcc22',
+    }).setOrigin(1, 0).setDepth(202).setVisible(false);
 
-    drawBg();
-    drawSlider(audioManager.getVolume());
+    // Separator
+    const sep1 = this.add.graphics().setDepth(202).setVisible(false);
+    sep1.lineStyle(1, 0x333333);
+    sep1.lineBetween(px + 20, py + 92, px + panelW - 20, py + 92);
 
-    // Hit zone for slider drag
-    const hitZone = this.add.zone(sliderX + sliderW / 2, sliderY, sliderW + 20, 28)
-      .setInteractive({ useHandCursor: true })
-      .setDepth(103).setVisible(false);
+    // --- Materials section ---
+    const matLabel = this.add.text(px + 30, py + 105, 'Materials', {
+      fontSize: '16px', fontFamily: 'monospace', color: '#aaaaaa',
+    }).setDepth(202).setVisible(false);
 
-    // Toggle slider visibility
-    volBtn.on('pointerdown', () => {
-      this.volumeOpen = !this.volumeOpen;
-      sliderBg.setVisible(this.volumeOpen);
-      sliderGfx.setVisible(this.volumeOpen);
-      pctText.setVisible(this.volumeOpen);
-      hitZone.setVisible(this.volumeOpen);
-      if (this.volumeOpen) {
-        // Redraw with current value
-        drawSlider(audioManager.getVolume());
-      }
-    });
+    // Wood
+    const pWoodIcon = this.add.sprite(px + 40, py + 138, 'material-wood').setDepth(202).setScale(1.4).setVisible(false);
+    this.pauseWoodText = this.add.text(px + 60, py + 130, '0', {
+      fontSize: '14px', fontFamily: 'monospace', color: '#aa8844',
+    }).setDepth(202).setVisible(false);
 
+    // Metal
+    const pMetalIcon = this.add.sprite(px + 130, py + 138, 'material-metal').setDepth(202).setScale(1.4).setVisible(false);
+    this.pauseMetalText = this.add.text(px + 150, py + 130, '0', {
+      fontSize: '14px', fontFamily: 'monospace', color: '#888888',
+    }).setDepth(202).setVisible(false);
+
+    // Screws
+    const pScrewsIcon = this.add.sprite(px + 220, py + 138, 'material-screws').setDepth(202).setScale(1.4).setVisible(false);
+    this.pauseScrewsText = this.add.text(px + 240, py + 130, '0', {
+      fontSize: '14px', fontFamily: 'monospace', color: '#bbbb88',
+    }).setDepth(202).setVisible(false);
+
+    // Separator
+    const sep2 = this.add.graphics().setDepth(202).setVisible(false);
+    sep2.lineStyle(1, 0x333333);
+    sep2.lineBetween(px + 20, py + 165, px + panelW - 20, py + 165);
+
+    // --- Volume section ---
+    const volLabel = this.add.text(px + 30, py + 180, 'Volume', {
+      fontSize: '16px', fontFamily: 'monospace', color: '#aaaaaa',
+    }).setDepth(202).setVisible(false);
+
+    this.pauseSliderW = 160;
+    this.pauseSliderX = px + 120;
+    const sliderY = py + 190;
+
+    const trackGfx = this.add.graphics().setDepth(202).setVisible(false);
+    trackGfx.fillStyle(0x333333);
+    trackGfx.fillRoundedRect(this.pauseSliderX, sliderY - 2, this.pauseSliderW, 4, 2);
+
+    this.pauseSliderGfx = this.add.graphics().setDepth(203).setVisible(false);
+    this.pauseVolPctText = this.add.text(this.pauseSliderX + this.pauseSliderW + 15, sliderY, `${audioManager.getVolumePercent()}%`, {
+      fontSize: '14px', fontFamily: 'monospace', color: '#44ff44',
+    }).setOrigin(0, 0.5).setDepth(202).setVisible(false);
+
+    this.drawPauseVolumeSlider(audioManager.getVolume());
+
+    const volHitZone = this.add.zone(this.pauseSliderX + this.pauseSliderW / 2, sliderY, this.pauseSliderW + 20, 28)
+      .setInteractive({ useHandCursor: true }).setDepth(204).setVisible(false);
     let dragging = false;
+    const volToX = (vol: number) => this.pauseSliderX + (vol / 2.0) * this.pauseSliderW;
+    const xToVol = (x: number) => ((x - this.pauseSliderX) / this.pauseSliderW) * 2.0;
 
-    hitZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+    volHitZone.on('pointerdown', (p: Phaser.Input.Pointer) => {
       dragging = true;
-      const vol = xToVol(Phaser.Math.Clamp(pointer.x, sliderX, sliderX + sliderW));
-      audioManager.setVolume(vol);
-      drawSlider(vol);
+      const v = xToVol(Phaser.Math.Clamp(p.x, this.pauseSliderX, this.pauseSliderX + this.pauseSliderW));
+      audioManager.setVolume(v); this.drawPauseVolumeSlider(v);
     });
-
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       if (!dragging) return;
-      const vol = xToVol(Phaser.Math.Clamp(pointer.x, sliderX, sliderX + sliderW));
-      audioManager.setVolume(vol);
-      drawSlider(vol);
+      const v = xToVol(Phaser.Math.Clamp(p.x, this.pauseSliderX, this.pauseSliderX + this.pauseSliderW));
+      audioManager.setVolume(v); this.drawPauseVolumeSlider(v);
+    });
+    this.input.on('pointerup', () => { dragging = false; });
+
+    // Separator
+    const sep3 = this.add.graphics().setDepth(202).setVisible(false);
+    sep3.lineStyle(1, 0x333333);
+    sep3.lineBetween(px + 20, py + 215, px + panelW - 20, py + 215);
+
+    // --- Back to Game button ---
+    const btnBg = this.add.graphics().setDepth(202).setVisible(false);
+    const btnX = px + 40;
+    const btnBY = py + 235;
+    const btnBW = panelW - 80;
+    const btnBH = 45;
+    btnBg.fillStyle(0x0a2a0a, 0.9);
+    btnBg.fillRoundedRect(btnX, btnBY, btnBW, btnBH, 8);
+    btnBg.lineStyle(2, 0x44ff44, 0.7);
+    btnBg.strokeRoundedRect(btnX, btnBY, btnBW, btnBH, 8);
+
+    const btnText = this.add.text(width / 2, btnBY + btnBH / 2, 'BACK TO GAME', {
+      fontSize: '20px', fontFamily: 'monospace', color: '#44ff44', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(203).setVisible(false);
+
+    const btnZone = this.add.zone(width / 2, btnBY + btnBH / 2, btnBW, btnBH)
+      .setInteractive({ useHandCursor: true }).setDepth(204).setVisible(false);
+    btnZone.on('pointerdown', () => this.closePauseMenu());
+    btnZone.on('pointerover', () => {
+      btnBg.clear();
+      btnBg.fillStyle(0x1a3a1a, 0.95);
+      btnBg.fillRoundedRect(btnX, btnBY, btnBW, btnBH, 8);
+      btnBg.lineStyle(2, 0x88ff88);
+      btnBg.strokeRoundedRect(btnX, btnBY, btnBW, btnBH, 8);
+      btnText.setColor('#aaffaa');
+    });
+    btnZone.on('pointerout', () => {
+      btnBg.clear();
+      btnBg.fillStyle(0x0a2a0a, 0.9);
+      btnBg.fillRoundedRect(btnX, btnBY, btnBW, btnBH, 8);
+      btnBg.lineStyle(2, 0x44ff44, 0.7);
+      btnBg.strokeRoundedRect(btnX, btnBY, btnBW, btnBH, 8);
+      btnText.setColor('#44ff44');
     });
 
-    this.input.on('pointerup', () => {
-      dragging = false;
+    // --- Exit to Menu button ---
+    const exitBg = this.add.graphics().setDepth(202).setVisible(false);
+    const exitBY = py + 290;
+    exitBg.fillStyle(0x2a0a0a, 0.7);
+    exitBg.fillRoundedRect(btnX, exitBY, btnBW, 35, 6);
+    exitBg.lineStyle(1, 0xff4444, 0.4);
+    exitBg.strokeRoundedRect(btnX, exitBY, btnBW, 35, 6);
+
+    const exitText = this.add.text(width / 2, exitBY + 17, 'EXIT TO MENU', {
+      fontSize: '14px', fontFamily: 'monospace', color: '#ff4444',
+    }).setOrigin(0.5).setDepth(203).setVisible(false);
+
+    const exitZone = this.add.zone(width / 2, exitBY + 17, btnBW, 35)
+      .setInteractive({ useHandCursor: true }).setDepth(204).setVisible(false);
+    exitZone.on('pointerdown', () => {
+      this.exiting = true;
+      const gs = this.gameScene;
+      if (gs?.player) leaderboard.saveResult(gs.player.score, gs.wave);
+      this.saveMaterials();
+      audioManager.stopGameMusic(0);
+      audioManager.stopMenuMusic(0);
+      window.location.reload();
     });
+    exitZone.on('pointerover', () => { exitText.setColor('#ff8888'); });
+    exitZone.on('pointerout', () => { exitText.setColor('#ff4444'); });
+
+    this.pauseObjects = [
+      dimBg, panelBg, title, closeBtn,
+      killsLabel, this.pauseKillsText, sep1,
+      matLabel, pWoodIcon, this.pauseWoodText, pMetalIcon, this.pauseMetalText, pScrewsIcon, this.pauseScrewsText, sep2,
+      volLabel, trackGfx, this.pauseSliderGfx, this.pauseVolPctText, volHitZone, sep3,
+      btnBg, btnText, btnZone,
+      exitBg, exitText, exitZone,
+    ];
+  }
+
+  private drawPauseVolumeSlider(vol: number) {
+    const kx = this.pauseSliderX + (vol / 2.0) * this.pauseSliderW;
+    const sliderY = this.pauseSliderX ? this.pauseSliderGfx.y : 0;
+    // Use fixed Y from creation
+    this.pauseSliderGfx.clear();
+    const { height } = this.scale;
+    const panelH = 340;
+    const py = (height - panelH) / 2;
+    const sY = py + 190;
+    this.pauseSliderGfx.fillStyle(0x44ff44);
+    this.pauseSliderGfx.fillRoundedRect(this.pauseSliderX, sY - 2, kx - this.pauseSliderX, 4, 2);
+    this.pauseSliderGfx.fillStyle(0x88ff88);
+    this.pauseSliderGfx.fillCircle(kx, sY, 7);
+    this.pauseSliderGfx.fillStyle(0x44ff44);
+    this.pauseSliderGfx.fillCircle(kx, sY, 5);
+    this.pauseVolPctText.setText(`${audioManager.getVolumePercent()}%`);
+  }
+
+  private togglePauseMenu() {
+    if (this.pauseMenuOpen) {
+      this.closePauseMenu();
+    } else {
+      this.openPauseMenu();
+    }
+  }
+
+  private openPauseMenu() {
+    if (this.pauseMenuOpen) return;
+    this.pauseMenuOpen = true;
+
+    // Update stats
+    const p = this.gameScene?.player;
+    if (p) {
+      this.pauseKillsText.setText(`${p.kills} (session: +${p.sessionKills})`);
+      this.pauseWoodText.setText(`${p.wood}`);
+      this.pauseMetalText.setText(`${p.metal}`);
+      this.pauseScrewsText.setText(`${p.screws}`);
+    }
+    this.drawPauseVolumeSlider(audioManager.getVolume());
+
+    // Show all pause objects
+    for (const obj of this.pauseObjects) {
+      (obj as any).setVisible(true);
+    }
+
+    // Pause game
+    this.gameScene.scene.pause();
+  }
+
+  private closePauseMenu() {
+    if (!this.pauseMenuOpen) return;
+    this.pauseMenuOpen = false;
+
+    // Hide all pause objects
+    for (const obj of this.pauseObjects) {
+      (obj as any).setVisible(false);
+    }
+
+    // Start countdown before resuming
+    this.startCountdown();
+  }
+
+  private startCountdown() {
+    this.countdownActive = true;
+    const { width, height } = this.scale;
+
+    const countText = this.add.text(width / 2, height / 2, '3', {
+      fontSize: '120px', fontFamily: 'monospace', color: '#44ff44', fontStyle: 'bold',
+      shadow: { offsetX: 0, offsetY: 0, color: '#00ff00', blur: 30, fill: true },
+    }).setOrigin(0.5).setDepth(300).setAlpha(0);
+
+    const steps = ['3', '2', '1', 'GO!'];
+    let step = 0;
+
+    const showStep = () => {
+      if (step >= steps.length) {
+        countText.destroy();
+        this.countdownActive = false;
+        this.gameScene.scene.resume();
+        return;
+      }
+      const isGo = steps[step] === 'GO!';
+      countText.setText(steps[step]);
+      countText.setFontSize(isGo ? 100 : 120);
+      countText.setColor(isGo ? '#ffcc22' : '#44ff44');
+      countText.setAlpha(1).setScale(1.5);
+
+      this.tweens.add({
+        targets: countText,
+        scale: 1,
+        alpha: isGo ? 1 : 0.3,
+        duration: isGo ? 400 : 700,
+        ease: 'Power2',
+        onComplete: () => {
+          step++;
+          if (isGo) {
+            this.tweens.add({
+              targets: countText, alpha: 0, scale: 2, duration: 300,
+              onComplete: () => showStep(),
+            });
+          } else {
+            showStep();
+          }
+        },
+      });
+    };
+
+    showStep();
   }
 
   update() {
@@ -484,16 +669,14 @@ export class UIScene extends Phaser.Scene {
     // Empty magazine hint
     this.emptyMagText.setVisible(p.magazineAmmo === 0 && !p.isReloading);
 
-    this.scoreText.setText(`Score: ${p.score} | Kills: ${p.kills} | \u2620 ${shop.getKills()} (+${p.sessionKills})`);
+    // Score/kills moved to pause menu — hide scoreText
+    this.scoreText.setVisible(false);
 
     this.waveText.setPosition(width - 20, 15);
     this.waveText.setText(`Wave ${this.gameScene.wave}`);
 
     this.reloadText.setPosition(width / 2, height / 2);
     this.reloadText.setVisible(p.isReloading);
-
-    // ESC confirmation position
-    this.escText.setPosition(width / 2, height / 2 - 40);
 
     try {
       this.updateWeaponBar();

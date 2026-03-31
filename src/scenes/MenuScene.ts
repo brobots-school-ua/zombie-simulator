@@ -20,6 +20,8 @@ export class MenuScene extends Phaser.Scene {
   private equipmentPanel: HTMLDivElement | null = null;
   private workshopPanel: HTMLDivElement | null = null;
   private killsText!: Phaser.GameObjects.Text;
+  private settingsOpen = false;
+  private settingsObjects: Phaser.GameObjects.GameObject[] = [];
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -207,7 +209,8 @@ export class MenuScene extends Phaser.Scene {
     const btnH = 50;
     const btnGap = 6;
     const btnY = height - 30;
-    const totalBtnsW = btnW * 7 + btnGap * 6;
+    const btnCount = 6;
+    const totalBtnsW = btnW * btnCount + btnGap * (btnCount - 1);
     const btnStartX = width - totalBtnsW - 20;
     const btnStyle = { fontSize: '11px', fontFamily: 'monospace', align: 'center' as const };
 
@@ -235,15 +238,20 @@ export class MenuScene extends Phaser.Scene {
 
     makeBtn(0, 'WORKSHOP', 0xff8844, 0x1a1a0a, 0x2a1a0a, 0xffaa66, () => this.openWorkshop());
     makeBtn(1, 'ACCESS.', 0xffcc22, 0x1a1a0a, 0x2a2a1a, 0xffee66, () => this.openShop());
-    makeBtn(2, 'VOLUME', 0x44ff44, 0x0a1a0a, 0x1a2a1a, 0x88ff88, () => {});
-    makeBtn(3, 'BESTIARY', 0xcc44ff, 0x1a0a1a, 0x2a1a2a, 0xee66ff, () => this.openBestiary());
-    makeBtn(4, 'STASH', 0x88aa44, 0x0a1a0a, 0x1a2a1a, 0xaacc66, () => this.openBackpack());
-    makeBtn(5, 'ABILITIES', 0xff6644, 0x1a1a0a, 0x2a1a0a, 0xff8866, () => this.openAbilities());
-    makeBtn(6, 'EQUIP', 0x44bbff, 0x0a1a2a, 0x1a2a3a, 0x66ddff, () => this.openEquipment());
+    makeBtn(2, 'BESTIARY', 0xcc44ff, 0x1a0a1a, 0x2a1a2a, 0xee66ff, () => this.openBestiary());
+    makeBtn(3, 'STASH', 0x88aa44, 0x0a1a0a, 0x1a2a1a, 0xaacc66, () => this.openBackpack());
+    makeBtn(4, 'ABILITIES', 0xff6644, 0x1a1a0a, 0x2a1a0a, 0xff8866, () => this.openAbilities());
+    makeBtn(5, 'EQUIP', 0x44bbff, 0x0a1a2a, 0x1a2a3a, 0x66ddff, () => this.openEquipment());
 
-    // Volume slider inside the VOLUME button area
-    const volBtnX = btnStartX + 2 * (btnW + btnGap);
-    this.createVolumeSlider(volBtnX + btnW / 2, btnY - btnH / 2 + 4, btnW - 24);
+    // ESC hint near bottom buttons
+    this.add.text(btnStartX - 15, btnY - btnH / 2, '[ESC] Settings', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#555555',
+    }).setOrigin(1, 0.5).setDepth(10);
+
+    // ESC key — open settings overlay
+    this.createSettingsOverlay();
+    const escKey = this.input.keyboard!.addKey('ESC');
+    escKey.on('down', () => this.toggleSettingsOverlay());
 
     // ============ RIGHT SIDE — Stats with panel ============
     const RX = width - 30;
@@ -446,32 +454,93 @@ export class MenuScene extends Phaser.Scene {
   }
 
 
-  private createVolumeSlider(centerX: number, y: number, sliderW: number) {
-    const sliderX = centerX - sliderW / 2;
-    const trackGfx = this.add.graphics().setDepth(10);
+  private createSettingsOverlay() {
+    // Settings overlay is created once but hidden
+    const { width, height } = this.scale;
+    const panelW = 320;
+    const panelH = 180;
+    const px = (width - panelW) / 2;
+    const py = (height - panelH) / 2;
+
+    // Dim background
+    const dimBg = this.add.graphics().setDepth(50).setVisible(false);
+    dimBg.fillStyle(0x000000, 0.6);
+    dimBg.fillRect(0, 0, width, height);
+    const dimZone = this.add.zone(width / 2, height / 2, width, height)
+      .setInteractive().setDepth(50).setVisible(false);
+    dimZone.on('pointerdown', () => this.toggleSettingsOverlay());
+
+    // Panel background
+    const panelBg = this.add.graphics().setDepth(51).setVisible(false);
+    panelBg.fillStyle(0x111811, 0.95);
+    panelBg.fillRoundedRect(px, py, panelW, panelH, 12);
+    panelBg.lineStyle(2, 0x44ff44, 0.5);
+    panelBg.strokeRoundedRect(px, py, panelW, panelH, 12);
+
+    // Title
+    const title = this.add.text(width / 2, py + 25, 'SETTINGS', {
+      fontSize: '22px', fontFamily: 'monospace', color: '#44ff44', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(52).setVisible(false);
+
+    // Close button (X)
+    const closeBtn = this.add.text(px + panelW - 20, py + 12, '✕', {
+      fontSize: '20px', fontFamily: 'monospace', color: '#ff4444',
+    }).setOrigin(0.5).setDepth(52).setVisible(false).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.toggleSettingsOverlay());
+    closeBtn.on('pointerover', () => closeBtn.setColor('#ff8888'));
+    closeBtn.on('pointerout', () => closeBtn.setColor('#ff4444'));
+
+    // Volume label
+    const volLabel = this.add.text(px + 30, py + 65, 'Volume', {
+      fontSize: '16px', fontFamily: 'monospace', color: '#aaaaaa',
+    }).setDepth(52).setVisible(false);
+
+    // Volume slider
+    const sliderW = 160;
+    const sliderX = px + 110;
+    const sliderY = py + 75;
+    const trackGfx = this.add.graphics().setDepth(52).setVisible(false);
     trackGfx.fillStyle(0x333333);
-    trackGfx.fillRoundedRect(sliderX, y - 2, sliderW, 4, 2);
-    const sliderGfx = this.add.graphics().setDepth(11);
-    const pctText = this.add.text(centerX, y + 12, `${audioManager.getVolumePercent()}%`, {
-      fontSize: '10px', fontFamily: 'monospace', color: '#44ff44',
-    }).setOrigin(0.5).setDepth(11);
+    trackGfx.fillRoundedRect(sliderX, sliderY - 2, sliderW, 4, 2);
+
+    const sliderGfx = this.add.graphics().setDepth(53).setVisible(false);
+    const pctText = this.add.text(sliderX + sliderW + 15, sliderY, `${audioManager.getVolumePercent()}%`, {
+      fontSize: '14px', fontFamily: 'monospace', color: '#44ff44',
+    }).setOrigin(0, 0.5).setDepth(52).setVisible(false);
 
     const volToX = (vol: number) => sliderX + (vol / 2.0) * sliderW;
     const xToVol = (x: number) => ((x - sliderX) / sliderW) * 2.0;
     const draw = (vol: number) => {
       const kx = volToX(vol); sliderGfx.clear();
-      sliderGfx.fillStyle(0x44ff44); sliderGfx.fillRoundedRect(sliderX, y - 2, kx - sliderX, 4, 2);
-      sliderGfx.fillStyle(0x88ff88); sliderGfx.fillCircle(kx, y, 6);
-      sliderGfx.fillStyle(0x44ff44); sliderGfx.fillCircle(kx, y, 4);
+      sliderGfx.fillStyle(0x44ff44); sliderGfx.fillRoundedRect(sliderX, sliderY - 2, kx - sliderX, 4, 2);
+      sliderGfx.fillStyle(0x88ff88); sliderGfx.fillCircle(kx, sliderY, 7);
+      sliderGfx.fillStyle(0x44ff44); sliderGfx.fillCircle(kx, sliderY, 5);
       pctText.setText(`${audioManager.getVolumePercent()}%`);
     };
     draw(audioManager.getVolume());
 
-    const hitZone = this.add.zone(centerX, y, sliderW + 20, 24).setInteractive({ useHandCursor: true }).setDepth(12);
+    const hitZone = this.add.zone(sliderX + sliderW / 2, sliderY, sliderW + 20, 28)
+      .setInteractive({ useHandCursor: true }).setDepth(54).setVisible(false);
     let dragging = false;
     hitZone.on('pointerdown', (p: Phaser.Input.Pointer) => { dragging = true; const v = xToVol(Phaser.Math.Clamp(p.x, sliderX, sliderX + sliderW)); audioManager.setVolume(v); draw(v); });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => { if (!dragging) return; const v = xToVol(Phaser.Math.Clamp(p.x, sliderX, sliderX + sliderW)); audioManager.setVolume(v); draw(v); });
     this.input.on('pointerup', () => { dragging = false; });
+
+    // ESC hint
+    const escHint = this.add.text(width / 2, py + panelH - 25, 'Press ESC to close', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#555555',
+    }).setOrigin(0.5).setDepth(52).setVisible(false);
+
+    this.settingsObjects = [dimBg, dimZone, panelBg, title, closeBtn, volLabel, trackGfx, sliderGfx, pctText, hitZone, escHint];
+  }
+
+  private toggleSettingsOverlay() {
+    // Don't open if a panel is active
+    if (!this.settingsOpen && (this.shopPanel || this.bestiaryPanel || this.backpackPanel || this.abilitiesPanel || this.equipmentPanel || this.workshopPanel)) return;
+    this.settingsOpen = !this.settingsOpen;
+    for (const obj of this.settingsObjects) {
+      (obj as any).setVisible(this.settingsOpen);
+    }
   }
 
   private openBestiary() {
