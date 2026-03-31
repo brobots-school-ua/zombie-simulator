@@ -555,7 +555,6 @@ export class GameScene extends Phaser.Scene {
       this.xpOrbs.add(orb);
       // Auto-destroy after 15 sec if not collected
       this.time.delayedCall(15000, () => { if (orb.active) orb.destroy(); });
-      }
     }
 
     // Roll material drops independently
