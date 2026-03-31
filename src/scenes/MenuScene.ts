@@ -541,6 +541,9 @@ export class MenuScene extends Phaser.Scene {
     for (const obj of this.settingsObjects) {
       (obj as any).setVisible(this.settingsOpen);
     }
+    // Hide/show HTML elements so they don't overlap
+    if (this.nicknameInput) this.nicknameInput.style.display = this.settingsOpen ? 'none' : '';
+    if (this.saveNickBtn) this.saveNickBtn.style.display = this.settingsOpen ? 'none' : '';
   }
 
   private openBestiary() {

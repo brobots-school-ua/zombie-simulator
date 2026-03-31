@@ -208,6 +208,14 @@ class ProfileManager {
       this.save();
     }
   }
+  lockWeapon(id: string) {
+    this.data.unlockedWeapons = this.data.unlockedWeapons.filter(w => w !== id);
+    // Ensure pistol is always present as fallback
+    if (this.data.unlockedWeapons.length === 0) {
+      this.data.unlockedWeapons.push('pistol');
+    }
+    this.save();
+  }
 
   // === Ability ===
   getAbility(): string { return this.data.ability; }

@@ -83,8 +83,8 @@ export class AdminConsole {
 
     const sel = ZOMBIE_TYPES.find(z => z.type === this.selectedZombieType)!;
 
-    // Build weapon unlock options (exclude pistol — always unlocked)
-    const craftableWeapons = WEAPONS.filter(w => w.id !== 'pistol');
+    // Build weapon toggle options (all weapons including pistol)
+    const allWeapons = WEAPONS;
 
     this.panel = document.createElement('div');
     this.panel.style.cssText = `
@@ -150,15 +150,15 @@ export class AdminConsole {
 
       <hr style="border-color:#333; margin:12px 0;">
 
-      <label style="display:block; margin-bottom:8px; color:#888;">Weapons:</label>
+      <label style="display:block; margin-bottom:8px; color:#888;">Weapons (click to toggle):</label>
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
-        ${craftableWeapons.map(w => {
+        ${allWeapons.map(w => {
           const unlocked = profile.isWeaponUnlocked(w.id);
-          return `<button class="admin-unlock-wep" data-id="${w.id}" style="${btnStyle(
-            unlocked ? '#1a3a1a' : '#2a1a0a',
-            unlocked ? '#44ff44' : '#ff8844',
-            unlocked ? '#44ff44' : '#ff8844'
-          )}; flex:1; min-width:80px;">${unlocked ? '✓ ' : ''}${w.name}</button>`;
+          return `<button class="admin-toggle-wep" data-id="${w.id}" style="${btnStyle(
+            unlocked ? '#1a3a1a' : '#2a0a0a',
+            unlocked ? '#44ff44' : '#ff4444',
+            unlocked ? '#44ff44' : '#ff4444'
+          )}; flex:1; min-width:80px;">${unlocked ? '✓ ' : '✗ '}${w.name}</button>`;
         }).join('')}
       </div>
       <button id="admin-unlock-all" style="${btnStyle('#2a1a0a', '#ff8844', '#ff8844')}; width:100%; margin-bottom:8px;">Unlock ALL weapons</button>
@@ -252,26 +252,26 @@ export class AdminConsole {
       msg.textContent = `+${amount} ${names[matType]}! (total: ${total})`; msg.style.color = '#bb8844';
     });
 
-    // Weapon unlock
-    this.panel.querySelectorAll('.admin-unlock-wep').forEach(btn => {
+    // Weapon toggle (unlock/lock)
+    this.panel.querySelectorAll('.admin-toggle-wep').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = (btn as HTMLElement).dataset.id!;
         const w = WEAPONS.find(w => w.id === id);
         if (!w) return;
         if (profile.isWeaponUnlocked(id)) {
-          msg.textContent = `${w.name} already unlocked!`; msg.style.color = '#888';
+          profile.lockWeapon(id);
+          msg.textContent = `${w.name} removed!`; msg.style.color = '#ff4444';
         } else {
           profile.unlockWeapon(id);
-          msg.textContent = `${w.name} unlocked!`; msg.style.color = '#ff8844';
-          // Refresh panel to update button states
-          this.closeAdminPanel();
-          this.openAdminPanel();
+          msg.textContent = `${w.name} unlocked!`; msg.style.color = '#44ff44';
         }
+        this.closeAdminPanel();
+        this.openAdminPanel();
       });
     });
 
     this.panel.querySelector('#admin-unlock-all')!.addEventListener('click', () => {
-      for (const w of craftableWeapons) {
+      for (const w of allWeapons) {
         profile.unlockWeapon(w.id);
       }
       msg.textContent = 'All weapons unlocked!'; msg.style.color = '#ff8844';
