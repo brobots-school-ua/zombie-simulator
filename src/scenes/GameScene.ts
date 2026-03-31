@@ -487,6 +487,8 @@ export class GameScene extends Phaser.Scene {
             this.abilityCharge = Math.min(100, this.abilityCharge + 1);
           }
         } else if (dist < attractRadius) {
+          // Stop float tween so it doesn't override Y position
+          this.tweens.killTweensOf(orb);
           // Attract toward player (faster when closer)
           const angle = Phaser.Math.Angle.Between(orb.x, orb.y, this.player.x, this.player.y);
           const speed = orbSpeed * (1 - dist / attractRadius) + 60;
