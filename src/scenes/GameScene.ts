@@ -512,9 +512,7 @@ export class GameScene extends Phaser.Scene {
         });
       } else {
         this.wave = nextWave;
-        this.time.delayedCall(3000, () => {
-          if (!this.gameOver) { this.spawnWave(); this.waveDelay = false; }
-        });
+        this.startWaveBreak();
       }
     }
   }
@@ -657,6 +655,51 @@ export class GameScene extends Phaser.Scene {
     }
     const expl = this.add.circle(x, y, radius, 0xff6600, 0.4).setDepth(9);
     this.tweens.add({ targets: expl, alpha: 0, scale: 1.5, duration: 300, onComplete: () => expl.destroy() });
+  }
+
+  private startWaveBreak() {
+    const breakTime = 15;
+    const { width, height } = this.scale;
+
+    // Wave complete text
+    const completeText = this.add.text(width / 2, height / 2 - 40, 'WAVE COMPLETE!', {
+      fontSize: '36px', fontFamily: 'monospace', color: '#44ff44', fontStyle: 'bold',
+      shadow: { offsetX: 0, offsetY: 0, color: '#00ff00', blur: 20, fill: true },
+    }).setOrigin(0.5).setDepth(50).setScrollFactor(0);
+
+    // Next wave info
+    const nextText = this.add.text(width / 2, height / 2, `Next wave: ${this.wave}`, {
+      fontSize: '20px', fontFamily: 'monospace', color: '#aaaaaa',
+    }).setOrigin(0.5).setDepth(50).setScrollFactor(0);
+
+    // Countdown timer
+    const timerText = this.add.text(width / 2, height / 2 + 40, `${breakTime}`, {
+      fontSize: '48px', fontFamily: 'monospace', color: '#ffcc22', fontStyle: 'bold',
+      shadow: { offsetX: 0, offsetY: 0, color: '#ffaa00', blur: 15, fill: true },
+    }).setOrigin(0.5).setDepth(50).setScrollFactor(0);
+
+    let remaining = breakTime;
+    const countdown = this.time.addEvent({
+      delay: 1000,
+      repeat: breakTime - 1,
+      callback: () => {
+        remaining--;
+        timerText.setText(`${remaining}`);
+        if (remaining <= 3) {
+          timerText.setColor('#ff4444');
+        }
+      },
+    });
+
+    this.time.delayedCall(breakTime * 1000, () => {
+      completeText.destroy();
+      nextText.destroy();
+      timerText.destroy();
+      if (!this.gameOver) {
+        this.spawnWave();
+        this.waveDelay = false;
+      }
+    });
   }
 
   private spawnWave() {
