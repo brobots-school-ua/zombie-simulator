@@ -25,14 +25,14 @@ export interface WeaponDef {
 export const WEAPONS: WeaponDef[] = [
   {
     id: 'pistol',
-    name: 'Pistol',
+    name: 'Glock 17',
     texture: 'weapon-pistol',
     bulletTexture: 'bullet-pistol',
     damage: 10,
     fireRate: 200,
-    magazineSize: 12,
-    startReserve: 24,
-    maxReserve: 36,
+    magazineSize: 18,
+    startReserve: 36,
+    maxReserve: 72,
     bulletSpeed: 400,
     maxRange: 350,
     reloadTime: 1200,
