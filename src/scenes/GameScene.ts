@@ -89,6 +89,12 @@ export class GameScene extends Phaser.Scene {
     const cy = this.mapSize / 2;
     this.player = new Player(this, cx, cy);
 
+    // Load saved materials from profile into player at game start
+    const savedMat = profile.getMaterials();
+    this.player.wood = savedMat.wood;
+    this.player.metal = savedMat.metal;
+    this.player.screws = savedMat.screws;
+
     if (this.incomingPlayerState) {
       const s = this.incomingPlayerState;
       this.player.hp = s.hp;
