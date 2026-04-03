@@ -677,21 +677,21 @@ export class GameScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     // Wave complete text
-    const completeText = this.add.text(width / 2, height / 2 - 40, 'WAVE COMPLETE!', {
-      fontSize: '36px', fontFamily: 'monospace', color: '#44ff44', fontStyle: 'bold',
-      shadow: { offsetX: 0, offsetY: 0, color: '#00ff00', blur: 20, fill: true },
-    }).setOrigin(0.5).setDepth(50).setScrollFactor(0);
+    const completeText = this.add.text(width - 12, 12, 'WAVE COMPLETE!', {
+      fontSize: '18px', fontFamily: 'monospace', color: '#44ff44', fontStyle: 'bold',
+      shadow: { offsetX: 0, offsetY: 0, color: '#00ff00', blur: 10, fill: true },
+    }).setOrigin(1, 0).setDepth(50).setScrollFactor(0);
 
     // Next wave info
-    const nextText = this.add.text(width / 2, height / 2, `Next wave: ${this.wave}`, {
-      fontSize: '20px', fontFamily: 'monospace', color: '#aaaaaa',
-    }).setOrigin(0.5).setDepth(50).setScrollFactor(0);
+    const nextText = this.add.text(width - 12, 34, `Next wave: ${this.wave}`, {
+      fontSize: '10px', fontFamily: 'monospace', color: '#aaaaaa',
+    }).setOrigin(1, 0).setDepth(50).setScrollFactor(0);
 
     // Countdown timer
-    const timerText = this.add.text(width / 2, height / 2 + 40, `${breakTime}`, {
-      fontSize: '48px', fontFamily: 'monospace', color: '#ffcc22', fontStyle: 'bold',
-      shadow: { offsetX: 0, offsetY: 0, color: '#ffaa00', blur: 15, fill: true },
-    }).setOrigin(0.5).setDepth(50).setScrollFactor(0);
+    const timerText = this.add.text(width - 12, 48, `${breakTime}`, {
+      fontSize: '24px', fontFamily: 'monospace', color: '#ffcc22', fontStyle: 'bold',
+      shadow: { offsetX: 0, offsetY: 0, color: '#ffaa00', blur: 8, fill: true },
+    }).setOrigin(1, 0).setDepth(50).setScrollFactor(0);
 
     let remaining = breakTime;
     const countdown = this.time.addEvent({
