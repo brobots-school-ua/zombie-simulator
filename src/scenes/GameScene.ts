@@ -105,7 +105,6 @@ export class GameScene extends Phaser.Scene {
     this.trader = undefined;
 
     this.generateMap();
-    this.placeDecorations();
 
     // === GROUPS (must be before placeFieldHouses which spawns pickups) ===
     this.zombies = this.add.group({ runChildUpdate: false });
@@ -114,6 +113,8 @@ export class GameScene extends Phaser.Scene {
     this.xpOrbs = this.add.group();
 
     if (this.location.id === 'field') this.placeFieldHouses();
+    // Decorations placed AFTER buildings so we can skip positions inside them
+    this.placeDecorations();
 
     // === PLAYER at fixed center ===
     const cx = this.mapSize / 2;
@@ -449,8 +450,8 @@ export class GameScene extends Phaser.Scene {
 
       this.buildMap();
       this.generateMap();
-      this.placeDecorations();
       if (this.location.id === 'field') this.placeFieldHouses();
+      this.placeDecorations();
 
       // Move player to center
       const cx = this.mapSize / 2;
@@ -788,16 +789,10 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
-    // Spawn trader during wave break
-    this.time.delayedCall(1000, () => {
-      if (!this.gameOver) this.spawnTrader();
-    });
-
     this.time.delayedCall(breakTime * 1000, () => {
       completeText.destroy();
       nextText.destroy();
       timerText.destroy();
-      this.removeTrader();
       if (!this.gameOver) {
         this.spawnWave();
         this.waveDelay = false;
@@ -1422,6 +1417,8 @@ export class GameScene extends Phaser.Scene {
         const y = Phaser.Math.Between(150, this.mapSize - 150);
         if (Math.abs(x - cx) < 200 && Math.abs(y - cy) < 200) continue;
         if (this.isPositionBlocked(x, y)) continue;
+        // Skip positions inside buildings
+        if (this.buildings.some(b => b.interiorBounds.contains(x, y))) continue;
 
         if (deco.isTree) {
           const tree = this.add.image(x, y, deco.key)
@@ -1561,6 +1558,25 @@ export class GameScene extends Phaser.Scene {
   private updateBuildings(delta: number) {
     const px = this.player.x;
     const py = this.player.y;
+    const allZombies = this.zombies.getChildren() as Zombie[];
+
+    // Find which building (if any) the player is inside
+    let playerBuilding: BuildingInfo | null = null;
+    for (const b of this.buildings) {
+      if (b.interiorBounds.contains(px, py)) { playerBuilding = b; break; }
+    }
+
+    // Update zombie door targets
+    for (const z of allZombies) {
+      if (!z.active) continue;
+      if (playerBuilding) {
+        // Player is inside — send zombie to the nearest closed door
+        const closedDoor = playerBuilding.doors.find(d => !d.isOpen);
+        z.doorTarget = closedDoor ? { x: closedDoor.sprite.x, y: closedDoor.sprite.y } : null;
+      } else {
+        z.doorTarget = null;
+      }
+    }
 
     for (const b of this.buildings) {
       // Roof: transparent when player is inside
@@ -1568,7 +1584,6 @@ export class GameScene extends Phaser.Scene {
       b.roof.setAlpha(inside ? 0.08 : 0.9);
 
       // Zombie door breaking
-      const allZombies = this.zombies.getChildren() as Zombie[];
       for (const door of b.doors) {
         if (door.isOpen) { door.breakMs = 0; continue; }
 
@@ -1588,11 +1603,10 @@ export class GameScene extends Phaser.Scene {
             door.sprite.setTexture('door-open');
             door.sprite.setAlpha(0.5);
             this.openDoor(door);
-            // Shake/flash effect
             this.cameras.main.shake(200, 0.008);
           }
         } else {
-          door.breakMs = Math.max(0, door.breakMs - delta * 0.5); // slowly reset if no zombie
+          door.breakMs = Math.max(0, door.breakMs - delta * 0.5);
         }
       }
     }

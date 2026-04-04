@@ -111,6 +111,7 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   private lastY: number = 0;
   private avoidAngle: number = 0;
   private avoidTimer: number = 0;
+  doorTarget: { x: number; y: number } | null = null;  // override: go to door instead of player
   private hpBar: Phaser.GameObjects.Graphics;
   private arms: Phaser.GameObjects.Sprite;
   private auraDamageTimer: number = 0;
@@ -206,13 +207,17 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     } else {
       const canSeePlayer = dist < this.detectionRange && this.hasLineOfSight(player);
       if (canSeePlayer) this.aggroed = true;
+      // Also aggro if assigned a door target (player is hiding in building)
+      if (this.doorTarget) this.aggroed = true;
       else if (dist > this.detectionRange * 2) this.aggroed = false;
     }
 
     let moveAngle: number;
 
     if (this.aggroed) {
-      moveAngle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
+      // If player is hiding in a building, go to the door instead
+      const target = this.doorTarget ?? player;
+      moveAngle = Phaser.Math.Angle.Between(this.x, this.y, target.x, target.y);
 
       // Wall avoidance
       const moved = Math.abs(this.x - this.lastX) + Math.abs(this.y - this.lastY);
