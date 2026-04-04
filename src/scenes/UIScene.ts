@@ -20,9 +20,6 @@ export class UIScene extends Phaser.Scene {
   private waveText!: Phaser.GameObjects.Text;
   private reloadText!: Phaser.GameObjects.Text;
   private minimap!: Phaser.GameObjects.Graphics;
-  private lbBg!: Phaser.GameObjects.Graphics;
-  private lbTitle!: Phaser.GameObjects.Text;
-  private lbEntries: Phaser.GameObjects.Text[] = [];
   private weaponBarGfx!: Phaser.GameObjects.Graphics;
   private weaponBarTexts: Phaser.GameObjects.Text[] = [];
   private utilityBarGfx!: Phaser.GameObjects.Graphics;
@@ -110,9 +107,6 @@ export class UIScene extends Phaser.Scene {
     // Materials bar (left side, below score)
     this.materialsGfx = this.add.graphics().setDepth(100);
     this.createMaterialsBar();
-
-    // In-game leaderboard (top right, below wave)
-    this.createLeaderboardDisplay();
 
     // ESC — open/close pause menu
     this.createPauseMenu();
@@ -334,65 +328,6 @@ export class UIScene extends Phaser.Scene {
     for (let i = count; i < this.weaponBarTexts.length; i++) {
       this.weaponBarTexts[i].setVisible(false);
     }
-  }
-
-  private createLeaderboardDisplay() {
-    const { width } = this.scale;
-    const startX = width - 15;
-    const startY = 42;
-
-    // Background (redrawn in updateLeaderboard)
-    this.lbBg = this.add.graphics().setDepth(99);
-
-    // Title
-    this.lbTitle = this.add.text(startX, startY, 'LEADERBOARD', {
-      fontSize: '12px',
-      fontFamily: 'monospace',
-      color: '#ffcc33',
-      fontStyle: 'bold',
-    }).setOrigin(1, 0).setDepth(100);
-
-    // Create 5 text slots
-    for (let i = 0; i < 5; i++) {
-      const txt = this.add.text(startX, startY + 18 + i * 16, '', {
-        fontSize: '12px',
-        fontFamily: 'monospace',
-        color: '#ddaa44',
-      }).setOrigin(1, 0).setDepth(100);
-      this.lbEntries.push(txt);
-    }
-  }
-
-  private updateLeaderboard() {
-    const { width } = this.scale;
-    const startX = width - 15;
-    const startY = 42;
-    const top5 = leaderboard.getTop(5);
-    const currentNick = leaderboard.getNickname();
-    const currentScore = this.gameScene?.player?.score || 0;
-
-    // Redraw background
-    this.lbBg.clear();
-    const count = Math.max(top5.length, 1);
-    const bgH = 22 + count * 16;
-    this.lbBg.fillStyle(0x000000, 0.5);
-    this.lbBg.fillRoundedRect(startX - 145, startY - 4, 150, bgH, 4);
-
-    // Update entries
-    for (let i = 0; i < 5; i++) {
-      if (i < top5.length) {
-        const e = top5[i];
-        this.lbEntries[i].setText(`${i + 1}. ${e.name}: ${e.score}`);
-        // Highlight current player
-        const isMe = currentNick && e.name === currentNick;
-        this.lbEntries[i].setColor(isMe ? '#44ff44' : '#ddaa44');
-        this.lbEntries[i].setVisible(true);
-      } else {
-        this.lbEntries[i].setVisible(false);
-      }
-    }
-
-    this.lbTitle.setVisible(top5.length > 0);
   }
 
   private createPauseMenu() {
@@ -737,7 +672,6 @@ export class UIScene extends Phaser.Scene {
       this.updateWeaponBar();
       this.updateUtilityBar();
       this.updateMaterialsBar();
-      this.updateLeaderboard();
       this.updateAbilityCharge();
       this.drawMinimap(width, height);
     } catch { /* scene shutting down */ }
