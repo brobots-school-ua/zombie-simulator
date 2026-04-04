@@ -10,6 +10,7 @@ import { bestiary } from '../systems/BestiaryManager';
 import { getSelectedAbility, ABILITIES } from '../systems/AbilityConfig';
 import { getLocationForWave, shouldChangeLocation, LocationDef } from '../systems/LocationConfig';
 import { profile } from '../systems/ProfileManager';
+import { Pathfinder } from '../systems/Pathfinder';
 
 // === Building system types ===
 interface DoorData {
@@ -65,6 +66,11 @@ export class GameScene extends Phaser.Scene {
   private trader?: Phaser.GameObjects.Sprite;
   private traderShopDiv?: HTMLDivElement;
   private traderShopOpen = false;
+
+  // Pathfinding
+  private pathfinder!: Pathfinder;
+  private pathQueue: Zombie[] = [];  // zombies waiting for path recalc
+  private pathBatchTimer = 0;        // ms between batch processings
 
   constructor() {
     super({ key: 'GameScene' });
@@ -525,6 +531,42 @@ export class GameScene extends Phaser.Scene {
       tree.setAlpha(dist < 60 ? 0.25 : 0.85);
     }
 
+    // A* path updates — staggered so not all zombies recalc same frame
+    this.pathBatchTimer -= delta;
+    if (this.pathBatchTimer <= 0 && this.pathfinder) {
+      this.pathBatchTimer = 80; // process a batch every 80ms
+      const allZ = this.zombies.getChildren() as Zombie[];
+      // Collect zombies that need a path
+      const needPath = allZ.filter(z => z.active && z.aggroed && z.needsPath);
+      // Also periodically refresh paths for aggroed zombies via their pathTimer
+      for (const z of needPath.slice(0, 5)) { // max 5 per batch
+        const target = z.doorTarget ?? { x: this.player.x, y: this.player.y };
+        const path = this.pathfinder.findPath(z.x, z.y, target.x, target.y);
+        z.setPath(path);
+      }
+    }
+
+    // Zombie flocking — nudge aggroed zombies toward nearby group centroid
+    const allZombiesF = this.zombies.getChildren() as Zombie[];
+    const FLOCK_RADIUS = 140;
+    const FLOCK_STRENGTH = 18; // pixels/sec pull toward centroid
+    for (const z of allZombiesF) {
+      if (!z.active || !z.aggroed) continue;
+      // Find nearby aggroed neighbors
+      let cx = 0, cy = 0, count = 0;
+      for (const n of allZombiesF) {
+        if (n === z || !n.active || !n.aggroed) continue;
+        const d = Phaser.Math.Distance.Between(z.x, z.y, n.x, n.y);
+        if (d < FLOCK_RADIUS) { cx += n.x; cy += n.y; count++; }
+      }
+      if (count >= 2) { // only flock when 2+ neighbors
+        cx /= count; cy /= count;
+        const angle = Phaser.Math.Angle.Between(z.x, z.y, cx, cy);
+        z.x += Math.cos(angle) * FLOCK_STRENGTH * (delta / 1000);
+        z.y += Math.sin(angle) * FLOCK_STRENGTH * (delta / 1000);
+      }
+    }
+
     // Buildings + doors update
     this.updateBuildings(delta);
     this.checkInteractions();
@@ -757,42 +799,11 @@ export class GameScene extends Phaser.Scene {
 
   private startWaveBreak() {
     const breakTime = 20;
-    const { width, height } = this.scale;
-
-    // Wave complete text
-    const completeText = this.add.text(width - 12, 12, 'WAVE COMPLETE!', {
-      fontSize: '18px', fontFamily: 'monospace', color: '#44ff44', fontStyle: 'bold',
-      shadow: { offsetX: 0, offsetY: 0, color: '#00ff00', blur: 10, fill: true },
-    }).setOrigin(1, 0).setDepth(50).setScrollFactor(0);
-
-    // Next wave info
-    const nextText = this.add.text(width - 12, 34, `Next wave: ${this.wave}`, {
-      fontSize: '10px', fontFamily: 'monospace', color: '#aaaaaa',
-    }).setOrigin(1, 0).setDepth(50).setScrollFactor(0);
-
-    // Countdown timer
-    const timerText = this.add.text(width - 12, 48, `${breakTime}`, {
-      fontSize: '24px', fontFamily: 'monospace', color: '#ffcc22', fontStyle: 'bold',
-      shadow: { offsetX: 0, offsetY: 0, color: '#ffaa00', blur: 8, fill: true },
-    }).setOrigin(1, 0).setDepth(50).setScrollFactor(0);
-
-    let remaining = breakTime;
-    const countdown = this.time.addEvent({
-      delay: 1000,
-      repeat: breakTime - 1,
-      callback: () => {
-        remaining--;
-        timerText.setText(`${remaining}`);
-        if (remaining <= 3) {
-          timerText.setColor('#ff4444');
-        }
-      },
-    });
+    // Emit event so UIScene renders the countdown (UIScene renders on top of GameScene)
+    this.events.emit('wave-break-start', { wave: this.wave, seconds: breakTime });
 
     this.time.delayedCall(breakTime * 1000, () => {
-      completeText.destroy();
-      nextText.destroy();
-      timerText.destroy();
+      this.events.emit('wave-break-end');
       if (!this.gameOver) {
         this.spawnWave();
         this.waveDelay = false;
@@ -1465,6 +1476,9 @@ export class GameScene extends Phaser.Scene {
 
     // Build grid lookup for fast isPositionBlocked() checks
     this.buildWallGrid();
+
+    // Initialize (or reinitialize) A* pathfinder with current wall grid
+    this.pathfinder = new Pathfinder(this.wallGridSet, this.mapSize);
   }
 
   // === BUILDINGS WITH DOORS ===

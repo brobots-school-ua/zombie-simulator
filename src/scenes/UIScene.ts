@@ -153,6 +153,54 @@ export class UIScene extends Phaser.Scene {
     // Admin console (~ key)
     this.adminConsole = new AdminConsole(this);
 
+    // Wave break countdown (rendered in UIScene so it appears on top)
+    this.setupWaveBreakCountdown();
+  }
+
+  private setupWaveBreakCountdown() {
+    const gs = this.gameScene;
+    let timerEvent: Phaser.Time.TimerEvent | null = null;
+    let completeText: Phaser.GameObjects.Text | null = null;
+    let nextText: Phaser.GameObjects.Text | null = null;
+    let timerText: Phaser.GameObjects.Text | null = null;
+
+    gs.events.on('wave-break-start', ({ wave, seconds }: { wave: number; seconds: number }) => {
+      const { width } = this.scale;
+
+      completeText = this.add.text(width - 12, 60, 'WAVE COMPLETE!', {
+        fontSize: '18px', fontFamily: 'monospace', color: '#44ff44', fontStyle: 'bold',
+        shadow: { offsetX: 0, offsetY: 0, color: '#00ff00', blur: 10, fill: true },
+      }).setOrigin(1, 0).setDepth(200);
+
+      nextText = this.add.text(width - 12, 82, `Next wave: ${wave}`, {
+        fontSize: '10px', fontFamily: 'monospace', color: '#aaaaaa',
+      }).setOrigin(1, 0).setDepth(200);
+
+      timerText = this.add.text(width - 12, 96, `${seconds}`, {
+        fontSize: '24px', fontFamily: 'monospace', color: '#ffcc22', fontStyle: 'bold',
+        shadow: { offsetX: 0, offsetY: 0, color: '#ffaa00', blur: 8, fill: true },
+      }).setOrigin(1, 0).setDepth(200);
+
+      let remaining = seconds;
+      timerEvent = this.time.addEvent({
+        delay: 1000,
+        repeat: seconds - 1,
+        callback: () => {
+          remaining--;
+          if (timerText) {
+            timerText.setText(`${remaining}`);
+            if (remaining <= 5) timerText.setColor('#ff4444');
+          }
+        },
+      });
+    });
+
+    gs.events.on('wave-break-end', () => {
+      if (timerEvent) { timerEvent.remove(); timerEvent = null; }
+      completeText?.destroy(); completeText = null;
+      nextText?.destroy(); nextText = null;
+      timerText?.destroy(); timerText = null;
+    });
   }
 
   private createWeaponBar() {

@@ -104,14 +104,19 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
   private attackCooldown: number = 0;
   private wanderAngle: number = Math.random() * Math.PI * 2;
   private wanderTimer: number = 0;
-  private aggroed: boolean = false;
+  aggroed: boolean = false;
   private stuckTimer: number = 0;
   private slideDir: number = Math.random() < 0.5 ? 1 : -1;
   private lastX: number = 0;
   private lastY: number = 0;
   private avoidAngle: number = 0;
   private avoidTimer: number = 0;
-  doorTarget: { x: number; y: number } | null = null;  // override: go to door instead of player
+  doorTarget: { x: number; y: number } | null = null;
+  // A* path following
+  path: { x: number; y: number }[] = [];
+  private pathIndex: number = 0;
+  pathTimer: number = Math.random() * 1500;  // stagger initial recalc
+  needsPath: boolean = false;  // GameScene sets true when recalc needed
   private hpBar: Phaser.GameObjects.Graphics;
   private arms: Phaser.GameObjects.Sprite;
   private auraDamageTimer: number = 0;
@@ -207,7 +212,6 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     } else {
       const canSeePlayer = dist < this.detectionRange && this.hasLineOfSight(player);
       if (canSeePlayer) this.aggroed = true;
-      // Also aggro if assigned a door target (player is hiding in building)
       if (this.doorTarget) this.aggroed = true;
       else if (dist > this.detectionRange * 2) this.aggroed = false;
     }
@@ -215,64 +219,60 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     let moveAngle: number;
 
     if (this.aggroed) {
-      // If player is hiding in a building, go to the door instead
+      // Primary target: door override or player
       const target = this.doorTarget ?? player;
-      moveAngle = Phaser.Math.Angle.Between(this.x, this.y, target.x, target.y);
 
-      // Wall avoidance
+      // === A* PATH FOLLOWING ===
+      this.pathTimer -= delta;
+
+      // Check if stuck (not moving but far from target)
       const moved = Math.abs(this.x - this.lastX) + Math.abs(this.y - this.lastY);
       this.lastX = this.x;
       this.lastY = this.y;
-
-      if (this.avoidTimer > 0) {
-        // Currently avoiding a wall — check if path to player is clear now
-        const toPlayer = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
-        const checkX = this.x + Math.cos(toPlayer) * 60;
-        const checkY = this.y + Math.sin(toPlayer) * 60;
-        if (!this.isDirectionBlocked(checkX, checkY)) {
-          // Wall ended — go straight to player
-          this.avoidTimer = 0;
-          this.stuckTimer = 0;
-        } else {
-          // Still wall ahead — keep sliding along it
-          moveAngle = this.avoidAngle;
-        }
-      } else if (moved < 0.5 && dist > 40) {
+      if (moved < 0.5 && dist > 60) {
         this.stuckTimer += delta;
-        if (this.stuckTimer > 150) {
-          // Find which side the wall is and slide perpendicular to it
-          const toPlayer = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
-          // Try perpendicular directions (±90° from player direction)
-          const leftAngle = toPlayer + Math.PI / 2;
-          const rightAngle = toPlayer - Math.PI / 2;
-
-          const leftX = this.x + Math.cos(leftAngle) * 60;
-          const leftY = this.y + Math.sin(leftAngle) * 60;
-          const rightX = this.x + Math.cos(rightAngle) * 60;
-          const rightY = this.y + Math.sin(rightAngle) * 60;
-
-          const leftFree = !this.isDirectionBlocked(leftX, leftY);
-          const rightFree = !this.isDirectionBlocked(rightX, rightY);
-
-          if (leftFree && rightFree) {
-            // Both sides free — use preferred slide direction
-            this.avoidAngle = this.slideDir > 0 ? leftAngle : rightAngle;
-          } else if (leftFree) {
-            this.avoidAngle = leftAngle;
-          } else if (rightFree) {
-            this.avoidAngle = rightAngle;
-          } else {
-            // Both sides blocked — try diagonal or flip
-            this.avoidAngle = toPlayer + Math.PI * 0.75 * this.slideDir;
-            this.slideDir *= -1;
-          }
-
-          this.avoidTimer = 1;  // stays active until wall ends
-          moveAngle = this.avoidAngle;
-          this.stuckTimer = 0;
-        }
+        if (this.stuckTimer > 400) { this.needsPath = true; this.stuckTimer = 0; }
       } else {
         this.stuckTimer = 0;
+      }
+
+      // Periodic path refresh
+      if (this.pathTimer <= 0) {
+        this.needsPath = true;
+        this.pathTimer = 1500 + Math.random() * 500;
+      }
+
+      if (this.path.length > 0 && this.pathIndex < this.path.length) {
+        // Follow A* waypoints
+        const wp = this.path[this.pathIndex];
+        const distToWp = Phaser.Math.Distance.Between(this.x, this.y, wp.x, wp.y);
+        if (distToWp < 36) this.pathIndex++;
+
+        const nextWp = this.path[Math.min(this.pathIndex, this.path.length - 1)];
+        moveAngle = Phaser.Math.Angle.Between(this.x, this.y, nextWp.x, nextWp.y);
+      } else {
+        // Fallback: direct + wall slide
+        moveAngle = Phaser.Math.Angle.Between(this.x, this.y, target.x, target.y);
+
+        if (this.avoidTimer > 0) {
+          const toTarget = Phaser.Math.Angle.Between(this.x, this.y, target.x, target.y);
+          const checkX = this.x + Math.cos(toTarget) * 60;
+          const checkY = this.y + Math.sin(toTarget) * 60;
+          if (!this.isDirectionBlocked(checkX, checkY)) { this.avoidTimer = 0; }
+          else { moveAngle = this.avoidAngle; }
+        } else if (moved < 0.5 && dist > 40) {
+          const toTarget = Phaser.Math.Angle.Between(this.x, this.y, target.x, target.y);
+          const leftAngle = toTarget + Math.PI / 2;
+          const rightAngle = toTarget - Math.PI / 2;
+          const leftFree = !this.isDirectionBlocked(this.x + Math.cos(leftAngle) * 60, this.y + Math.sin(leftAngle) * 60);
+          const rightFree = !this.isDirectionBlocked(this.x + Math.cos(rightAngle) * 60, this.y + Math.sin(rightAngle) * 60);
+          if (leftFree && rightFree) this.avoidAngle = this.slideDir > 0 ? leftAngle : rightAngle;
+          else if (leftFree) this.avoidAngle = leftAngle;
+          else if (rightFree) this.avoidAngle = rightAngle;
+          else { this.avoidAngle = toTarget + Math.PI * 0.75 * this.slideDir; this.slideDir *= -1; }
+          this.avoidTimer = 1;
+          moveAngle = this.avoidAngle;
+        }
       }
 
       this.setVelocity(Math.cos(moveAngle) * this.speed, Math.sin(moveAngle) * this.speed);
@@ -367,6 +367,13 @@ export class Zombie extends Phaser.Physics.Arcade.Sprite {
     const color = hpPercent > 0.5 ? 0x44ff44 : hpPercent > 0.25 ? 0xffaa00 : 0xff3333;
     this.hpBar.fillStyle(color);
     this.hpBar.fillRect(barX, barY, barWidth * hpPercent, barHeight);
+  }
+
+  setPath(path: { x: number; y: number }[]) {
+    this.path = path;
+    this.pathIndex = 0;
+    this.needsPath = false;
+    this.avoidTimer = 0;  // reset wall slide when new path arrives
   }
 
   canAttack(): boolean {
