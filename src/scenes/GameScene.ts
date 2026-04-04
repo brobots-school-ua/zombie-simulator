@@ -15,6 +15,7 @@ import { profile } from '../systems/ProfileManager';
 interface DoorData {
   sprite: Phaser.Physics.Arcade.Sprite;
   isOpen: boolean;
+  broken: boolean;  // true = зламана зомбі, не можна відновити
   breakMs: number;  // zombie contact time in ms
 }
 
@@ -1505,7 +1506,7 @@ export class GameScene extends Phaser.Scene {
       if (tx === doorTile) {
         const ds = this.doorsGroup.create(wx, wy, 'door-closed') as Phaser.Physics.Arcade.Sprite;
         ds.setDepth(16);
-        doors.push({ sprite: ds, isOpen: false, breakMs: 0 });
+        doors.push({ sprite: ds, isOpen: false, broken: false, breakMs: 0 });
       } else {
         (this.walls.create(wx, wy, 'house-wall') as Phaser.Physics.Arcade.Sprite).setDepth(15);
       }
@@ -1582,7 +1583,8 @@ export class GameScene extends Phaser.Scene {
         if (zombieNearby) {
           door.breakMs += delta;
           if (door.breakMs >= 5000) {
-            // Door broken by zombies
+            // Door broken by zombies — mark as broken (can't be restored)
+            door.broken = true;
             door.sprite.setTexture('door-open');
             door.sprite.setAlpha(0.5);
             this.openDoor(door);
@@ -1626,7 +1628,7 @@ export class GameScene extends Phaser.Scene {
     for (const b of this.buildings) {
       for (const door of b.doors) {
         const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, door.sprite.x, door.sprite.y);
-        if (dist < 100) {
+        if (dist < 100 && !door.broken) {
           if (door.isOpen) this.closeDoor(door);
           else this.openDoor(door);
           return;
@@ -1652,7 +1654,7 @@ export class GameScene extends Phaser.Scene {
     for (const b of this.buildings) {
       for (const door of b.doors) {
         const dist = Phaser.Math.Distance.Between(px, py, door.sprite.x, door.sprite.y);
-        if (dist < 80) {
+        if (dist < 80 && !door.broken) {
           nearTarget = { x: door.sprite.x, y: door.sprite.y - 40, label: door.isOpen ? '[E] закрити' : '[E] відчинити' };
           break;
         }
