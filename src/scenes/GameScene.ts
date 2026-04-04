@@ -58,7 +58,6 @@ export class GameScene extends Phaser.Scene {
   // Buildings + doors
   private buildings: BuildingInfo[] = [];
   private doorsGroup!: Phaser.Physics.Arcade.StaticGroup;
-  private eKey!: Phaser.Input.Keyboard.Key;
   private interactHint!: Phaser.GameObjects.Text;
 
   // Trader NPC
@@ -166,8 +165,8 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, this.mapSize, this.mapSize);
     this.cameras.main.setZoom(1.5);
 
-    // E key + interact hint
-    this.eKey = this.input.keyboard!.addKey('E');
+    // E key (event-based, more reliable than JustDown across parallel scenes)
+    this.input.keyboard!.on('keydown-E', () => this.handleEKey());
     this.interactHint = this.add.text(0, 0, '[E]', {
       fontSize: '13px', fontFamily: 'monospace', color: '#ffff66',
       stroke: '#000000', strokeThickness: 3,
@@ -178,6 +177,13 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.zombies, this.walls);
     this.physics.add.collider(this.player, this.doorsGroup);
     this.physics.add.collider(this.zombies, this.doorsGroup);
+    // Bullets stop at closed doors
+    this.physics.add.collider(this.bullets, this.doorsGroup, (bullet) => {
+      const b = bullet as Bullet;
+      if (!b.active) return;
+      if (b.aoeRadius > 0) this.doAoeDamage(b.x, b.y, b.aoeRadius, b.damage);
+      b.destroy();
+    });
 
     this.physics.add.collider(this.player, this.zombies, (_player, zombie) => {
       if (this.gameOver) return;
@@ -1593,7 +1599,9 @@ export class GameScene extends Phaser.Scene {
   private openDoor(door: DoorData) {
     door.isOpen = true;
     door.sprite.setTexture('door-open');
-    (door.sprite.body as Phaser.Physics.Arcade.StaticBody).enable = false;
+    door.sprite.setAlpha(0.35);
+    // Remove from group so physics is fully disabled
+    this.doorsGroup.remove(door.sprite, false, false);
   }
 
   private closeDoor(door: DoorData) {
@@ -1601,23 +1609,24 @@ export class GameScene extends Phaser.Scene {
     door.breakMs = 0;
     door.sprite.setTexture('door-closed');
     door.sprite.setAlpha(1);
-    const body = door.sprite.body as Phaser.Physics.Arcade.StaticBody;
-    body.enable = true;
+    // Re-add to group to restore physics
+    this.doorsGroup.add(door.sprite, true);
     this.doorsGroup.refresh();
   }
 
   private checkInteractions() {
-    if (!Phaser.Input.Keyboard.JustDown(this.eKey)) {
-      // Show hint if near door or trader
-      this.updateInteractHint();
-      return;
-    }
+    // Only show/hide the hint each frame (no key polling)
+    this.updateInteractHint();
+  }
+
+  private handleEKey() {
+    if (this.gameOver || !this.player?.active) return;
 
     // Check doors
     for (const b of this.buildings) {
       for (const door of b.doors) {
         const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, door.sprite.x, door.sprite.y);
-        if (dist < 80) {
+        if (dist < 100) {
           if (door.isOpen) this.closeDoor(door);
           else this.openDoor(door);
           return;
@@ -1628,7 +1637,7 @@ export class GameScene extends Phaser.Scene {
     // Check trader
     if (this.trader && !this.traderShopOpen) {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.trader.x, this.trader.y);
-      if (dist < 90) {
+      if (dist < 100) {
         this.openTraderShop();
       }
     }
