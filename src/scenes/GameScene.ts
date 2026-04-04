@@ -106,13 +106,14 @@ export class GameScene extends Phaser.Scene {
 
     this.generateMap();
     this.placeDecorations();
-    if (this.location.id === 'field') this.placeFieldHouses();
 
-    // === GROUPS ===
+    // === GROUPS (must be before placeFieldHouses which spawns pickups) ===
     this.zombies = this.add.group({ runChildUpdate: false });
     this.bullets = this.add.group({ runChildUpdate: false });
     this.pickups = this.add.group();
     this.xpOrbs = this.add.group();
+
+    if (this.location.id === 'field') this.placeFieldHouses();
 
     // === PLAYER at fixed center ===
     const cx = this.mapSize / 2;
