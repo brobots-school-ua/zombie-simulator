@@ -11,6 +11,19 @@ import { getSelectedAbility, ABILITIES } from '../systems/AbilityConfig';
 import { getLocationForWave, shouldChangeLocation, LocationDef } from '../systems/LocationConfig';
 import { profile } from '../systems/ProfileManager';
 
+// === Building system types ===
+interface DoorData {
+  sprite: Phaser.Physics.Arcade.Sprite;
+  isOpen: boolean;
+  breakMs: number;  // zombie contact time in ms
+}
+
+interface BuildingInfo {
+  interiorBounds: Phaser.Geom.Rectangle;
+  roof: Phaser.GameObjects.Graphics;
+  doors: DoorData[];
+}
+
 // Main game scene — where all gameplay happens
 export class GameScene extends Phaser.Scene {
   player!: Player;
@@ -41,6 +54,17 @@ export class GameScene extends Phaser.Scene {
   private incomingPlayerState: any = null;
   private alleySpawnPoints: { x: number; y: number }[] = [];
   private changingLocation = false;
+
+  // Buildings + doors
+  private buildings: BuildingInfo[] = [];
+  private doorsGroup!: Phaser.Physics.Arcade.StaticGroup;
+  private eKey!: Phaser.Input.Keyboard.Key;
+  private interactHint!: Phaser.GameObjects.Text;
+
+  // Trader NPC
+  private trader?: Phaser.GameObjects.Sprite;
+  private traderShopDiv?: HTMLDivElement;
+  private traderShopOpen = false;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -75,8 +99,14 @@ export class GameScene extends Phaser.Scene {
     this.buildMap();
 
     this.walls = this.physics.add.staticGroup();
+    this.doorsGroup = this.physics.add.staticGroup();
+    this.buildings = [];
+    this.traderShopOpen = false;
+    this.trader = undefined;
+
     this.generateMap();
     this.placeDecorations();
+    if (this.location.id === 'field') this.placeFieldHouses();
 
     // === GROUPS ===
     this.zombies = this.add.group({ runChildUpdate: false });
@@ -91,9 +121,24 @@ export class GameScene extends Phaser.Scene {
 
     // Load saved materials from profile into player at game start
     const savedMat = profile.getMaterials();
+    console.log('[LOAD] profile materials at game start:', JSON.stringify(savedMat));
     this.player.wood = savedMat.wood;
     this.player.metal = savedMat.metal;
     this.player.screws = savedMat.screws;
+
+    // Restore from EXIT TO MENU backup if it has higher values (safety net)
+    const exitBackupRaw = localStorage.getItem('zombie-exit-materials');
+    if (exitBackupRaw && !this.incomingPlayerState) {
+      try {
+        const b = JSON.parse(exitBackupRaw) as { wood: number; metal: number; screws: number };
+        if ((b.wood || 0) > this.player.wood) this.player.wood = b.wood;
+        if ((b.metal || 0) > this.player.metal) this.player.metal = b.metal;
+        if ((b.screws || 0) > this.player.screws) this.player.screws = b.screws;
+        console.log('[LOAD] backup materials applied:', JSON.stringify(b));
+        profile.setMaterials({ wood: this.player.wood, metal: this.player.metal, screws: this.player.screws });
+      } catch { /* ignore parse errors */ }
+      localStorage.removeItem('zombie-exit-materials');
+    }
 
     if (this.incomingPlayerState) {
       const s = this.incomingPlayerState;
@@ -120,9 +165,18 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, this.mapSize, this.mapSize);
     this.cameras.main.setZoom(1.5);
 
+    // E key + interact hint
+    this.eKey = this.input.keyboard!.addKey('E');
+    this.interactHint = this.add.text(0, 0, '[E]', {
+      fontSize: '13px', fontFamily: 'monospace', color: '#ffff66',
+      stroke: '#000000', strokeThickness: 3,
+    }).setDepth(200).setScrollFactor(1).setVisible(false).setOrigin(0.5, 1);
+
     // === PHYSICS ===
     this.physics.add.collider(this.player, this.walls);
     this.physics.add.collider(this.zombies, this.walls);
+    this.physics.add.collider(this.player, this.doorsGroup);
+    this.physics.add.collider(this.zombies, this.doorsGroup);
 
     this.physics.add.collider(this.player, this.zombies, (_player, zombie) => {
       if (this.gameOver) return;
@@ -352,6 +406,15 @@ export class GameScene extends Phaser.Scene {
       for (const t of this.trees) t.destroy();
       this.trees = [];
 
+      // Buildings + doors cleanup
+      for (const b of this.buildings) {
+        b.roof.destroy();
+        for (const door of b.doors) door.sprite.destroy();
+      }
+      this.buildings = [];
+      this.doorsGroup.clear(true, true);
+      this.removeTrader();
+
       // Zombies & shadows
       const allZombies = this.zombies.getChildren().slice();
       for (const obj of allZombies) (obj as Zombie).destroy();
@@ -379,6 +442,7 @@ export class GameScene extends Phaser.Scene {
       this.buildMap();
       this.generateMap();
       this.placeDecorations();
+      if (this.location.id === 'field') this.placeFieldHouses();
 
       // Move player to center
       const cx = this.mapSize / 2;
@@ -451,6 +515,10 @@ export class GameScene extends Phaser.Scene {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, tree.x, tree.y);
       tree.setAlpha(dist < 60 ? 0.25 : 0.85);
     }
+
+    // Buildings + doors update
+    this.updateBuildings(delta);
+    this.checkInteractions();
 
     // Auto-fire for rifle/minigun
     if (this.input.activePointer.isDown && this.player.activeWeapon.def.auto && !this.gameOver) {
@@ -712,10 +780,16 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
+    // Spawn trader during wave break
+    this.time.delayedCall(1000, () => {
+      if (!this.gameOver) this.spawnTrader();
+    });
+
     this.time.delayedCall(breakTime * 1000, () => {
       completeText.destroy();
       nextText.destroy();
       timerText.destroy();
+      this.removeTrader();
       if (!this.gameOver) {
         this.spawnWave();
         this.waveDelay = false;
@@ -1386,5 +1460,338 @@ export class GameScene extends Phaser.Scene {
 
     // Build grid lookup for fast isPositionBlocked() checks
     this.buildWallGrid();
+  }
+
+  // === BUILDINGS WITH DOORS ===
+
+  private placeFieldHouses() {
+    // 3 houses on the field at clear positions
+    const houses = [
+      { bx: 320, by: 320 },    // top-left area
+      { bx: 1472, by: 320 },   // top-right area
+      { bx: 320, by: 1472 },   // bottom-left area
+    ];
+    for (const h of houses) {
+      const building = this.createHouse(h.bx, h.by, 5, 4);
+      this.buildings.push(building);
+    }
+    // Refresh door bodies
+    this.doorsGroup.refresh();
+  }
+
+  private createHouse(bx: number, by: number, tilesW: number, tilesH: number): BuildingInfo {
+    const pw = tilesW * 64;
+    const ph = tilesH * 64;
+    const doorTile = Math.floor(tilesW / 2); // middle tile of south wall
+    const doors: DoorData[] = [];
+
+    // North wall (full)
+    for (let tx = 0; tx < tilesW; tx++) {
+      const wx = bx + tx * 64 + 32;
+      const wy = by + 32;
+      (this.walls.create(wx, wy, 'house-wall') as Phaser.Physics.Arcade.Sprite).setDepth(15);
+    }
+    // South wall with door gap
+    for (let tx = 0; tx < tilesW; tx++) {
+      const wx = bx + tx * 64 + 32;
+      const wy = by + (tilesH - 1) * 64 + 32;
+      if (tx === doorTile) {
+        const ds = this.doorsGroup.create(wx, wy, 'door-closed') as Phaser.Physics.Arcade.Sprite;
+        ds.setDepth(16);
+        doors.push({ sprite: ds, isOpen: false, breakMs: 0 });
+      } else {
+        (this.walls.create(wx, wy, 'house-wall') as Phaser.Physics.Arcade.Sprite).setDepth(15);
+      }
+    }
+    // West wall (skip corners — already created above)
+    for (let ty = 1; ty < tilesH - 1; ty++) {
+      const wx = bx + 32;
+      const wy = by + ty * 64 + 32;
+      (this.walls.create(wx, wy, 'house-wall') as Phaser.Physics.Arcade.Sprite).setDepth(15);
+    }
+    // East wall (skip corners)
+    for (let ty = 1; ty < tilesH - 1; ty++) {
+      const wx = bx + (tilesW - 1) * 64 + 32;
+      const wy = by + ty * 64 + 32;
+      (this.walls.create(wx, wy, 'house-wall') as Phaser.Physics.Arcade.Sprite).setDepth(15);
+    }
+    this.walls.refresh();
+
+    // House floor tiles inside
+    for (let ty = 1; ty < tilesH - 1; ty++) {
+      for (let tx = 1; tx < tilesW - 1; tx++) {
+        this.add.image(bx + tx * 64 + 32, by + ty * 64 + 32, 'house-floor').setDepth(1.5);
+      }
+    }
+
+    // Roof overlay (hides interior when player is outside)
+    const roof = this.add.graphics();
+    roof.fillStyle(0x3a2010, 0.9);
+    roof.fillRect(bx + 1, by + 1, pw - 2, ph - 2);
+    // Roof planks decoration
+    roof.lineStyle(3, 0x2a1408, 0.4);
+    for (let ry = by + 16; ry < by + ph; ry += 32) {
+      roof.lineBetween(bx + 2, ry, bx + pw - 2, ry);
+    }
+    roof.setDepth(26);
+
+    // Spawn loot inside (random pickup)
+    const lootX = bx + pw / 2 + Phaser.Math.Between(-40, 40);
+    const lootY = by + ph / 2;
+    const lootTypes: PickupType[] = ['bandage', 'medkit', 'wood', 'metal', 'screws', 'ammo'];
+    const lootType = lootTypes[Phaser.Math.Between(0, lootTypes.length - 1)];
+    const pickup = new Pickup(this, lootX, lootY, lootType);
+    this.pickups.add(pickup);
+
+    return {
+      interiorBounds: new Phaser.Geom.Rectangle(bx + 64, by + 64, pw - 128, ph - 128),
+      roof,
+      doors,
+    };
+  }
+
+  private updateBuildings(delta: number) {
+    const px = this.player.x;
+    const py = this.player.y;
+
+    for (const b of this.buildings) {
+      // Roof: transparent when player is inside
+      const inside = b.interiorBounds.contains(px, py);
+      b.roof.setAlpha(inside ? 0.08 : 0.9);
+
+      // Zombie door breaking
+      const allZombies = this.zombies.getChildren() as Zombie[];
+      for (const door of b.doors) {
+        if (door.isOpen) { door.breakMs = 0; continue; }
+
+        // Check if any zombie is touching the door
+        let zombieNearby = false;
+        for (const z of allZombies) {
+          if (!z.active) continue;
+          const dist = Phaser.Math.Distance.Between(z.x, z.y, door.sprite.x, door.sprite.y);
+          if (dist < 50) { zombieNearby = true; break; }
+        }
+
+        if (zombieNearby) {
+          door.breakMs += delta;
+          if (door.breakMs >= 5000) {
+            // Door broken by zombies
+            door.sprite.setTexture('door-open');
+            door.sprite.setAlpha(0.5);
+            this.openDoor(door);
+            // Shake/flash effect
+            this.cameras.main.shake(200, 0.008);
+          }
+        } else {
+          door.breakMs = Math.max(0, door.breakMs - delta * 0.5); // slowly reset if no zombie
+        }
+      }
+    }
+  }
+
+  private openDoor(door: DoorData) {
+    door.isOpen = true;
+    door.sprite.setTexture('door-open');
+    (door.sprite.body as Phaser.Physics.Arcade.StaticBody).enable = false;
+  }
+
+  private closeDoor(door: DoorData) {
+    door.isOpen = false;
+    door.breakMs = 0;
+    door.sprite.setTexture('door-closed');
+    door.sprite.setAlpha(1);
+    const body = door.sprite.body as Phaser.Physics.Arcade.StaticBody;
+    body.enable = true;
+    this.doorsGroup.refresh();
+  }
+
+  private checkInteractions() {
+    if (!Phaser.Input.Keyboard.JustDown(this.eKey)) {
+      // Show hint if near door or trader
+      this.updateInteractHint();
+      return;
+    }
+
+    // Check doors
+    for (const b of this.buildings) {
+      for (const door of b.doors) {
+        const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, door.sprite.x, door.sprite.y);
+        if (dist < 80) {
+          if (door.isOpen) this.closeDoor(door);
+          else this.openDoor(door);
+          return;
+        }
+      }
+    }
+
+    // Check trader
+    if (this.trader && !this.traderShopOpen) {
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.trader.x, this.trader.y);
+      if (dist < 90) {
+        this.openTraderShop();
+      }
+    }
+  }
+
+  private updateInteractHint() {
+    const px = this.player.x;
+    const py = this.player.y;
+    let nearTarget: { x: number; y: number; label: string } | null = null;
+
+    // Check doors
+    for (const b of this.buildings) {
+      for (const door of b.doors) {
+        const dist = Phaser.Math.Distance.Between(px, py, door.sprite.x, door.sprite.y);
+        if (dist < 80) {
+          nearTarget = { x: door.sprite.x, y: door.sprite.y - 40, label: door.isOpen ? '[E] закрити' : '[E] відчинити' };
+          break;
+        }
+      }
+      if (nearTarget) break;
+    }
+
+    // Check trader
+    if (!nearTarget && this.trader) {
+      const dist = Phaser.Math.Distance.Between(px, py, this.trader.x, this.trader.y);
+      if (dist < 90) {
+        nearTarget = { x: this.trader.x, y: this.trader.y - 50, label: '[E] торговець' };
+      }
+    }
+
+    if (nearTarget) {
+      this.interactHint.setPosition(nearTarget.x, nearTarget.y);
+      this.interactHint.setText(nearTarget.label);
+      this.interactHint.setVisible(true);
+    } else {
+      this.interactHint.setVisible(false);
+    }
+  }
+
+  // === NPC TRADER ===
+
+  spawnTrader() {
+    if (this.trader) return;
+    // Spawn near player (right side)
+    const tx = this.player.x + 150;
+    const ty = this.player.y;
+    this.trader = this.add.sprite(tx, ty, 'trader').setDepth(5).setScale(1.2);
+    // Gentle float animation
+    this.tweens.add({
+      targets: this.trader,
+      y: ty - 8,
+      duration: 1200,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
+    // Label above trader
+    this.add.text(tx, ty - 50, '🛒 Торговець', {
+      fontSize: '12px', fontFamily: 'monospace', color: '#ffcc44',
+      stroke: '#000000', strokeThickness: 3,
+    }).setDepth(200).setName('trader-label');
+  }
+
+  removeTrader() {
+    if (this.traderShopDiv) {
+      this.traderShopDiv.remove();
+      this.traderShopDiv = undefined;
+    }
+    this.traderShopOpen = false;
+    if (this.trader) {
+      this.children.getByName('trader-label')?.destroy();
+      this.trader.destroy();
+      this.trader = undefined;
+    }
+  }
+
+  private openTraderShop() {
+    if (this.traderShopOpen) return;
+    this.traderShopOpen = true;
+
+    const currentKills = shop.getKills();
+
+    const div = document.createElement('div');
+    div.style.cssText = `
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:#0a1a0a; border:2px solid #44aa44; border-radius:10px;
+      padding:20px; min-width:300px; font-family:monospace; color:#ccffcc;
+      z-index:9999; box-shadow:0 0 30px #00440088;
+    `;
+    div.innerHTML = `
+      <div style="text-align:center; font-size:18px; color:#ffcc44; margin-bottom:16px; font-weight:bold;">🛒 Торговець</div>
+      <div style="text-align:center; margin-bottom:12px; color:#aaffaa;">Кіли: <span id="trader-kills" style="color:#ffcc44;font-weight:bold">${currentKills}</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${traderItem('🔸 Магазин патронів', 5, 'ammo')}
+        ${traderItem('🩹 Бинт', 4, 'bandage')}
+        ${traderItem('💊 Аптечка', 10, 'medkit')}
+        ${traderItem('🪵 Дошка (2 шт)', 3, 'wood2')}
+        ${traderItem('🔩 Метал (2 шт)', 3, 'metal2')}
+      </div>
+      <div style="text-align:center;margin-top:16px;">
+        <button id="trader-close" style="padding:8px 20px;background:#3a0a0a;border:1px solid #ff4444;color:#ff4444;font-family:monospace;cursor:pointer;border-radius:4px;">Закрити [E]</button>
+      </div>
+    `;
+    document.body.appendChild(div);
+    this.traderShopDiv = div;
+
+    // Buy buttons
+    div.querySelectorAll('.trader-buy').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = (btn as HTMLElement).dataset.item!;
+        const cost = parseInt((btn as HTMLElement).dataset.cost!);
+        const kills = shop.getKills();
+        if (kills < cost) {
+          (btn as HTMLElement).style.color = '#ff4444';
+          setTimeout(() => (btn as HTMLElement).style.color = '', 500);
+          return;
+        }
+        shop.addKills(-cost);
+        const killsEl = div.querySelector('#trader-kills');
+        if (killsEl) killsEl.textContent = `${shop.getKills()}`;
+        this.applyTraderPurchase(item);
+        // Flash confirm
+        (btn as HTMLElement).textContent = '✓ Куплено!';
+        setTimeout(() => {
+          const label = { ammo: '🔸 Магазин', bandage: '🩹 Бинт', medkit: '💊 Аптечка', wood2: '🪵 Дошка', metal2: '🔩 Метал' }[item] || item;
+          (btn as HTMLElement).textContent = `Купити (${cost} 💀)`;
+        }, 800);
+      });
+    });
+
+    div.querySelector('#trader-close')?.addEventListener('click', () => {
+      div.remove();
+      this.traderShopDiv = undefined;
+      this.traderShopOpen = false;
+    });
+
+    function traderItem(label: string, cost: number, item: string) {
+      return `<div style="display:flex;justify-content:space-between;align-items:center;background:#0d2a0d;padding:8px;border-radius:4px;border:1px solid #226622;">
+        <span>${label}</span>
+        <button class="trader-buy" data-item="${item}" data-cost="${cost}" style="padding:4px 10px;background:#1a3a1a;border:1px solid #44ff44;color:#44ff44;font-family:monospace;cursor:pointer;border-radius:3px;">Купити (${cost} 💀)</button>
+      </div>`;
+    }
+  }
+
+  private applyTraderPurchase(item: string) {
+    switch (item) {
+      case 'ammo':
+        // Add ammo to current weapon
+        this.player.weapons[this.player.activeWeaponIndex].reserveAmmo =
+          Math.min(this.player.weapons[this.player.activeWeaponIndex].reserveAmmo + 30, 999);
+        break;
+      case 'bandage':
+        this.player.bandages = Math.min(this.player.bandages + 1, 9);
+        break;
+      case 'medkit':
+        this.player.medkits = Math.min(this.player.medkits + 1, 9);
+        break;
+      case 'wood2':
+        this.player.wood += 2;
+        break;
+      case 'metal2':
+        this.player.metal += 2;
+        break;
+    }
   }
 }

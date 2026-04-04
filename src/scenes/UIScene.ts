@@ -516,8 +516,15 @@ export class UIScene extends Phaser.Scene {
     exitZone.on('pointerdown', () => {
       this.exiting = true;
       const gs = this.gameScene;
-      if (gs?.player) leaderboard.saveResult(gs.player.score, gs.wave);
-      this.saveMaterials();
+      if (gs?.player) {
+        leaderboard.saveResult(gs.player.score, gs.wave);
+        // Direct save — guaranteed to run before reload
+        const mat = { wood: gs.player.wood, metal: gs.player.metal, screws: gs.player.screws };
+        profile.setMaterials(mat);
+        // Backup to a separate key in case profile save fails
+        localStorage.setItem('zombie-exit-materials', JSON.stringify(mat));
+        console.log('[EXIT TO MENU] Materials saved:', JSON.stringify(mat));
+      }
       audioManager.stopGameMusic(0);
       audioManager.stopMenuMusic(0);
       window.location.reload();
@@ -809,10 +816,13 @@ export class UIScene extends Phaser.Scene {
   private saveMaterials() {
     if (!this.gameScene?.player) return;
     const p = this.gameScene.player;
+    console.log('[SAVE] wood:', p.wood, 'metal:', p.metal, 'screws:', p.screws);
     profile.setMaterials({ wood: p.wood, metal: p.metal, screws: p.screws });
+    console.log('[SAVE] profile after:', JSON.stringify(profile.getMaterials()));
   }
 
   shutdown() {
+    console.log('[SHUTDOWN] UIScene shutdown called');
     this.saveMaterials();
     this.adminConsole.destroy();
   }

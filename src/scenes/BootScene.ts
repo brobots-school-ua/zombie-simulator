@@ -1579,6 +1579,122 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('nuke-radiation', 32, 32);
     g.clear();
 
+    // === DOOR (closed) — 64x64 wooden door with frame ===
+    g.fillStyle(0x3a2010); // Dark wood frame
+    g.fillRect(0, 0, 64, 64);
+    g.fillStyle(0x7a4a20); // Door panel background
+    g.fillRect(4, 4, 56, 56);
+    // Wood grain panels
+    g.fillStyle(0x8b5a28);
+    g.fillRect(8, 8, 22, 24);
+    g.fillRect(34, 8, 22, 24);
+    g.fillRect(8, 36, 22, 20);
+    g.fillRect(34, 36, 22, 20);
+    // Panel highlights
+    g.fillStyle(0xa06a38, 0.5);
+    g.fillRect(9, 9, 20, 4);
+    g.fillRect(35, 9, 20, 4);
+    // Door handle (knob)
+    g.fillStyle(0xccaa44);
+    g.fillCircle(44, 33, 4);
+    g.fillStyle(0xeedd88);
+    g.fillCircle(43, 32, 2);
+    // Frame border
+    g.lineStyle(2, 0x1a0e05);
+    g.strokeRect(0, 0, 64, 64);
+    g.generateTexture('door-closed', 64, 64);
+    g.clear();
+
+    // === DOOR (open/broken frame) — 64x64 ===
+    g.fillStyle(0x3a2010); // Frame remains
+    g.fillRect(0, 0, 64, 64);
+    g.fillStyle(0x0a0805, 0.9); // Dark opening
+    g.fillRect(4, 4, 56, 56);
+    // Broken door leaning hint
+    g.fillStyle(0x5a3818, 0.6);
+    g.fillRect(4, 4, 14, 56);
+    g.lineStyle(1, 0x2a1808);
+    g.strokeRect(0, 0, 64, 64);
+    g.generateTexture('door-open', 64, 64);
+    g.clear();
+
+    // === HOUSE WALL — 64x64 wood plank wall (lighter than stone wall) ===
+    g.fillStyle(0x4a2e10);
+    g.fillRect(0, 0, 64, 64);
+    // Horizontal planks
+    for (let py = 0; py < 64; py += 16) {
+      g.fillStyle(py % 32 === 0 ? 0x6a4220 : 0x5a3818);
+      g.fillRect(0, py, 64, 15);
+      // Plank edge highlight
+      g.fillStyle(0x7a5030, 0.4);
+      g.fillRect(0, py, 64, 2);
+    }
+    // Nail holes
+    g.fillStyle(0x2a1808);
+    for (let ni = 0; ni < 4; ni++) {
+      g.fillCircle(8 + ni * 16, 8, 1);
+      g.fillCircle(8 + ni * 16, 24, 1);
+      g.fillCircle(8 + ni * 16, 40, 1);
+      g.fillCircle(8 + ni * 16, 56, 1);
+    }
+    g.lineStyle(1, 0x2a1808);
+    g.strokeRect(0, 0, 64, 64);
+    g.generateTexture('house-wall', 64, 64);
+    g.clear();
+
+    // === HOUSE FLOOR — 64x64 wooden floor inside building ===
+    g.fillStyle(0x6b4a2a);
+    g.fillRect(0, 0, 64, 64);
+    // Floor board lines
+    for (let fy = 0; fy < 64; fy += 8) {
+      g.fillStyle(fy % 16 === 0 ? 0x7a5535 : 0x6b4a2a);
+      g.fillRect(0, fy, 64, 7);
+    }
+    g.lineStyle(1, 0x3a2010, 0.3);
+    g.strokeRect(0, 0, 64, 64);
+    g.generateTexture('house-floor', 64, 64);
+    g.clear();
+
+    // === TRADER NPC — 32x40 friendly merchant ===
+    // Body (green merchant coat)
+    g.fillStyle(0x2a5a2a);
+    g.fillCircle(16, 24, 12);
+    // Coat details
+    g.fillStyle(0x3a7a3a);
+    g.fillCircle(16, 22, 10);
+    // Head
+    g.fillStyle(0xd4a574);
+    g.fillCircle(16, 10, 7);
+    // Hat (merchant/vendor hat)
+    g.fillStyle(0x4a3010);
+    g.fillRect(8, 2, 16, 4);
+    g.fillRect(10, 0, 12, 4);
+    // Hat brim
+    g.fillStyle(0x2a1808);
+    g.fillRect(7, 6, 18, 2);
+    // Belt with coin pouch
+    g.fillStyle(0x6a4820);
+    g.fillRect(8, 30, 16, 3);
+    g.fillStyle(0xdda833);
+    g.fillCircle(16, 31, 3);
+    // Arms
+    g.fillStyle(0x2a5a2a);
+    g.fillRect(4, 16, 5, 14);
+    g.fillRect(23, 16, 5, 14);
+    // Hands
+    g.fillStyle(0xd4a574);
+    g.fillCircle(6, 30, 3);
+    g.fillCircle(26, 30, 3);
+    // Eyes
+    g.fillStyle(0x2a1a0a);
+    g.fillCircle(13, 9, 1);
+    g.fillCircle(19, 9, 1);
+    // Smile
+    g.lineStyle(1, 0x2a1a0a);
+    g.lineBetween(13, 13, 19, 13);
+    g.generateTexture('trader', 32, 40);
+    g.clear();
+
     // === DAMAGE NUMBER FONT (floating text texture not needed, we use Phaser text) ===
 
     g.destroy();
