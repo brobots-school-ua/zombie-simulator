@@ -972,10 +972,10 @@ export class GameScene extends Phaser.Scene {
       }
       return { x: point.x, y: point.y };
     }
-    // Try up to 50 times to find a position not inside a wall
+    // Try up to 50 times to find a position not inside a wall or building
     for (let i = 0; i < 50; i++) {
       const pos = this.getSpawnPosition();
-      if (!this.isPositionBlocked(pos.x, pos.y)) return pos;
+      if (!this.isPositionBlocked(pos.x, pos.y) && !this.isInsideBuilding(pos.x, pos.y)) return pos;
     }
     // Fallback: use a random alley point if available
     if (this.alleySpawnPoints.length > 0) {
@@ -1023,6 +1023,10 @@ export class GameScene extends Phaser.Scene {
     const gx = Math.floor(x / 64);
     const gy = Math.floor(y / 64);
     return this.wallGridSet.has(`${gx},${gy}`);
+  }
+
+  private isInsideBuilding(x: number, y: number): boolean {
+    return this.buildings.some(b => b.interiorBounds.contains(x, y));
   }
 
   private getRandomZombieType(): ZombieType {
@@ -1724,9 +1728,17 @@ export class GameScene extends Phaser.Scene {
 
   spawnTrader() {
     if (this.trader) return;
-    // Spawn near player (right side)
-    const tx = this.player.x + 150;
-    const ty = this.player.y;
+    // Find a safe position near player that's not in a wall or building
+    let tx = this.player.x + 150;
+    let ty = this.player.y;
+    const offsets = [[150,0],[-150,0],[0,150],[0,-150],[150,150],[-150,150],[150,-150],[-150,-150],[200,0],[-200,0]];
+    for (const [ox, oy] of offsets) {
+      const cx = this.player.x + ox;
+      const cy = this.player.y + oy;
+      if (!this.isPositionBlocked(cx, cy) && !this.isInsideBuilding(cx, cy)) {
+        tx = cx; ty = cy; break;
+      }
+    }
     this.trader = this.add.sprite(tx, ty, 'trader').setDepth(5).setScale(1.2);
     // Gentle float animation
     this.tweens.add({
