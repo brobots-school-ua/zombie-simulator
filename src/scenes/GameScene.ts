@@ -1833,9 +1833,9 @@ export class GameScene extends Phaser.Scene {
         // Maxed if ALL weapons are at max reserve
         return this.player.weapons.every(w => w.reserveAmmo >= w.def.maxReserve);
       case 'bandage':
-        return this.player.bandages >= 9;
+        return this.player.bandages >= this.player.maxBandages;
       case 'medkit':
-        return this.player.medkits >= 9;
+        return this.player.medkits >= this.player.maxMedkits;
       default:
         return false;
     }
@@ -1850,10 +1850,10 @@ export class GameScene extends Phaser.Scene {
         break;
       }
       case 'bandage':
-        this.player.bandages = Math.min(this.player.bandages + 1, 9);
+        this.player.bandages = Math.min(this.player.bandages + 1, this.player.maxBandages);
         break;
       case 'medkit':
-        this.player.medkits = Math.min(this.player.medkits + 1, 9);
+        this.player.medkits = Math.min(this.player.medkits + 1, this.player.maxMedkits);
         break;
       case 'wood2':
         this.player.wood += 2;
