@@ -1762,8 +1762,6 @@ export class GameScene extends Phaser.Scene {
     if (this.traderShopOpen) return;
     this.traderShopOpen = true;
 
-    const currentKills = shop.getKills();
-
     const div = document.createElement('div');
     div.style.cssText = `
       position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
@@ -1773,13 +1771,13 @@ export class GameScene extends Phaser.Scene {
     `;
     div.innerHTML = `
       <div style="text-align:center; font-size:18px; color:#ffcc44; margin-bottom:16px; font-weight:bold;">🛒 Торговець</div>
-      <div style="text-align:center; margin-bottom:12px; color:#aaffaa;">Кіли: <span id="trader-kills" style="color:#ffcc44;font-weight:bold">${currentKills}</span></div>
+      <div style="text-align:center; margin-bottom:12px; color:#aaffaa;">Кіли: <span id="trader-kills" style="color:#ffcc44;font-weight:bold">${shop.getKills()}</span></div>
       <div style="display:flex;flex-direction:column;gap:8px;">
-        ${traderItem('🔸 Магазин патронів', 5, 'ammo')}
-        ${traderItem('🩹 Бинт', 4, 'bandage')}
-        ${traderItem('💊 Аптечка', 10, 'medkit')}
-        ${traderItem('🪵 Дошка (2 шт)', 3, 'wood2')}
-        ${traderItem('🔩 Метал (2 шт)', 3, 'metal2')}
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d2a0d;padding:8px;border-radius:4px;border:1px solid #226622;"><span>🔸 Магазин патронів</span><button class="trader-buy" data-item="ammo" data-cost="5">Купити (5 💀)</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d2a0d;padding:8px;border-radius:4px;border:1px solid #226622;"><span>🩹 Бинт</span><button class="trader-buy" data-item="bandage" data-cost="4">Купити (4 💀)</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d2a0d;padding:8px;border-radius:4px;border:1px solid #226622;"><span>💊 Аптечка</span><button class="trader-buy" data-item="medkit" data-cost="10">Купити (10 💀)</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d2a0d;padding:8px;border-radius:4px;border:1px solid #226622;"><span>🪵 Дошка (2 шт)</span><button class="trader-buy" data-item="wood2" data-cost="3">Купити (3 💀)</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#0d2a0d;padding:8px;border-radius:4px;border:1px solid #226622;"><span>🔩 Метал (2 шт)</span><button class="trader-buy" data-item="metal2" data-cost="3">Купити (3 💀)</button></div>
       </div>
       <div style="text-align:center;margin-top:16px;">
         <button id="trader-close" style="padding:8px 20px;background:#3a0a0a;border:1px solid #ff4444;color:#ff4444;font-family:monospace;cursor:pointer;border-radius:4px;">Закрити [E]</button>
@@ -1788,27 +1786,37 @@ export class GameScene extends Phaser.Scene {
     document.body.appendChild(div);
     this.traderShopDiv = div;
 
-    // Buy buttons
-    div.querySelectorAll('.trader-buy').forEach(btn => {
+    // Style all buy buttons and apply disabled state
+    const refreshButtons = () => {
+      div.querySelectorAll<HTMLButtonElement>('.trader-buy').forEach(btn => {
+        const item = btn.dataset.item!;
+        const cost = parseInt(btn.dataset.cost!);
+        const maxed = this.isTraderItemMaxed(item);
+        const cantAfford = shop.getKills() < cost;
+        const disabled = maxed || cantAfford;
+        btn.disabled = disabled;
+        btn.style.cssText = `padding:4px 10px;font-family:monospace;cursor:${disabled ? 'not-allowed' : 'pointer'};border-radius:3px;
+          background:${disabled ? '#111' : '#1a3a1a'};
+          border:1px solid ${disabled ? '#444' : '#44ff44'};
+          color:${disabled ? '#555' : '#44ff44'};`;
+        if (maxed) btn.textContent = 'Максимум';
+        else btn.textContent = `Купити (${cost} 💀)`;
+      });
+    };
+
+    refreshButtons();
+
+    div.querySelectorAll<HTMLButtonElement>('.trader-buy').forEach(btn => {
       btn.addEventListener('click', () => {
-        const item = (btn as HTMLElement).dataset.item!;
-        const cost = parseInt((btn as HTMLElement).dataset.cost!);
-        const kills = shop.getKills();
-        if (kills < cost) {
-          (btn as HTMLElement).style.color = '#ff4444';
-          setTimeout(() => (btn as HTMLElement).style.color = '', 500);
-          return;
-        }
+        const item = btn.dataset.item!;
+        const cost = parseInt(btn.dataset.cost!);
+        if (shop.getKills() < cost || this.isTraderItemMaxed(item)) return;
         shop.addKills(-cost);
         const killsEl = div.querySelector('#trader-kills');
         if (killsEl) killsEl.textContent = `${shop.getKills()}`;
         this.applyTraderPurchase(item);
-        // Flash confirm
-        (btn as HTMLElement).textContent = '✓ Куплено!';
-        setTimeout(() => {
-          const label = { ammo: '🔸 Магазин', bandage: '🩹 Бинт', medkit: '💊 Аптечка', wood2: '🪵 Дошка', metal2: '🔩 Метал' }[item] || item;
-          (btn as HTMLElement).textContent = `Купити (${cost} 💀)`;
-        }, 800);
+        btn.textContent = '✓ Куплено!';
+        setTimeout(() => refreshButtons(), 600);
       });
     });
 
@@ -1817,12 +1825,19 @@ export class GameScene extends Phaser.Scene {
       this.traderShopDiv = undefined;
       this.traderShopOpen = false;
     });
+  }
 
-    function traderItem(label: string, cost: number, item: string) {
-      return `<div style="display:flex;justify-content:space-between;align-items:center;background:#0d2a0d;padding:8px;border-radius:4px;border:1px solid #226622;">
-        <span>${label}</span>
-        <button class="trader-buy" data-item="${item}" data-cost="${cost}" style="padding:4px 10px;background:#1a3a1a;border:1px solid #44ff44;color:#44ff44;font-family:monospace;cursor:pointer;border-radius:3px;">Купити (${cost} 💀)</button>
-      </div>`;
+  private isTraderItemMaxed(item: string): boolean {
+    switch (item) {
+      case 'ammo':
+        // Maxed if ALL weapons are at max reserve
+        return this.player.weapons.every(w => w.reserveAmmo >= w.def.maxReserve);
+      case 'bandage':
+        return this.player.bandages >= 9;
+      case 'medkit':
+        return this.player.medkits >= 9;
+      default:
+        return false;
     }
   }
 
