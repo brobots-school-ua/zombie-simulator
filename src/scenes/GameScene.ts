@@ -525,10 +525,11 @@ export class GameScene extends Phaser.Scene {
 
     if (this.shootCooldown > 0) this.shootCooldown -= delta;
 
-    // Trees become semi-transparent when player is nearby
+    // Trees become semi-transparent when player or trader is nearby
     for (const tree of this.trees) {
-      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, tree.x, tree.y);
-      tree.setAlpha(dist < 60 ? 0.25 : 0.85);
+      const distPlayer = Phaser.Math.Distance.Between(this.player.x, this.player.y, tree.x, tree.y);
+      const distTrader = this.trader ? Phaser.Math.Distance.Between(this.trader.x, this.trader.y, tree.x, tree.y) : Infinity;
+      tree.setAlpha(distPlayer < 60 || distTrader < 60 ? 0.25 : 0.85);
     }
 
     // A* path updates — staggered so not all zombies recalc same frame
@@ -1827,11 +1828,12 @@ export class GameScene extends Phaser.Scene {
 
   private applyTraderPurchase(item: string) {
     switch (item) {
-      case 'ammo':
-        // Add ammo to current weapon
-        this.player.weapons[this.player.activeWeaponIndex].reserveAmmo =
-          Math.min(this.player.weapons[this.player.activeWeaponIndex].reserveAmmo + 30, 999);
+      case 'ammo': {
+        // Add ammo to current weapon, capped at maxReserve
+        const w = this.player.weapons[this.player.activeWeaponIndex];
+        w.reserveAmmo = Math.min(w.reserveAmmo + 30, w.def.maxReserve);
         break;
+      }
       case 'bandage':
         this.player.bandages = Math.min(this.player.bandages + 1, 9);
         break;
