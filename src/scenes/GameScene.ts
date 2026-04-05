@@ -802,8 +802,12 @@ export class GameScene extends Phaser.Scene {
     // Emit event so UIScene renders the countdown (UIScene renders on top of GameScene)
     this.events.emit('wave-break-start', { wave: this.wave, seconds: breakTime });
 
+    // Spawn trader nearby
+    this.spawnTrader();
+
     this.time.delayedCall(breakTime * 1000, () => {
       this.events.emit('wave-break-end');
+      this.removeTrader();
       if (!this.gameOver) {
         this.spawnWave();
         this.waveDelay = false;
@@ -1651,6 +1655,14 @@ export class GameScene extends Phaser.Scene {
 
   private handleEKey() {
     if (this.gameOver || !this.player?.active) return;
+
+    // Close trader shop if open
+    if (this.traderShopOpen) {
+      this.traderShopDiv?.remove();
+      this.traderShopDiv = undefined;
+      this.traderShopOpen = false;
+      return;
+    }
 
     // Check doors
     for (const b of this.buildings) {
