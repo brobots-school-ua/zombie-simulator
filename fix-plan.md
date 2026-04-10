@@ -1,41 +1,44 @@
-# Plan: Prisma + PostgreSQL
+# Plan: PostgreSQL на VPS
 
-## Що зараз
-- `server/index.ts` використовує raw `pg` і створює таблицю вручну через `CREATE TABLE IF NOT EXISTS`
-- Немає міграцій, немає типізації, немає нормальної схеми
+## Проблема
+`172.17.0.1:5433` — це PostgreSQL в Coder workspace.
+VPS — окремий сервер, не має до нього доступу.
 
-## Що робимо
+## Рішення
+Додати PostgreSQL контейнер прямо в `docker-compose.yml` на VPS.
 
-### 1. Встановити Prisma v6
-```bash
-npm install prisma@6 @prisma/client@6
+### docker-compose.yml — два сервіси:
+```yaml
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: zombie
+      POSTGRES_PASSWORD: zombie2026
+      POSTGRES_DB: zombie_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  app:
+    build: .
+    ports:
+      - "4009:80"
+    depends_on: [db]
+    environment:
+      DATABASE_URL: postgresql://zombie:zombie2026@db:5432/zombie_db
+    restart: unless-stopped
+
+volumes:
+  pgdata:
 ```
 
-### 2. Ініціалізувати Prisma
-```bash
-npx prisma init --datasource-provider postgresql
+### Dockerfile — додати міграцію при старті:
+```
+CMD: npx prisma migrate deploy && tsx server/index.ts
 ```
 
-### 3. Схема (`prisma/schema.prisma`)
-```prisma
-model Profile {
-  name      String   @id
-  data      Json
-  updatedAt DateTime @updatedAt
-}
-```
-
-### 4. Запустити міграцію
-```bash
-npx prisma migrate dev --name init
-```
-
-### 5. Замінити raw `pg` на Prisma Client в `server/index.ts`
-- `pool.query(...)` → `prisma.profile.findUnique(...)` / `prisma.profile.upsert(...)`
-
-### 6. Оновити Dockerfile
-- Додати `npx prisma generate` при білді
-- Додати `npx prisma migrate deploy` перед стартом сервера
+Дані зберігаються в Docker volume `pgdata` — не зникнуть при перезапуску.
 
 ---
 

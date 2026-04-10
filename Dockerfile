@@ -20,4 +20,4 @@ COPY server ./server
 EXPOSE 80
 ENV NODE_ENV=production
 ENV PORT=80
-CMD ["npx", "tsx", "server/index.ts"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx tsx server/index.ts"]

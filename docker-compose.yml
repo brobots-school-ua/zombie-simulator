@@ -1,10 +1,25 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: zombie
+      POSTGRES_PASSWORD: zombie2026
+      POSTGRES_DB: zombie_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
   app:
     build: .
     ports:
       - "4009:80"
-    restart: unless-stopped
+    depends_on:
+      - db
     environment:
-      - NODE_ENV=production
-      - PORT=80
-      - DATABASE_URL=postgresql://student_admin:vibecode2026pg@172.17.0.1:5433/db_nikitad
+      NODE_ENV: production
+      PORT: "80"
+      DATABASE_URL: postgresql://zombie:zombie2026@db:5432/zombie_db
+    restart: unless-stopped
+
+volumes:
+  pgdata:
