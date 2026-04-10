@@ -649,7 +649,10 @@ export class MenuScene extends Phaser.Scene {
         </div>
         <div style="display:flex; margin-bottom:6px;">
           <span style="color:#88aa44; font-size:13px; font-weight:bold;">INVENTORY</span>
-          <span style="flex:1;"></span>
+          <span style="flex:1; display:flex; justify-content:center; align-items:center; gap:4px;">
+            <span style="color:#aaa; font-size:11px;">кількість:</span>
+            <input id="stash-amount" type="number" min="1" value="1" style="width:52px; background:#111; border:1px solid #555; color:#fff; font-family:monospace; font-size:13px; text-align:center; padding:2px 4px; border-radius:3px;">
+          </span>
           <span style="color:#ffcc22; font-size:13px; font-weight:bold;">STASH</span>
         </div>
         <div style="border:1px solid #333; border-radius:6px; padding:8px; background:rgba(0,0,0,0.3); display:flex; flex-direction:column; gap:4px;">
@@ -664,17 +667,23 @@ export class MenuScene extends Phaser.Scene {
 
       this.backpackPanel!.querySelector('#bp-close')!.addEventListener('click', () => this.closeBackpack());
 
+      const getAmount = () => {
+        const inp = this.backpackPanel!.querySelector('#stash-amount') as HTMLInputElement;
+        return Math.max(1, parseInt(inp?.value || '1', 10) || 1);
+      };
+
       // Move from inventory to stash
       this.backpackPanel!.querySelectorAll('.stash-to-stash').forEach(btn => {
         btn.addEventListener('click', () => {
           const key = (btn as HTMLElement).dataset.key!;
+          const n = getAmount();
           const mat = profile.getMaterials();
           const st = profile.getStash();
-          if (key === 'wood' && mat.wood > 0) { mat.wood--; st.wood++; }
-          else if (key === 'metal' && mat.metal > 0) { mat.metal--; st.metal++; }
-          else if (key === 'screws' && mat.screws > 0) { mat.screws--; st.screws++; }
-          else if (key === 'bandages') { st.bandages++; }
-          else if (key === 'medkits') { st.medkits++; }
+          if (key === 'wood')    { const t = Math.min(n, mat.wood);    mat.wood    -= t; st.wood    += t; }
+          else if (key === 'metal')   { const t = Math.min(n, mat.metal);   mat.metal   -= t; st.metal   += t; }
+          else if (key === 'screws')  { const t = Math.min(n, mat.screws);  mat.screws  -= t; st.screws  += t; }
+          else if (key === 'bandages') { st.bandages += n; }
+          else if (key === 'medkits')  { st.medkits  += n; }
           else return;
           profile.setMaterials(mat);
           profile.setStash(st);
@@ -686,13 +695,14 @@ export class MenuScene extends Phaser.Scene {
       this.backpackPanel!.querySelectorAll('.stash-to-inv').forEach(btn => {
         btn.addEventListener('click', () => {
           const key = (btn as HTMLElement).dataset.key!;
+          const n = getAmount();
           const mat = profile.getMaterials();
           const st = profile.getStash();
-          if (key === 'wood' && st.wood > 0) { st.wood--; mat.wood++; }
-          else if (key === 'metal' && st.metal > 0) { st.metal--; mat.metal++; }
-          else if (key === 'screws' && st.screws > 0) { st.screws--; mat.screws++; }
-          else if (key === 'bandages' && st.bandages > 0) { st.bandages--; }
-          else if (key === 'medkits' && st.medkits > 0) { st.medkits--; }
+          if (key === 'wood')    { const t = Math.min(n, st.wood);    st.wood    -= t; mat.wood    += t; }
+          else if (key === 'metal')   { const t = Math.min(n, st.metal);   st.metal   -= t; mat.metal   += t; }
+          else if (key === 'screws')  { const t = Math.min(n, st.screws);  st.screws  -= t; mat.screws  += t; }
+          else if (key === 'bandages') { const t = Math.min(n, st.bandages); st.bandages -= t; }
+          else if (key === 'medkits')  { const t = Math.min(n, st.medkits);  st.medkits  -= t; }
           else return;
           profile.setMaterials(mat);
           profile.setStash(st);
