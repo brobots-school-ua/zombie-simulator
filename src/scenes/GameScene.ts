@@ -22,6 +22,7 @@ interface DoorData {
 
 interface BuildingInfo {
   interiorBounds: Phaser.Geom.Rectangle;
+  footprint: Phaser.Geom.Rectangle;
   roof: Phaser.GameObjects.Graphics;
   doors: DoorData[];
 }
@@ -1437,8 +1438,8 @@ export class GameScene extends Phaser.Scene {
         const y = Phaser.Math.Between(150, this.mapSize - 150);
         if (Math.abs(x - cx) < 200 && Math.abs(y - cy) < 200) continue;
         if (this.isPositionBlocked(x, y)) continue;
-        // Skip positions inside buildings
-        if (this.buildings.some(b => b.interiorBounds.contains(x, y))) continue;
+        // Skip positions inside buildings (full footprint including walls)
+        if (this.buildings.some(b => b.footprint.contains(x, y))) continue;
 
         if (deco.isTree) {
           const tree = this.add.image(x, y, deco.key)
@@ -1573,6 +1574,7 @@ export class GameScene extends Phaser.Scene {
 
     return {
       interiorBounds: new Phaser.Geom.Rectangle(bx + 64, by + 64, pw - 128, ph - 128),
+      footprint: new Phaser.Geom.Rectangle(bx, by, pw, ph),
       roof,
       doors,
     };

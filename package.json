@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "tsx server/index.ts",
+    "dev:all": "concurrently \"npm run dev -- --host :: --port 5173\" \"npm run server\"",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
@@ -13,6 +15,12 @@
     "vite": "^8.0.1"
   },
   "dependencies": {
-    "phaser": "^3.90.0"
+    "@types/express": "^5.0.6",
+    "@types/pg": "^8.20.0",
+    "concurrently": "^9.2.1",
+    "express": "^5.2.1",
+    "pg": "^8.20.0",
+    "phaser": "^3.90.0",
+    "tsx": "^4.21.0"
   }
 }

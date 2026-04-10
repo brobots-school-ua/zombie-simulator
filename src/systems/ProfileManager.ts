@@ -16,6 +16,7 @@ export interface ProfileData {
 
 const PROFILE_PREFIX = 'zombie-profile-';
 const ACTIVE_KEY = 'zombie-active-profile';
+const API_URL = 'http://localhost:3001/api/profile';
 
 function emptyProfile(): ProfileData {
   return {
@@ -116,6 +117,7 @@ class ProfileManager {
       this.data = emptyProfile();
       return;
     }
+    // Try loading from localStorage first (instant, no async needed at startup)
     const raw = localStorage.getItem(PROFILE_PREFIX + this.nickname);
     if (raw) {
       try {
@@ -127,11 +129,34 @@ class ProfileManager {
     } else {
       this.data = emptyProfile();
     }
+    // Also fetch from server in background and update if server has data
+    this.loadFromServer();
+  }
+
+  private async loadFromServer() {
+    try {
+      const res = await fetch(`${API_URL}/${encodeURIComponent(this.nickname)}`);
+      if (!res.ok) return;
+      const serverData = await res.json();
+      if (serverData) {
+        this.data = { ...emptyProfile(), ...serverData };
+        // Sync back to localStorage
+        localStorage.setItem(PROFILE_PREFIX + this.nickname, JSON.stringify(this.data));
+      }
+    } catch {
+      // Server unavailable — localStorage data remains active
+    }
   }
 
   save() {
     if (!this.nickname) return;
     localStorage.setItem(PROFILE_PREFIX + this.nickname, JSON.stringify(this.data));
+    // Save to server in background
+    fetch(`${API_URL}/${encodeURIComponent(this.nickname)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(this.data),
+    }).catch(() => {/* server unavailable, localStorage is fallback */});
   }
 
   // === Kills ===
