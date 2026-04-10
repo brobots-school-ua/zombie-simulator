@@ -4,3 +4,7 @@ services:
     ports:
       - "4009:80"
     restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=80
+      - DATABASE_URL=postgresql://student_admin:vibecode2026pg@172.17.0.1:5433/db_nikitad

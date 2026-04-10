@@ -1,17 +1,17 @@
 import express from 'express';
 import { Pool } from 'pg';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
 
-// Allow requests from Vite dev server
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') { res.sendStatus(200); return; }
-  next();
-});
+// Serve built frontend in production
+if (process.env.NODE_ENV === 'production') {
+  const distPath = join(__dirname, '../dist');
+  app.use(express.static(distPath));
+}
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL ||
@@ -61,7 +61,7 @@ app.post('/api/profile/:name', async (req, res) => {
   }
 });
 
-const PORT = 3001;
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
 app.listen(PORT, '::', () => {
-  console.log(`Profile API running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

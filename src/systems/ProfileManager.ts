@@ -16,7 +16,8 @@ export interface ProfileData {
 
 const PROFILE_PREFIX = 'zombie-profile-';
 const ACTIVE_KEY = 'zombie-active-profile';
-const API_URL = 'http://localhost:3001/api/profile';
+// In production (same origin), use relative URL. In dev, proxy via Vite.
+const API_URL = '/api/profile';
 
 function emptyProfile(): ProfileData {
   return {

@@ -1,4 +1,4 @@
-# Build stage
+# Build frontend
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package*.json ./
@@ -6,8 +6,14 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# Production stage — serve static files
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
+# Production — run Express server (serves API + static files)
+FROM node:22-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --omit=dev
+COPY --from=build /app/dist ./dist
+COPY server ./server
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+ENV NODE_ENV=production
+ENV PORT=80
+CMD ["npx", "tsx", "server/index.ts"]
